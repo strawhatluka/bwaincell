@@ -64,6 +64,12 @@ jest.mock('../../../database', () => ({
     getGuildConfig: jest.fn().mockResolvedValue(mockEventConfig),
     updateLastAnnouncement: jest.fn().mockResolvedValue(mockEventConfig),
   },
+  Reminder: {
+    getActiveReminders: jest.fn().mockResolvedValue([]),
+  },
+  SunsetConfig: {
+    getEnabledConfigs: jest.fn().mockResolvedValue([]),
+  },
 }));
 
 // Mock events service
@@ -104,6 +110,14 @@ import { buildCronExpression, getEventWindow } from '../../../utils/dateHelpers'
 describe('Event Scheduler Integration', () => {
   let mockClient: Partial<Client>;
   let mockChannel: any;
+
+  afterEach(() => {
+    // Stop the scheduler to clean up any pending timers/jobs
+    const scheduler = getScheduler();
+    if (scheduler) {
+      scheduler.stop();
+    }
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Sunset Announcement Feature** - Daily sunset announcements with configurable advance notice (Issue #42)
+  - **`/sunset` Discord Command** — 4 subcommands for managing sunset announcements:
+    - `/sunset enable` — Enable daily sunset announcements using `LOCATION_ZIP_CODE` and `DEFAULT_REMINDER_CHANNEL`
+    - `/sunset disable` — Disable sunset announcements
+    - `/sunset set <minutes>` — Configure advance notice (1-120 minutes, default: 60)
+    - `/sunset status` — Show current config, today's sunset time, and countdown
+  - **SunsetConfig Database Model** — Per-guild configuration with advance_minutes, ZIP code, timezone, enable/disable toggle
+  - **Sunset Service** (`sunsetService.ts`) — ZIP-to-coordinates lookup via zippopotam.us API, sunset time fetching via sunrise-sunset.org API, Discord embed formatting
+  - **Scheduler Integration** — Daily cron at 00:05 fetches today's sunset, schedules a one-time setTimeout for the announcement (sunset - advance_minutes)
+  - **Immediate startup check** — On bot restart, checks if today's sunset announcement should still be scheduled
+  - **52 unit tests** across 3 test files:
+    - `SunsetConfig.test.ts` (20 tests) — Model CRUD, upsert, toggle, advance minutes
+    - `sunsetService.test.ts` (15 tests) — ZIP lookup, sunset API, embed formatting, caching, error handling
+    - `sunset.test.ts` (17 tests) — All 4 subcommands, validation, error handling
+  - Uses existing `LOCATION_ZIP_CODE` and `DEFAULT_REMINDER_CHANNEL` environment variables (no new env vars)
+
 - **Comprehensive Test Coverage** - 33 new test files with 996 new tests, bringing total from 308 to 1304 (Issue #31)
   - **Wave 1 — Command Unit Tests** (WO-013): 6 files covering all untested Discord slash commands
     - `task.test.ts` — add, list, done, delete, edit subcommands + autocomplete + error handling

@@ -27,11 +27,12 @@ class Scheduler {
   async initialize(): Promise<void> {
     try {
       // Dynamically import models to avoid initialization issues
-      const { Reminder, EventConfig } = await import('../database');
+      const { Reminder, EventConfig, SunsetConfig } = await import('../database');
 
       await this.loadReminders(Reminder);
       await this.loadEventConfigs(EventConfig);
       await this.scheduleDailyQuestions(EventConfig);
+      await this.loadSunsetConfigs(SunsetConfig);
       logger.info('Scheduler initialized successfully');
     } catch (error) {
       logger.error('Scheduler initialization failed', {
@@ -524,6 +525,216 @@ class Scheduler {
         stack: error instanceof Error ? error.stack : undefined,
       });
     }
+  }
+
+  // ============================================================================
+  // Sunset Announcement Scheduling
+  // ============================================================================
+
+  private async loadSunsetConfigs(SunsetConfig: any): Promise<void> {
+    if (!SunsetConfig || !SunsetConfig.getEnabledConfigs) {
+      logger.warn('SunsetConfig model not properly initialized, skipping sunset scheduler setup');
+      return;
+    }
+
+    try {
+      const configs = await SunsetConfig.getEnabledConfigs();
+      for (const config of configs) {
+        this.scheduleSunsetDailyCheck(config);
+      }
+      logger.info('Sunset announcements scheduled', { count: configs.length });
+    } catch (error) {
+      logger.error('Failed to load sunset configurations', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private scheduleSunsetDailyCheck(config: any): void {
+    try {
+      // Run daily at 00:05 to fetch today's sunset and schedule the announcement
+      const cronExpression = '5 0 * * *';
+
+      const task = cron.schedule(
+        cronExpression,
+        async () => {
+          await this.executeSunsetCheck(config.guild_id);
+        },
+        {
+          timezone: config.timezone,
+        }
+      );
+
+      this.jobs.set(`sunset_daily_${config.guild_id}`, {
+        id: `sunset_daily_${config.guild_id}`,
+        task,
+      });
+
+      logger.info('Sunset daily check scheduled', {
+        guildId: config.guild_id,
+        cronExpression,
+        timezone: config.timezone,
+        advanceMinutes: config.advance_minutes,
+      });
+
+      // Also run an immediate check on startup to handle today's sunset
+      this.executeSunsetCheck(config.guild_id);
+    } catch (error) {
+      logger.error('Failed to schedule sunset daily check', {
+        guildId: config.guild_id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private async executeSunsetCheck(guildId: string): Promise<void> {
+    try {
+      const { SunsetConfig } = await import('../database');
+      const { getCoordinatesFromZip, getSunsetTime } = await import('./sunsetService');
+
+      const config = await SunsetConfig.getGuildConfig(guildId);
+
+      if (!config || !config.is_enabled) {
+        logger.warn('Sunset config not found or disabled', { guildId });
+        return;
+      }
+
+      // Fetch today's sunset time
+      const coords = await getCoordinatesFromZip(config.zip_code);
+      const sunsetTime = await getSunsetTime(coords.lat, coords.lng);
+
+      // Calculate announcement time = sunset - advance_minutes
+      const announceTime = new Date(sunsetTime.getTime() - config.advance_minutes * 60 * 1000);
+      const now = new Date();
+      const delay = announceTime.getTime() - now.getTime();
+
+      if (delay <= 0) {
+        logger.info('Sunset announcement time already passed for today', {
+          guildId,
+          sunsetTime: sunsetTime.toISOString(),
+          announceTime: announceTime.toISOString(),
+        });
+        return;
+      }
+
+      // Cancel any existing announcement timeout for this guild
+      const existingJob = this.jobs.get(`sunset_announce_${guildId}`);
+      if (existingJob) {
+        existingJob.task.stop();
+        this.jobs.delete(`sunset_announce_${guildId}`);
+      }
+
+      // Schedule the announcement
+      const timeoutId = setTimeout(async () => {
+        await this.executeSunsetAnnouncement(guildId, sunsetTime);
+        this.jobs.delete(`sunset_announce_${guildId}`);
+      }, delay);
+
+      this.jobs.set(`sunset_announce_${guildId}`, {
+        id: `sunset_announce_${guildId}`,
+        task: {
+          stop: () => clearTimeout(timeoutId),
+        } as any,
+      });
+
+      logger.info('Sunset announcement scheduled for today', {
+        guildId,
+        sunsetTime: sunsetTime.toISOString(),
+        announceTime: announceTime.toISOString(),
+        delayMs: delay,
+        advanceMinutes: config.advance_minutes,
+      });
+    } catch (error) {
+      logger.error('Failed to execute sunset check', {
+        guildId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+  }
+
+  private async executeSunsetAnnouncement(guildId: string, sunsetTime: Date): Promise<void> {
+    try {
+      const { SunsetConfig } = await import('../database');
+      const { formatSunsetEmbed } = await import('./sunsetService');
+
+      logger.info('Executing sunset announcement', { guildId });
+
+      const config = await SunsetConfig.getGuildConfig(guildId);
+
+      if (!config || !config.is_enabled) {
+        logger.warn('Sunset config not found or disabled at announcement time', { guildId });
+        return;
+      }
+
+      const embed = formatSunsetEmbed(sunsetTime, config.timezone);
+
+      const channel = await this.client.channels.fetch(config.channel_id);
+
+      if (channel && 'send' in channel) {
+        await channel.send({ embeds: [embed] });
+
+        await SunsetConfig.updateLastAnnouncement(guildId);
+
+        logger.info('Sunset announcement sent successfully', {
+          guildId,
+          sunsetTime: sunsetTime.toISOString(),
+          channelId: config.channel_id,
+        });
+      } else {
+        logger.warn('Sunset announcement channel not found or invalid', {
+          guildId,
+          channelId: config.channel_id,
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to execute sunset announcement', {
+        guildId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+  }
+
+  // Public method to add a new sunset config to the scheduler
+  async addSunsetConfig(guildId: string): Promise<void> {
+    try {
+      const { SunsetConfig } = await import('../database');
+      const config = await SunsetConfig.getGuildConfig(guildId);
+
+      if (config && config.is_enabled) {
+        // Remove existing jobs if present
+        this.removeSunsetConfig(guildId);
+
+        // Schedule new daily check
+        this.scheduleSunsetDailyCheck(config);
+      }
+    } catch (error) {
+      logger.error('Failed to add sunset config to scheduler', {
+        guildId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  // Public method to remove a sunset config from scheduler
+  removeSunsetConfig(guildId: string): void {
+    const dailyJobId = `sunset_daily_${guildId}`;
+    const announceJobId = `sunset_announce_${guildId}`;
+
+    const dailyJob = this.jobs.get(dailyJobId);
+    if (dailyJob) {
+      dailyJob.task.stop();
+      this.jobs.delete(dailyJobId);
+    }
+
+    const announceJob = this.jobs.get(announceJobId);
+    if (announceJob) {
+      announceJob.task.stop();
+      this.jobs.delete(announceJobId);
+    }
+
+    logger.info('Sunset config removed from scheduler', { guildId });
   }
 
   stop(): void {

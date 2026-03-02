@@ -44,6 +44,10 @@ describe('Rate Limit Middleware', () => {
     rateLimitStore.clear();
   });
 
+  afterAll(() => {
+    rateLimitStore.destroy();
+  });
+
   describe('Middleware Properties', () => {
     it('should have name "rateLimit"', () => {
       expect(rateLimitMiddleware.name).toBe('rateLimit');
