@@ -1,6 +1,6 @@
 {
   "name": "@bwaincell/backend",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Bwaincell Discord Bot Backend",
   "main": "dist/src/bot.js",
   "_moduleAliases": {
