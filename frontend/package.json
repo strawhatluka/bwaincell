@@ -1,6 +1,6 @@
 {
   "name": "@bwaincell/frontend",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Bwaincell PWA Frontend",
   "main": "index.js",
   "scripts": {
@@ -52,8 +52,8 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "eslint": "^9.0.0",
-    "eslint-config-next": "^16.1.1",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.35",
     "sharp": "^0.34.4"
   }
 }

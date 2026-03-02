@@ -13,6 +13,7 @@ import Schedule from './models/Schedule';
 import List from './models/List';
 import { User } from './models/User';
 import EventConfig from './models/EventConfig';
+import SunsetConfig from './models/SunsetConfig';
 
 // Validate DATABASE_URL environment variable
 const databaseUrl = process.env.DATABASE_URL;
@@ -64,6 +65,7 @@ Schedule.init(sequelize);
 List.init(sequelize);
 User.init(sequelize);
 EventConfig.init(sequelize);
+SunsetConfig.init(sequelize);
 
 /**
  * Sync all auto-increment sequences to match actual max(id) values.
@@ -104,6 +106,6 @@ export async function syncSequences(): Promise<void> {
 }
 
 // Export sequelize instance and models
-export { sequelize, Task, Note, Reminder, Budget, Schedule, List, User, EventConfig };
+export { sequelize, Task, Note, Reminder, Budget, Schedule, List, User, EventConfig, SunsetConfig };
 
 export default sequelize;

@@ -59,6 +59,10 @@ jest.mock('../../../database/models/EventConfig', () => ({
   default: { init: jest.fn() },
   __esModule: true,
 }));
+jest.mock('../../../database/models/SunsetConfig', () => ({
+  default: { init: jest.fn() },
+  __esModule: true,
+}));
 
 import { syncSequences } from '../../../database/index';
 

@@ -299,6 +299,57 @@ const schemas = {
     },
   },
 
+  sunsetConfig: {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    guild_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    user_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    advance_minutes: {
+      type: DataTypes.INTEGER,
+      defaultValue: 60,
+      allowNull: false,
+    },
+    channel_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    zip_code: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    timezone: {
+      type: DataTypes.STRING,
+      defaultValue: 'America/Los_Angeles',
+      allowNull: false,
+    },
+    is_enabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+    last_announcement: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+
   eventConfig: {
     id: {
       type: DataTypes.INTEGER,

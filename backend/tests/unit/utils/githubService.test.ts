@@ -5,6 +5,22 @@
  * Uses inline mock factory to avoid ESM import issues
  */
 
+// Mock logger BEFORE imports to prevent real Winston file transports from opening
+jest.mock('../../../shared/utils/logger', () => ({
+  createLogger: jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  })),
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 // Mock function that will be shared across all Octokit instances
 const mockCreateIssue = jest.fn();
 
