@@ -117,25 +117,20 @@ describe('List Button Handlers', () => {
 
   describe('list_view_{name}', () => {
     it('should display list with items', async () => {
-      mockList.findAll.mockResolvedValue([
-        {
-          name: 'Groceries',
-          items: [
-            { text: 'Milk', completed: false },
-            { text: 'Bread', completed: true },
-          ],
-          user_id: 'user-456',
-          guild_id: 'guild-123',
-        },
-      ]);
+      mockList.getList.mockResolvedValue({
+        name: 'Groceries',
+        items: [
+          { text: 'Milk', completed: false },
+          { text: 'Bread', completed: true },
+        ],
+        guild_id: 'guild-123',
+      });
 
       const interaction = createMockInteraction({ customId: 'list_view_groceries' });
 
       await handleListButton(interaction);
 
-      expect(mockList.findAll).toHaveBeenCalledWith({
-        where: { user_id: 'user-456', guild_id: 'guild-123' },
-      });
+      expect(mockList.getList).toHaveBeenCalledWith('guild-123', 'groceries');
       expect(interaction.reply).toHaveBeenCalledWith(
         expect.objectContaining({
           embeds: expect.any(Array),
@@ -145,14 +140,11 @@ describe('List Button Handlers', () => {
     });
 
     it('should display empty list message', async () => {
-      mockList.findAll.mockResolvedValue([
-        {
-          name: 'Groceries',
-          items: [],
-          user_id: 'user-456',
-          guild_id: 'guild-123',
-        },
-      ]);
+      mockList.getList.mockResolvedValue({
+        name: 'Groceries',
+        items: [],
+        guild_id: 'guild-123',
+      });
 
       const interaction = createMockInteraction({ customId: 'list_view_groceries' });
 
@@ -162,14 +154,11 @@ describe('List Button Handlers', () => {
     });
 
     it('should display empty list message when items is null', async () => {
-      mockList.findAll.mockResolvedValue([
-        {
-          name: 'Groceries',
-          items: null,
-          user_id: 'user-456',
-          guild_id: 'guild-123',
-        },
-      ]);
+      mockList.getList.mockResolvedValue({
+        name: 'Groceries',
+        items: null,
+        guild_id: 'guild-123',
+      });
 
       const interaction = createMockInteraction({ customId: 'list_view_groceries' });
 
@@ -179,7 +168,7 @@ describe('List Button Handlers', () => {
     });
 
     it('should reply with not found when list does not exist', async () => {
-      mockList.findAll.mockResolvedValue([]);
+      mockList.getList.mockResolvedValue(null);
 
       const interaction = createMockInteraction({ customId: 'list_view_nonexistent' });
 
@@ -193,7 +182,7 @@ describe('List Button Handlers', () => {
     });
 
     it('should use followUp when deferred and list not found', async () => {
-      mockList.findAll.mockResolvedValue([]);
+      mockList.getList.mockResolvedValue(null);
 
       const interaction = createMockInteraction({
         customId: 'list_view_nonexistent',
@@ -210,14 +199,11 @@ describe('List Button Handlers', () => {
     });
 
     it('should match list name case-insensitively', async () => {
-      mockList.findAll.mockResolvedValue([
-        {
-          name: 'Groceries',
-          items: [{ text: 'Milk', completed: false }],
-          user_id: 'user-456',
-          guild_id: 'guild-123',
-        },
-      ]);
+      mockList.getList.mockResolvedValue({
+        name: 'Groceries',
+        items: [{ text: 'Milk', completed: false }],
+        guild_id: 'guild-123',
+      });
 
       const interaction = createMockInteraction({ customId: 'list_view_groceries' });
 
@@ -229,14 +215,13 @@ describe('List Button Handlers', () => {
 
   describe('list_mark_complete_{name}', () => {
     it('should show select menu with incomplete items', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Groceries',
         items: [
           { text: 'Milk', completed: false },
           { text: 'Bread', completed: true },
           { text: 'Eggs', completed: false },
         ],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
 
@@ -244,9 +229,7 @@ describe('List Button Handlers', () => {
 
       await handleListButton(interaction);
 
-      expect(mockList.findOne).toHaveBeenCalledWith({
-        where: { user_id: 'user-456', guild_id: 'guild-123', name: 'Groceries' },
-      });
+      expect(mockList.getList).toHaveBeenCalledWith('guild-123', 'Groceries');
       expect(interaction.reply).toHaveBeenCalledWith(
         expect.objectContaining({
           content: expect.stringContaining('Select an item'),
@@ -256,7 +239,7 @@ describe('List Button Handlers', () => {
     });
 
     it('should reply with not found when list does not exist', async () => {
-      mockList.findOne.mockResolvedValue(null);
+      mockList.getList.mockResolvedValue(null);
 
       const interaction = createMockInteraction({ customId: 'list_mark_complete_nonexistent' });
 
@@ -270,13 +253,12 @@ describe('List Button Handlers', () => {
     });
 
     it('should indicate all items already completed', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Groceries',
         items: [
           { text: 'Milk', completed: true },
           { text: 'Bread', completed: true },
         ],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
 
@@ -292,10 +274,9 @@ describe('List Button Handlers', () => {
     });
 
     it('should use editReply when deferred and all items completed', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Groceries',
         items: [{ text: 'Milk', completed: true }],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
 
@@ -322,11 +303,10 @@ describe('List Button Handlers', () => {
           { text: 'Milk', completed: false },
           { text: 'Bread', completed: true },
         ],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       };
 
-      mockList.findOne.mockResolvedValueOnce(mockListData).mockResolvedValueOnce({
+      mockList.getList.mockResolvedValueOnce(mockListData).mockResolvedValueOnce({
         ...mockListData,
         items: [
           { text: 'Milk', completed: true },
@@ -345,7 +325,7 @@ describe('List Button Handlers', () => {
     });
 
     it('should reply with not found when list or item does not exist', async () => {
-      mockList.findOne.mockResolvedValue(null);
+      mockList.getList.mockResolvedValue(null);
 
       const interaction = createMockInteraction({ customId: 'list_toggle_item_Groceries_0' });
 
@@ -359,10 +339,9 @@ describe('List Button Handlers', () => {
     });
 
     it('should handle item index out of range', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Groceries',
         items: [{ text: 'Milk', completed: false }],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
 
@@ -378,11 +357,10 @@ describe('List Button Handlers', () => {
     });
 
     it('should handle error when updated list cannot be fetched', async () => {
-      mockList.findOne
+      mockList.getList
         .mockResolvedValueOnce({
           name: 'Groceries',
           items: [{ text: 'Milk', completed: false }],
-          user_id: 'user-456',
           guild_id: 'guild-123',
         })
         .mockResolvedValueOnce(null);
@@ -401,7 +379,7 @@ describe('List Button Handlers', () => {
     });
 
     it('should use editReply when deferred', async () => {
-      mockList.findOne.mockResolvedValue(null);
+      mockList.getList.mockResolvedValue(null);
 
       const interaction = createMockInteraction({
         customId: 'list_toggle_item_Groceries_0',
@@ -421,11 +399,10 @@ describe('List Button Handlers', () => {
       const mockListData = {
         name: 'my_shopping_list',
         items: [{ text: 'Apples', completed: false }],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       };
 
-      mockList.findOne.mockResolvedValueOnce(mockListData).mockResolvedValueOnce({
+      mockList.getList.mockResolvedValueOnce(mockListData).mockResolvedValueOnce({
         ...mockListData,
         items: [{ text: 'Apples', completed: true }],
       });
@@ -438,9 +415,7 @@ describe('List Button Handlers', () => {
 
       await handleListButton(interaction);
 
-      expect(mockList.findOne).toHaveBeenCalledWith({
-        where: { user_id: 'user-456', guild_id: 'guild-123', name: 'my_shopping_list' },
-      });
+      expect(mockList.getList).toHaveBeenCalledWith('guild-123', 'my_shopping_list');
     });
   });
 
@@ -601,7 +576,7 @@ describe('List Button Handlers', () => {
   describe('Error Handling', () => {
     it('should call handleInteractionError on error', async () => {
       const dbError = new Error('Database connection lost');
-      mockList.findAll.mockRejectedValue(dbError);
+      mockList.getList.mockRejectedValue(dbError);
 
       const interaction = createMockInteraction({ customId: 'list_view_groceries' });
 

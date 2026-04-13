@@ -15,6 +15,14 @@ jest.mock('../../../../shared/utils/logger', () => ({
   },
 }));
 
+// Create a chainable supabase query builder mock
+const mockSupabaseSingle = jest.fn();
+const mockSupabaseSelect = jest.fn(() => ({ single: mockSupabaseSingle }));
+const mockSupabaseEq2 = jest.fn(() => ({ select: mockSupabaseSelect }));
+const mockSupabaseEq1 = jest.fn(() => ({ eq: mockSupabaseEq2 }));
+const mockSupabaseUpdate = jest.fn(() => ({ eq: mockSupabaseEq1 }));
+const mockSupabaseFrom = jest.fn(() => ({ update: mockSupabaseUpdate }));
+
 // Mock database - prevent actual DB connection
 jest.mock('../../../../../supabase/index', () => ({
   Task: {
@@ -23,7 +31,9 @@ jest.mock('../../../../../supabase/index', () => ({
     completeTask: jest.fn(),
     editTask: jest.fn(),
     deleteTask: jest.fn(),
-    findOne: jest.fn(),
+  },
+  supabase: {
+    from: (...args: any[]) => mockSupabaseFrom(...args),
   },
 }));
 
@@ -285,23 +295,25 @@ describe('Tasks API Routes', () => {
     });
 
     it('should mark a task as incomplete', async () => {
-      const mockTaskInstance = {
+      const uncompletedTask = {
         id: 1,
         description: 'Task',
         completed: false,
-        save: jest.fn(),
+        completed_at: null,
       };
-      mockTask.findOne.mockResolvedValue(mockTaskInstance as any);
+      mockSupabaseSingle.mockResolvedValue({ data: uncompletedTask, error: null });
 
       const res = await request(app).patch('/tasks/1').send({ completed: false });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(mockTaskInstance.save).toHaveBeenCalled();
+      expect(res.body.data).toEqual(uncompletedTask);
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('tasks');
+      expect(mockSupabaseUpdate).toHaveBeenCalledWith({ completed: false, completed_at: null });
     });
 
     it('should return 404 when uncompleting a nonexistent task', async () => {
-      mockTask.findOne.mockResolvedValue(null as any);
+      mockSupabaseSingle.mockResolvedValue({ data: null, error: { message: 'No rows found' } });
 
       const res = await request(app).patch('/tasks/1').send({ completed: false });
 

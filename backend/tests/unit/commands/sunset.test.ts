@@ -287,15 +287,13 @@ describe('Sunset Command', () => {
 
     it('should show status embed with sunset time', async () => {
       (SunsetConfig.getGuildConfig as jest.Mock).mockResolvedValue({
-        get: jest.fn().mockReturnValue({
-          guild_id: 'guild-123',
-          is_enabled: true,
-          zip_code: '90210',
-          advance_minutes: 60,
-          channel_id: 'channel-123',
-          timezone: 'America/Los_Angeles',
-          last_announcement: null,
-        }),
+        guild_id: 'guild-123',
+        is_enabled: true,
+        zip_code: '90210',
+        advance_minutes: 60,
+        channel_id: 'channel-123',
+        timezone: 'America/Los_Angeles',
+        last_announcement: null,
       });
       (getCoordinatesFromZip as jest.Mock).mockResolvedValue({ lat: 34.0901, lng: -118.4065 });
       (getSunsetTime as jest.Mock).mockResolvedValue(new Date('2026-03-02T01:30:00Z'));
@@ -322,15 +320,13 @@ describe('Sunset Command', () => {
 
     it('should handle sunset API failure gracefully', async () => {
       (SunsetConfig.getGuildConfig as jest.Mock).mockResolvedValue({
-        get: jest.fn().mockReturnValue({
-          guild_id: 'guild-123',
-          is_enabled: true,
-          zip_code: '90210',
-          advance_minutes: 60,
-          channel_id: 'channel-123',
-          timezone: 'America/Los_Angeles',
-          last_announcement: null,
-        }),
+        guild_id: 'guild-123',
+        is_enabled: true,
+        zip_code: '90210',
+        advance_minutes: 60,
+        channel_id: 'channel-123',
+        timezone: 'America/Los_Angeles',
+        last_announcement: null,
       });
       (getCoordinatesFromZip as jest.Mock).mockRejectedValue(new Error('API unavailable'));
 

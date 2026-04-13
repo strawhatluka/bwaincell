@@ -19,12 +19,11 @@ jest.mock('../../../../shared/utils/logger', () => ({
 
 // Mock database models
 const mockTask = {
-  findOne: jest.fn(),
   completeTask: jest.fn(),
 };
 
 const mockList = {
-  findOne: jest.fn(),
+  getList: jest.fn(),
   toggleItem: jest.fn(),
 };
 
@@ -39,6 +38,20 @@ jest.mock('../../../../utils/interactions/helpers/databaseHelper', () => ({
     List: mockList,
     Reminder: mockReminder,
   }),
+}));
+
+// Mock supabase for direct queries (task_quick_action, list_quick_select)
+const mockSupabaseSingle = jest.fn();
+const mockSupabaseEq = jest.fn().mockReturnValue({ single: mockSupabaseSingle });
+const mockSupabaseEqFirst = jest.fn().mockReturnValue({ eq: mockSupabaseEq });
+const mockSupabaseSelect = jest.fn().mockReturnValue({ eq: mockSupabaseEqFirst });
+const mockSupabaseFrom = jest.fn().mockReturnValue({ select: mockSupabaseSelect });
+
+jest.mock('../../../../../supabase/supabase', () => ({
+  __esModule: true,
+  default: {
+    from: (...args: any[]) => mockSupabaseFrom(...args),
+  },
 }));
 
 // Mock error responses
@@ -100,13 +113,14 @@ describe('Select Menu Handlers', () => {
 
   describe('task_quick_action', () => {
     it('should display task details with action buttons', async () => {
-      mockTask.findOne.mockResolvedValue({
-        id: 1,
-        description: 'Test task',
-        completed: false,
-        due_date: new Date('2026-03-01'),
-        user_id: 'user-456',
-        guild_id: 'guild-123',
+      mockSupabaseSingle.mockResolvedValue({
+        data: {
+          id: 1,
+          description: 'Test task',
+          completed: false,
+          due_date: new Date('2026-03-01'),
+          guild_id: 'guild-123',
+        },
       });
 
       const interaction = createMockSelectInteraction({
@@ -116,9 +130,8 @@ describe('Select Menu Handlers', () => {
 
       await handleSelectMenuInteraction(interaction);
 
-      expect(mockTask.findOne).toHaveBeenCalledWith({
-        where: { id: 1, user_id: 'user-456', guild_id: 'guild-123' },
-      });
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('tasks');
+      expect(mockSupabaseSelect).toHaveBeenCalledWith('*');
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
           embeds: expect.any(Array),
@@ -128,13 +141,14 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should display completed task with disabled done button', async () => {
-      mockTask.findOne.mockResolvedValue({
-        id: 1,
-        description: 'Completed task',
-        completed: true,
-        due_date: null,
-        user_id: 'user-456',
-        guild_id: 'guild-123',
+      mockSupabaseSingle.mockResolvedValue({
+        data: {
+          id: 1,
+          description: 'Completed task',
+          completed: true,
+          due_date: null,
+          guild_id: 'guild-123',
+        },
       });
 
       const interaction = createMockSelectInteraction({
@@ -153,7 +167,7 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should reply with not found when task does not exist', async () => {
-      mockTask.findOne.mockResolvedValue(null);
+      mockSupabaseSingle.mockResolvedValue({ data: null });
 
       const interaction = createMockSelectInteraction({
         customId: 'task_quick_action',
@@ -250,7 +264,7 @@ describe('Select Menu Handlers', () => {
 
   describe('list_complete_select_{name}', () => {
     it('should mark list item as complete', async () => {
-      mockList.findOne
+      mockList.getList
         .mockResolvedValueOnce({
           name: 'Groceries',
           items: [
@@ -258,7 +272,6 @@ describe('Select Menu Handlers', () => {
             { text: 'Bread', completed: true },
             { text: 'Eggs', completed: false },
           ],
-          user_id: 'user-456',
           guild_id: 'guild-123',
         })
         .mockResolvedValueOnce({
@@ -268,7 +281,6 @@ describe('Select Menu Handlers', () => {
             { text: 'Bread', completed: true },
             { text: 'Eggs', completed: false },
           ],
-          user_id: 'user-456',
           guild_id: 'guild-123',
         });
 
@@ -281,6 +293,7 @@ describe('Select Menu Handlers', () => {
 
       await handleSelectMenuInteraction(interaction);
 
+      expect(mockList.getList).toHaveBeenCalledWith('guild-123', 'Groceries');
       expect(mockList.toggleItem).toHaveBeenCalledWith('guild-123', 'Groceries', 'Milk');
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -292,7 +305,7 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should reply with not found when list does not exist', async () => {
-      mockList.findOne.mockResolvedValue(null);
+      mockList.getList.mockResolvedValue(null);
 
       const interaction = createMockSelectInteraction({
         customId: 'list_complete_select_nonexistent',
@@ -310,10 +323,9 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should reply with not found when selected index exceeds items', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Groceries',
         items: [{ text: 'Milk', completed: false }],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
 
@@ -333,10 +345,9 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should reply with failure when toggleItem returns falsy', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Groceries',
         items: [{ text: 'Milk', completed: false }],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
 
@@ -358,11 +369,10 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should handle case where updated list is null after toggle', async () => {
-      mockList.findOne
+      mockList.getList
         .mockResolvedValueOnce({
           name: 'Groceries',
           items: [{ text: 'Milk', completed: false }],
-          user_id: 'user-456',
           guild_id: 'guild-123',
         })
         .mockResolvedValueOnce(null);
@@ -387,13 +397,12 @@ describe('Select Menu Handlers', () => {
 
   describe('list_select_view', () => {
     it('should display selected list with items', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Groceries',
         items: [
           { text: 'Milk', completed: false },
           { text: 'Bread', completed: true },
         ],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
 
@@ -404,9 +413,7 @@ describe('Select Menu Handlers', () => {
 
       await handleSelectMenuInteraction(interaction);
 
-      expect(mockList.findOne).toHaveBeenCalledWith({
-        where: { user_id: 'user-456', guild_id: 'guild-123', name: 'Groceries' },
-      });
+      expect(mockList.getList).toHaveBeenCalledWith('guild-123', 'Groceries');
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
           embeds: expect.any(Array),
@@ -416,10 +423,9 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should show empty list message', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Groceries',
         items: [],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
 
@@ -434,7 +440,7 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should reply with not found when list does not exist', async () => {
-      mockList.findOne.mockResolvedValue(null);
+      mockList.getList.mockResolvedValue(null);
 
       const interaction = createMockSelectInteraction({
         customId: 'list_select_view',
@@ -453,12 +459,13 @@ describe('Select Menu Handlers', () => {
 
   describe('list_quick_select', () => {
     it('should display selected list by id', async () => {
-      mockList.findOne.mockResolvedValue({
-        id: 5,
-        name: 'Groceries',
-        items: [{ text: 'Milk', completed: false }],
-        user_id: 'user-456',
-        guild_id: 'guild-123',
+      mockSupabaseSingle.mockResolvedValue({
+        data: {
+          id: 5,
+          name: 'Groceries',
+          items: [{ text: 'Milk', completed: false }],
+          guild_id: 'guild-123',
+        },
       });
 
       const interaction = createMockSelectInteraction({
@@ -468,9 +475,8 @@ describe('Select Menu Handlers', () => {
 
       await handleSelectMenuInteraction(interaction);
 
-      expect(mockList.findOne).toHaveBeenCalledWith({
-        where: { id: 5, user_id: 'user-456', guild_id: 'guild-123' },
-      });
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('lists');
+      expect(mockSupabaseSelect).toHaveBeenCalledWith('*');
       expect(interaction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({
           embeds: expect.any(Array),
@@ -480,7 +486,7 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should reply with not found when list id does not exist', async () => {
-      mockList.findOne.mockResolvedValue(null);
+      mockSupabaseSingle.mockResolvedValue({ data: null });
 
       const interaction = createMockSelectInteraction({
         customId: 'list_quick_select',
@@ -497,12 +503,13 @@ describe('Select Menu Handlers', () => {
     });
 
     it('should handle empty list items with null', async () => {
-      mockList.findOne.mockResolvedValue({
-        id: 5,
-        name: 'Groceries',
-        items: null,
-        user_id: 'user-456',
-        guild_id: 'guild-123',
+      mockSupabaseSingle.mockResolvedValue({
+        data: {
+          id: 5,
+          name: 'Groceries',
+          items: null,
+          guild_id: 'guild-123',
+        },
       });
 
       const interaction = createMockSelectInteraction({
@@ -519,7 +526,7 @@ describe('Select Menu Handlers', () => {
   describe('Error Handling', () => {
     it('should call handleInteractionError on database error', async () => {
       const dbError = new Error('Connection failed');
-      mockTask.findOne.mockRejectedValue(dbError);
+      mockSupabaseSingle.mockRejectedValue(dbError);
 
       const interaction = createMockSelectInteraction({
         customId: 'task_quick_action',

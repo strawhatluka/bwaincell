@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // Logger is optional — supabase/ is outside the backend rootDir
 let logger: any;
 try {
-  const { createLogger } = require('../shared/utils/logger');
+  const { createLogger } = require('../backend/shared/utils/logger');
   logger = createLogger('Database');
 } catch {
   logger = { info: console.log, error: console.error, warn: console.warn };

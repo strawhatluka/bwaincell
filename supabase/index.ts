@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let logger: any;
 try {
-  const { createLogger } = require('../shared/utils/logger');
+  const { createLogger } = require('../backend/shared/utils/logger');
   logger = createLogger('Database');
 } catch {
   logger = { info: console.log, error: console.error, warn: console.warn };

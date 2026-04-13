@@ -18,7 +18,7 @@ jest.mock('../../../../shared/utils/logger', () => ({
 
 // Mock database helper
 const mockList = {
-  findOne: jest.fn(),
+  getList: jest.fn(),
   createList: jest.fn(),
   addItem: jest.fn(),
 };
@@ -177,10 +177,9 @@ describe('Random Button Handlers', () => {
 
   describe('save_dinner_{name}', () => {
     it('should save dinner to Meal Ideas list when list exists', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Meal Ideas',
         items: [],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
       mockList.addItem.mockResolvedValue(true);
@@ -191,9 +190,7 @@ describe('Random Button Handlers', () => {
 
       await handleRandomButton(interaction);
 
-      expect(mockList.findOne).toHaveBeenCalledWith({
-        where: { user_id: 'user-456', guild_id: 'guild-123', name: 'Meal Ideas' },
-      });
+      expect(mockList.getList).toHaveBeenCalledWith('guild-123', 'Meal Ideas');
       expect(mockList.addItem).toHaveBeenCalledWith('guild-123', 'Meal Ideas', 'Pasta Carbonara');
       expect(interaction.reply).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -204,11 +201,10 @@ describe('Random Button Handlers', () => {
     });
 
     it('should create Meal Ideas list if it does not exist', async () => {
-      mockList.findOne.mockResolvedValue(null);
+      mockList.getList.mockResolvedValue(null);
       mockList.createList.mockResolvedValue({
         name: 'Meal Ideas',
         items: [],
-        user_id: 'user-456',
         guild_id: 'guild-123',
       });
       mockList.addItem.mockResolvedValue(true);
@@ -224,7 +220,7 @@ describe('Random Button Handlers', () => {
     });
 
     it('should reply with error when addItem fails', async () => {
-      mockList.findOne.mockResolvedValue({
+      mockList.getList.mockResolvedValue({
         name: 'Meal Ideas',
         items: [],
       });
@@ -245,7 +241,7 @@ describe('Random Button Handlers', () => {
     });
 
     it('should use followUp when already deferred (success)', async () => {
-      mockList.findOne.mockResolvedValue({ name: 'Meal Ideas', items: [] });
+      mockList.getList.mockResolvedValue({ name: 'Meal Ideas', items: [] });
       mockList.addItem.mockResolvedValue(true);
 
       const interaction = createMockInteraction({
@@ -264,7 +260,7 @@ describe('Random Button Handlers', () => {
     });
 
     it('should use followUp when already deferred (failure)', async () => {
-      mockList.findOne.mockResolvedValue({ name: 'Meal Ideas', items: [] });
+      mockList.getList.mockResolvedValue({ name: 'Meal Ideas', items: [] });
       mockList.addItem.mockResolvedValue(null);
 
       const interaction = createMockInteraction({
@@ -388,7 +384,7 @@ describe('Random Button Handlers', () => {
   describe('Error Handling', () => {
     it('should call handleInteractionError on error', async () => {
       const error = new Error('Unexpected error');
-      mockList.findOne.mockRejectedValue(error);
+      mockList.getList.mockRejectedValue(error);
 
       const interaction = createMockInteraction({
         customId: 'save_dinner_test',
