@@ -40,7 +40,6 @@ import type { TaskRow } from '../../../../supabase/types';
  */
 export async function handleTaskButton(interaction: ButtonInteraction<CacheType>): Promise<void> {
   const customId = interaction.customId;
-  const userId = interaction.user.id;
   const guildId = interaction.guild?.id;
 
   if (!guildId) {

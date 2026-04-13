@@ -15,7 +15,6 @@ import { handleInteractionError } from '../responses/errorResponses';
 
 export async function handleListButton(interaction: ButtonInteraction<CacheType>): Promise<void> {
   const customId = interaction.customId;
-  const userId = interaction.user.id;
   const guildId = interaction.guild?.id;
 
   if (!guildId) {
