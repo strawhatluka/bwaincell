@@ -176,7 +176,7 @@ export default {
             return;
           }
 
-          const configData = existingConfig.get({ plain: true });
+          const configData = existingConfig;
 
           // Try to fetch today's sunset time
           let sunsetDisplay = 'Unable to fetch';

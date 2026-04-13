@@ -1,8 +1,14 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { createLogger } from '../shared/utils/logger';
-import type { Database } from './types';
+import { createClient } from '@supabase/supabase-js';
 
-const logger = createLogger('Database');
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Logger is optional — supabase/ is outside the backend rootDir
+let logger: any;
+try {
+  const { createLogger } = require('../shared/utils/logger');
+  logger = createLogger('Database');
+} catch {
+  logger = { info: console.log, error: console.error, warn: console.warn };
+}
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -18,7 +24,7 @@ logger.info('Initializing Supabase connection', {
   nodeEnv: process.env.NODE_ENV,
 });
 
-const supabase: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseKey, {
+const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,

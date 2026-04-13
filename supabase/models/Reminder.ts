@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import supabase from '../supabase';
 import type { ReminderRow, ReminderFrequency } from '../types';
-import config from '../../backend/config/config';
+const TIMEZONE = process.env.TIMEZONE || 'America/Los_Angeles';
 
 class Reminder {
   static async createReminder(
@@ -69,7 +69,7 @@ class Reminder {
     dayOfMonth?: number | null,
     month?: number | null
   ): Date {
-    const timezone = config.settings.timezone; // e.g., 'America/Los_Angeles'
+    const timezone = TIMEZONE; // e.g., 'America/Los_Angeles'
 
     // Get current time in user's timezone
     const now = DateTime.now().setZone(timezone);

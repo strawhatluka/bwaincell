@@ -291,6 +291,13 @@ export interface SunsetConfigUpdate {
 
 // ============ Supabase Database Type Definition ============
 
+export interface ScheduleUpdate {
+  event?: string;
+  date?: string;
+  time?: string;
+  description?: string | null;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -298,46 +305,55 @@ export interface Database {
         Row: TaskRow;
         Insert: TaskInsert;
         Update: TaskUpdate;
+        Relationships: [];
       };
       notes: {
         Row: NoteRow;
         Insert: NoteInsert;
         Update: NoteUpdate;
+        Relationships: [];
       };
       lists: {
         Row: ListRow;
         Insert: ListInsert;
         Update: ListUpdate;
+        Relationships: [];
       };
       reminders: {
         Row: ReminderRow;
         Insert: ReminderInsert;
         Update: ReminderUpdate;
+        Relationships: [];
       };
       budgets: {
         Row: BudgetRow;
         Insert: BudgetInsert;
         Update: BudgetUpdate;
+        Relationships: [];
       };
       schedules: {
         Row: ScheduleRow;
         Insert: ScheduleInsert;
-        Update: never;
+        Update: ScheduleUpdate;
+        Relationships: [];
       };
       users: {
         Row: UserRow;
         Insert: UserInsert;
         Update: UserUpdate;
+        Relationships: [];
       };
       event_configs: {
         Row: EventConfigRow;
         Insert: EventConfigInsert;
         Update: EventConfigUpdate;
+        Relationships: [];
       };
       sunset_configs: {
         Row: SunsetConfigRow;
         Insert: SunsetConfigInsert;
         Update: SunsetConfigUpdate;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

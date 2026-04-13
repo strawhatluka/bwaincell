@@ -5,7 +5,7 @@ import type { ListRow } from '../types';
 export interface ListItem {
   text: string;
   completed: boolean;
-  added_at: Date;
+  added_at: string;
 }
 
 class List {

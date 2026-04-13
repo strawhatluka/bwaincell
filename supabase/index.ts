@@ -1,6 +1,11 @@
-import { createLogger } from '../shared/utils/logger';
-
-const logger = createLogger('Database');
+/* eslint-disable @typescript-eslint/no-explicit-any */
+let logger: any;
+try {
+  const { createLogger } = require('../shared/utils/logger');
+  logger = createLogger('Database');
+} catch {
+  logger = { info: console.log, error: console.error, warn: console.warn };
+}
 
 // Import Supabase client
 import { supabase, verifyConnection } from './supabase';

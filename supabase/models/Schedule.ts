@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import supabase from '../supabase';
-import config from '../../backend/config/config';
+const TIMEZONE = process.env.TIMEZONE || 'America/Los_Angeles';
 import type { ScheduleRow, ScheduleInsert } from '../types';
 
 // Define filter types
@@ -42,7 +42,7 @@ class Schedule {
     filter: ScheduleFilter = 'upcoming'
   ): Promise<ScheduleRow[]> {
     // Get today's date in the configured timezone (not UTC)
-    const today = DateTime.now().setZone(config.settings.timezone).toFormat('yyyy-MM-dd');
+    const today = DateTime.now().setZone(TIMEZONE).toFormat('yyyy-MM-dd');
 
     let query = supabase.from('schedules').select('*').eq('guild_id', guildId);
 
@@ -111,7 +111,7 @@ class Schedule {
 
   static async getTodaysEvents(guildId: string): Promise<ScheduleRow[]> {
     // Get today's date in the configured timezone (not UTC)
-    const today = DateTime.now().setZone(config.settings.timezone).toFormat('yyyy-MM-dd');
+    const today = DateTime.now().setZone(TIMEZONE).toFormat('yyyy-MM-dd');
 
     const { data, error } = await supabase
       .from('schedules')
@@ -126,7 +126,7 @@ class Schedule {
 
   static async getUpcomingEvents(guildId: string, days: number = 7): Promise<ScheduleRow[]> {
     // Get date range in the configured timezone (not UTC)
-    const now = DateTime.now().setZone(config.settings.timezone);
+    const now = DateTime.now().setZone(TIMEZONE);
     const future = now.plus({ days });
 
     const { data, error } = await supabase

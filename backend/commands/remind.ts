@@ -307,7 +307,7 @@ export default {
               {
                 name: '⏱️ Next Trigger',
                 value: reminder.next_trigger
-                  ? DateTime.fromJSDate(reminder.next_trigger)
+                  ? DateTime.fromISO(reminder.next_trigger)
                       .setZone(config.settings.timezone)
                       .toLocaleString(DateTime.DATETIME_FULL)
                   : 'N/A',
@@ -375,7 +375,7 @@ export default {
               {
                 name: '⏱️ Next Trigger',
                 value: reminder.next_trigger
-                  ? DateTime.fromJSDate(reminder.next_trigger)
+                  ? DateTime.fromISO(reminder.next_trigger)
                       .setZone(config.settings.timezone)
                       .toLocaleString(DateTime.DATETIME_FULL)
                   : 'N/A',
@@ -455,7 +455,7 @@ export default {
               {
                 name: '⏱️ Next Trigger',
                 value: reminder.next_trigger
-                  ? DateTime.fromJSDate(reminder.next_trigger)
+                  ? DateTime.fromISO(reminder.next_trigger)
                       .setZone(config.settings.timezone)
                       .toLocaleString(DateTime.DATETIME_FULL)
                   : 'N/A',
@@ -530,7 +530,7 @@ export default {
               {
                 name: '⏱️ Next Trigger',
                 value: reminder.next_trigger
-                  ? DateTime.fromJSDate(reminder.next_trigger)
+                  ? DateTime.fromISO(reminder.next_trigger)
                       .setZone(config.settings.timezone)
                       .toLocaleString(DateTime.DATETIME_FULL)
                   : 'N/A',
@@ -624,7 +624,7 @@ export default {
               {
                 name: '⏱️ Next Trigger',
                 value: reminder.next_trigger
-                  ? DateTime.fromJSDate(reminder.next_trigger)
+                  ? DateTime.fromISO(reminder.next_trigger)
                       .setZone(config.settings.timezone)
                       .toLocaleString(DateTime.DATETIME_FULL)
                   : 'N/A',
@@ -750,7 +750,7 @@ export default {
               }
 
               const nextTriggerDisplay = reminder.next_trigger
-                ? DateTime.fromJSDate(reminder.next_trigger)
+                ? DateTime.fromISO(reminder.next_trigger)
                     .setZone(config.settings.timezone)
                     .toLocaleString(DateTime.DATETIME_FULL)
                 : 'N/A';

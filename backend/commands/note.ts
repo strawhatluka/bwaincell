@@ -115,7 +115,7 @@ export default {
 
       if (focused.name === 'title' || focused.name === 'current_title') {
         const notes = await Note.getNotes(guildId);
-        const titles = notes.map((note: InstanceType<typeof Note>) => note.title).slice(0, 25);
+        const titles = notes.map((note: any) => note.title).slice(0, 25);
 
         const filtered = titles.filter((title: string) =>
           title.toLowerCase().includes(focused.value.toLowerCase())
@@ -208,9 +208,7 @@ export default {
         case 'view': {
           const title = interaction.options.getString('title', true);
           const notes = await Note.getNotes(guildId);
-          const note = notes.find(
-            (n: InstanceType<typeof Note>) => n.title.toLowerCase() === title.toLowerCase()
-          );
+          const note = notes.find((n: any) => n.title.toLowerCase() === title.toLowerCase());
 
           if (!note) {
             await interaction.editReply({
@@ -248,9 +246,7 @@ export default {
         case 'delete': {
           const title = interaction.options.getString('title', true);
           const notes = await Note.getNotes(guildId);
-          const note = notes.find(
-            (n: InstanceType<typeof Note>) => n.title.toLowerCase() === title.toLowerCase()
-          );
+          const note = notes.find((n: any) => n.title.toLowerCase() === title.toLowerCase());
 
           if (!note) {
             await interaction.editReply({
@@ -313,7 +309,7 @@ export default {
 
           const notes = await Note.getNotes(guildId);
           const existingNote = notes.find(
-            (n: InstanceType<typeof Note>) => n.title.toLowerCase() === currentTitle.toLowerCase()
+            (n: any) => n.title.toLowerCase() === currentTitle.toLowerCase()
           );
 
           if (!existingNote) {

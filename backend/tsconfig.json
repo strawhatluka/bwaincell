@@ -33,14 +33,7 @@
       "@database/*": ["../supabase/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "commands/**/*",
-    "../supabase/**/*",
-    "utils/**/*",
-    "shared/**/*",
-    "config/**/*"
-  ],
+  "include": ["src/**/*", "commands/**/*", "utils/**/*", "shared/**/*", "config/**/*"],
   "exclude": [
     "node_modules",
     "dist",
@@ -52,5 +45,5 @@
     "tests/**/*",
     "*.js"
   ],
-  "references": [{ "path": "../shared" }]
+  "references": [{ "path": "../shared" }, { "path": "../supabase" }]
 }

@@ -130,8 +130,7 @@ export default {
         }
 
         // Build confirmation message from saved config
-        // Use .get() to bypass Sequelize class field shadowing
-        const configData = updatedConfig.get({ plain: true });
+        const configData = updatedConfig;
         const dayNames = [
           'Sunday',
           'Monday',

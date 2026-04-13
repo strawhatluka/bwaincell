@@ -17,11 +17,11 @@ interface ScheduleEvent {
   date: string; // DATEONLY format (MM-DD-YYYY)
   time: string; // HH:MM format
   description?: string | null;
-  created_at: Date;
+  created_at: string;
 }
 
 interface CountdownResult {
-  event: Schedule;
+  event: ScheduleEvent;
   timeLeft: string;
 }
 
