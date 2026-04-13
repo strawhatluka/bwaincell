@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../../auth/[...nextauth]/route';
+import { prisma } from '@/lib/db/prisma';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 interface ListItem {
   text: string;
@@ -16,18 +16,12 @@ interface ListItem {
  * POST /api/lists/[listName]/items
  * Add an item to a list
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { listName: string } },
-) {
+export async function POST(request: NextRequest, { params }: { params: { listName: string } }) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -36,21 +30,15 @@ export async function POST(
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const listName = decodeURIComponent(params.listName);
     const body = await request.json();
     const { item } = body;
 
-    if (!item || typeof item !== "string" || item.trim().length === 0) {
-      return NextResponse.json(
-        { success: false, error: "Item text is required" },
-        { status: 400 },
-      );
+    if (!item || typeof item !== 'string' || item.trim().length === 0) {
+      return NextResponse.json({ success: false, error: 'Item text is required' }, { status: 400 });
     }
 
     // Find the list
@@ -59,16 +47,13 @@ export async function POST(
         guildId: user.guildId,
         name: {
           equals: listName,
-          mode: "insensitive",
+          mode: 'insensitive',
         },
       },
     });
 
     if (!list) {
-      return NextResponse.json(
-        { success: false, error: "List not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'List not found' }, { status: 404 });
     }
 
     // Parse existing items
@@ -95,17 +80,17 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: updatedList,
-      message: "Item added successfully",
+      message: 'Item added successfully',
     });
   } catch (error) {
-    console.error("[API] Error adding item:", error);
+    console.error('[API] Error adding item:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to add item",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to add item',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

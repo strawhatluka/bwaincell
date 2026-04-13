@@ -162,16 +162,13 @@ export interface UserAttributes {
 
 ```typescript
 // Find user by email
-const user = await User.findOne({ where: { email: "user@gmail.com" } });
+const user = await User.findOne({ where: { email: 'user@gmail.com' } });
 
 // Find user by Discord ID
-const user = await User.findOne({ where: { discordId: "123456789" } });
+const user = await User.findOne({ where: { discordId: '123456789' } });
 
 // Update refresh token
-await User.update(
-  { refreshToken: newToken },
-  { where: { email: "user@gmail.com" } },
-);
+await User.update({ refreshToken: newToken }, { where: { email: 'user@gmail.com' } });
 ```
 
 ---
@@ -242,28 +239,19 @@ static async getUserTasks(
 
 ```typescript
 // Get all tasks for guild
-const tasks = await Task.getUserTasks(guildId, "all");
+const tasks = await Task.getUserTasks(guildId, 'all');
 
 // Get pending tasks
-const pending = await Task.getUserTasks(guildId, "pending");
+const pending = await Task.getUserTasks(guildId, 'pending');
 
 // Create task
-const task = await Task.createTask(
-  guildId,
-  "Buy groceries",
-  new Date("2026-01-15"),
-);
+const task = await Task.createTask(guildId, 'Buy groceries', new Date('2026-01-15'));
 
 // Complete task
 const updated = await Task.completeTask(taskId, guildId);
 
 // Edit task
-const edited = await Task.editTask(
-  taskId,
-  guildId,
-  "Updated description",
-  null,
-);
+const edited = await Task.editTask(taskId, guildId, 'Updated description', null);
 
 // Delete task
 const deleted = await Task.deleteTask(taskId, guildId);
@@ -334,28 +322,28 @@ interface ListAttributes {
 
 ```typescript
 // Create list
-const list = await List.createList(guildId, "Shopping List");
+const list = await List.createList(guildId, 'Shopping List');
 
 // Add item to list
-const updated = await List.addItem(guildId, "Shopping List", "Milk");
+const updated = await List.addItem(guildId, 'Shopping List', 'Milk');
 
 // Remove item
-const removed = await List.removeItem(guildId, "Shopping List", "Milk");
+const removed = await List.removeItem(guildId, 'Shopping List', 'Milk');
 
 // Toggle item completion
-const toggled = await List.toggleItem(guildId, "Shopping List", "Milk");
+const toggled = await List.toggleItem(guildId, 'Shopping List', 'Milk');
 
 // Get specific list
-const list = await List.getList(guildId, "Shopping List");
+const list = await List.getList(guildId, 'Shopping List');
 
 // Get all lists for guild
 const lists = await List.getUserLists(guildId);
 
 // Clear completed items
-const cleared = await List.clearCompleted(guildId, "Shopping List");
+const cleared = await List.clearCompleted(guildId, 'Shopping List');
 
 // Delete list
-const deleted = await List.deleteList(guildId, "Shopping List");
+const deleted = await List.deleteList(guildId, 'Shopping List');
 ```
 
 **Note:** List names are case-insensitive (e.g., "shopping list" matches "Shopping List").
@@ -413,12 +401,10 @@ interface NoteUpdateAttributes {
 
 ```typescript
 // Create note
-const note = await Note.createNote(
-  guildId,
-  "Meeting Notes",
-  "Discussed Q1 roadmap...",
-  ["work", "meetings"],
-);
+const note = await Note.createNote(guildId, 'Meeting Notes', 'Discussed Q1 roadmap...', [
+  'work',
+  'meetings',
+]);
 
 // Get all notes
 const notes = await Note.getNotes(guildId);
@@ -428,16 +414,16 @@ const note = await Note.getNote(noteId, guildId);
 
 // Update note
 const updated = await Note.updateNote(noteId, guildId, {
-  title: "Updated Title",
-  content: "Updated content",
-  tags: ["work", "important"],
+  title: 'Updated Title',
+  content: 'Updated content',
+  tags: ['work', 'important'],
 });
 
 // Search notes (title or content)
-const results = await Note.searchNotes(guildId, "roadmap");
+const results = await Note.searchNotes(guildId, 'roadmap');
 
 // Get notes by tag
-const workNotes = await Note.getNotesByTag(guildId, "work");
+const workNotes = await Note.getNotesByTag(guildId, 'work');
 
 // Get all tags for guild
 const allTags = await Note.getAllTags(guildId);
@@ -498,7 +484,7 @@ CREATE INDEX idx_reminders_guild_active ON reminders(guild_id, active);
 
 ```typescript
 // backend/database/models/Reminder.ts
-type ReminderFrequency = "once" | "daily" | "weekly";
+type ReminderFrequency = 'once' | 'daily' | 'weekly';
 
 interface ReminderAttributes {
   id: number;
@@ -573,19 +559,19 @@ static calculateNextTrigger(
 const reminder = await Reminder.createReminder(
   guildId,
   channelId,
-  "Team meeting",
-  "15:00",
-  "daily",
+  'Team meeting',
+  '15:00',
+  'daily'
 );
 
 // Create weekly reminder
 const weeklyReminder = await Reminder.createReminder(
   guildId,
   channelId,
-  "Weekly report",
-  "10:00",
-  "weekly",
-  1, // Monday
+  'Weekly report',
+  '10:00',
+  'weekly',
+  1 // Monday
 );
 
 // Get active reminders
@@ -656,7 +642,7 @@ CREATE INDEX idx_schedules_guild_date ON schedules(guild_id, date);
 
 ```typescript
 // backend/database/models/Schedule.ts
-type ScheduleFilter = "upcoming" | "past" | "all";
+type ScheduleFilter = 'upcoming' | 'past' | 'all';
 
 interface ScheduleAttributes {
   id: number;
@@ -681,20 +667,20 @@ interface CountdownResult {
 // Add event
 const event = await Schedule.addEvent(
   guildId,
-  "Birthday Party",
-  "2026-01-20",
-  "18:00:00",
-  "John's birthday celebration",
+  'Birthday Party',
+  '2026-01-20',
+  '18:00:00',
+  "John's birthday celebration"
 );
 
 // Get upcoming events
-const upcoming = await Schedule.getEvents(guildId, "upcoming");
+const upcoming = await Schedule.getEvents(guildId, 'upcoming');
 
 // Get past events
-const past = await Schedule.getEvents(guildId, "past");
+const past = await Schedule.getEvents(guildId, 'past');
 
 // Get all events
-const all = await Schedule.getEvents(guildId, "all");
+const all = await Schedule.getEvents(guildId, 'all');
 
 // Get today's events
 const today = await Schedule.getTodaysEvents(guildId);
@@ -703,7 +689,7 @@ const today = await Schedule.getTodaysEvents(guildId);
 const nextWeek = await Schedule.getUpcomingEvents(guildId, 7);
 
 // Get countdown to event
-const countdown = await Schedule.getCountdown(guildId, "Birthday");
+const countdown = await Schedule.getCountdown(guildId, 'Birthday');
 // Returns: { event, timeLeft: "9 days, 6 hours, 30 minutes" }
 
 // Delete event
@@ -759,12 +745,12 @@ static async getCountdown(
 **Configuration File:** `backend/database/config.js`
 
 ```javascript
-require("dotenv").config();
+require('dotenv').config();
 
 module.exports = {
   development: {
-    use_env_variable: "DATABASE_URL",
-    dialect: "postgres",
+    use_env_variable: 'DATABASE_URL',
+    dialect: 'postgres',
     logging: console.log,
     pool: {
       max: 5,
@@ -774,13 +760,13 @@ module.exports = {
     },
   },
   test: {
-    use_env_variable: "DATABASE_URL",
-    dialect: "postgres",
+    use_env_variable: 'DATABASE_URL',
+    dialect: 'postgres',
     logging: false,
   },
   production: {
-    use_env_variable: "DATABASE_URL",
-    dialect: "postgres",
+    use_env_variable: 'DATABASE_URL',
+    dialect: 'postgres',
     logging: false,
     dialectOptions: {
       ssl: {
@@ -815,27 +801,22 @@ DATABASE_URL=postgresql://user:pass@db.example.com:5432/bwaincell?sslmode=requir
 **Database Index:** `backend/database/index.ts`
 
 ```typescript
-import { Sequelize } from "sequelize";
-import config from "./config";
-import User from "./models/User";
-import Task from "./models/Task";
-import List from "./models/List";
-import Note from "./models/Note";
-import Reminder from "./models/Reminder";
-import Schedule from "./models/Schedule";
+import { Sequelize } from 'sequelize';
+import config from './config';
+import User from './models/User';
+import Task from './models/Task';
+import List from './models/List';
+import Note from './models/Note';
+import Reminder from './models/Reminder';
+import Schedule from './models/Schedule';
 
-const env = process.env.NODE_ENV || "development";
+const env = process.env.NODE_ENV || 'development';
 const dbConfig = config[env];
 
 // Initialize Sequelize
 const sequelize = dbConfig.use_env_variable
   ? new Sequelize(process.env[dbConfig.use_env_variable], dbConfig)
-  : new Sequelize(
-      dbConfig.database,
-      dbConfig.username,
-      dbConfig.password,
-      dbConfig,
-    );
+  : new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, dbConfig);
 
 // Initialize models
 User.init(sequelize);
@@ -860,11 +841,11 @@ export { User, Task, List, Note, Reminder, Schedule };
 
 ```typescript
 // If implementing associations
-User.hasMany(Task, { foreignKey: "user_id", sourceKey: "discordId" });
-Task.belongsTo(User, { foreignKey: "user_id", targetKey: "discordId" });
+User.hasMany(Task, { foreignKey: 'user_id', sourceKey: 'discordId' });
+Task.belongsTo(User, { foreignKey: 'user_id', targetKey: 'discordId' });
 
-User.hasMany(List, { foreignKey: "user_id", sourceKey: "discordId" });
-List.belongsTo(User, { foreignKey: "user_id", targetKey: "discordId" });
+User.hasMany(List, { foreignKey: 'user_id', sourceKey: 'discordId' });
+List.belongsTo(User, { foreignKey: 'user_id', targetKey: 'discordId' });
 
 // Similar for other models
 ```
@@ -889,7 +870,7 @@ List.belongsTo(User, { foreignKey: "user_id", targetKey: "discordId" });
 async function loadModels() {
   await sequelize.authenticate();
   await sequelize.sync(); // Creates/updates tables automatically
-  logger.info("Database synced successfully", {
+  logger.info('Database synced successfully', {
     models: Object.keys(sequelize.models),
   });
 }
@@ -930,7 +911,7 @@ npx sequelize-cli db:migrate:undo
 // migrations/20260111-create-tasks-table.js
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("tasks", {
+    await queryInterface.createTable('tasks', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -969,13 +950,13 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex("tasks", ["guild_id"]);
-    await queryInterface.addIndex("tasks", ["user_id"]);
-    await queryInterface.addIndex("tasks", ["completed"]);
+    await queryInterface.addIndex('tasks', ['guild_id']);
+    await queryInterface.addIndex('tasks', ['user_id']);
+    await queryInterface.addIndex('tasks', ['completed']);
   },
 
   down: async (queryInterface) => {
-    await queryInterface.dropTable("tasks");
+    await queryInterface.dropTable('tasks');
   },
 };
 ```

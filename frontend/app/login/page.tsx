@@ -1,35 +1,35 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const router = useRouter();
 
   async function handleGoogleSignIn() {
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
-      const result = await signIn("google", {
-        callbackUrl: "/dashboard",
+      const result = await signIn('google', {
+        callbackUrl: '/dashboard',
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Sign-in failed. Please check that your email is authorized.");
-        console.error("[LOGIN] Google sign-in error:", result.error);
+        setError('Sign-in failed. Please check that your email is authorized.');
+        console.error('[LOGIN] Google sign-in error:', result.error);
       } else if (result?.ok) {
-        router.push("/dashboard");
+        router.push('/dashboard');
       }
     } catch (err) {
-      setError("An unexpected error occurred");
-      console.error("[LOGIN] Error:", err);
+      setError('An unexpected error occurred');
+      console.error('[LOGIN] Error:', err);
     } finally {
       setLoading(false);
     }
@@ -42,9 +42,7 @@ export default function LoginPage() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-twilight-600 to-dusk-600 bg-clip-text text-transparent">
             Bwain.app
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Same Fweak, Same Bwaincell
-          </p>
+          <p className="text-muted-foreground mt-2">Same Fweak, Same Bwaincell</p>
         </div>
 
         <div className="space-y-4">
@@ -59,11 +57,7 @@ export default function LoginPage() {
             className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 flex items-center justify-center gap-3 py-6"
             disabled={loading}
           >
-            <svg
-              className="w-5 h-5"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
@@ -81,24 +75,18 @@ export default function LoginPage() {
                 fill="#EA4335"
               />
             </svg>
-            {loading ? "Signing in..." : "Sign in with Google"}
+            {loading ? 'Signing in...' : 'Sign in with Google'}
           </Button>
         </div>
 
         <div className="mt-6 text-center text-xs text-muted-foreground">
           <p>
-            By signing in, you agree to our{" "}
-            <a
-              href="/terms"
-              className="text-twilight-600 hover:text-twilight-700 underline"
-            >
+            By signing in, you agree to our{' '}
+            <a href="/terms" className="text-twilight-600 hover:text-twilight-700 underline">
               Terms of Service
-            </a>{" "}
-            and{" "}
-            <a
-              href="/privacy"
-              className="text-twilight-600 hover:text-twilight-700 underline"
-            >
+            </a>{' '}
+            and{' '}
+            <a href="/privacy" className="text-twilight-600 hover:text-twilight-700 underline">
               Privacy Policy
             </a>
           </p>

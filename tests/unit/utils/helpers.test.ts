@@ -143,7 +143,7 @@ describe('Helper Utilities', () => {
         return date.toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
-          day: 'numeric'
+          day: 'numeric',
         });
       };
 
@@ -235,8 +235,15 @@ describe('Helper Utilities', () => {
         return chunks;
       };
 
-      expect(chunkArray([1, 2, 3, 4, 5, 6], 2)).toEqual([[1, 2], [3, 4], [5, 6]]);
-      expect(chunkArray([1, 2, 3, 4, 5], 3)).toEqual([[1, 2, 3], [4, 5]]);
+      expect(chunkArray([1, 2, 3, 4, 5, 6], 2)).toEqual([
+        [1, 2],
+        [3, 4],
+        [5, 6],
+      ]);
+      expect(chunkArray([1, 2, 3, 4, 5], 3)).toEqual([
+        [1, 2, 3],
+        [4, 5],
+      ]);
       expect(chunkArray([], 2)).toEqual([]);
     });
 
@@ -252,7 +259,7 @@ describe('Helper Utilities', () => {
 
     test('should find intersection of arrays', () => {
       const intersection = <T>(arr1: T[], arr2: T[]): T[] => {
-        return arr1.filter(item => arr2.includes(item));
+        return arr1.filter((item) => arr2.includes(item));
       };
 
       expect(intersection([1, 2, 3], [2, 3, 4])).toEqual([2, 3]);
@@ -290,7 +297,7 @@ describe('Helper Utilities', () => {
     test('should pick properties from object', () => {
       const pick = <T extends object, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> => {
         const result = {} as Pick<T, K>;
-        keys.forEach(key => {
+        keys.forEach((key) => {
           if (key in obj) {
             (result as any)[key] = obj[key];
           }
@@ -306,7 +313,7 @@ describe('Helper Utilities', () => {
     test('should omit properties from object', () => {
       const omit = <T, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {
         const result = { ...obj };
-        keys.forEach(key => {
+        keys.forEach((key) => {
           delete result[key];
         });
         return result;
@@ -414,7 +421,7 @@ describe('Helper Utilities', () => {
             if (attempt === maxRetries) {
               throw lastError;
             }
-            await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt)));
+            await new Promise((resolve) => setTimeout(resolve, baseDelay * Math.pow(2, attempt)));
           }
         }
 

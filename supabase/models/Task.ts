@@ -15,11 +15,7 @@ class Task {
       due_date: dueDate ? dueDate.toISOString() : null,
     };
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert(insert)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('tasks').insert(insert).select().single();
 
     if (error) throw error;
     return data;
@@ -30,10 +26,7 @@ class Task {
     guildId: string,
     filter: 'all' | 'pending' | 'completed' = 'all'
   ): Promise<TaskRow[]> {
-    let query = supabase
-      .from('tasks')
-      .select('*')
-      .eq('guild_id', guildId);
+    let query = supabase.from('tasks').select('*').eq('guild_id', guildId);
 
     if (filter === 'pending') {
       query = query.eq('completed', false);

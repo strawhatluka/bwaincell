@@ -175,9 +175,7 @@ describe('Budget Command', () => {
 
       // Assert
       expect(Budget.addExpense).not.toHaveBeenCalled();
-      expect(interaction.editReply).toHaveBeenCalledWith(
-        expect.stringContaining('server')
-      );
+      expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining('server'));
     });
 
     it('should handle database errors gracefully', async () => {
@@ -265,15 +263,9 @@ describe('Budget Command', () => {
       await budgetCommand.execute(interaction);
 
       // Assert
-      expect(Budget.deleteEntry).toHaveBeenCalledWith(
-        1,
-        interaction.user.id,
-        interaction.guildId
-      );
+      expect(Budget.deleteEntry).toHaveBeenCalledWith(1, interaction.user.id, interaction.guildId);
 
-      expect(interaction.editReply).toHaveBeenCalledWith(
-       expect.stringContaining('deleted')
-      );
+      expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining('deleted'));
     });
 
     it('should handle non-existent entry deletion', async () => {

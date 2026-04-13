@@ -1,19 +1,15 @@
-"use client";
+'use client';
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { SessionProvider } from "next-auth/react";
-import { useState } from "react";
-import { DarkModeProvider } from "@/hooks/useDarkMode";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { Toaster } from "@/components/ui/toaster";
-import "./globals.css";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { SessionProvider } from 'next-auth/react';
+import { useState } from 'react';
+import { DarkModeProvider } from '@/hooks/useDarkMode';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from '@/components/ui/toaster';
+import './globals.css';
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -24,7 +20,7 @@ export default function RootLayout({
             retry: 1,
           },
         },
-      }),
+      })
   );
 
   return (
@@ -32,10 +28,7 @@ export default function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#e84d8a" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
-        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta
           name="description"
           content="Bwain.app is your personal productivity companion. Manage tasks, lists, notes, reminders, budget, and schedule all in one powerful PWA."

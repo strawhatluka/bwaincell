@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface Note {
   id: number;
@@ -18,11 +18,9 @@ export function useNotes(searchQuery?: string) {
   const { toast } = useToast();
 
   const notesQuery = useQuery({
-    queryKey: ["notes", searchQuery],
+    queryKey: ['notes', searchQuery],
     queryFn: async () => {
-      const endpoint = searchQuery
-        ? `/notes?search=${encodeURIComponent(searchQuery)}`
-        : "/notes";
+      const endpoint = searchQuery ? `/notes?search=${encodeURIComponent(searchQuery)}` : '/notes';
       const response = await api.get<Note[]>(endpoint);
       return response.data || [];
     },
@@ -31,23 +29,20 @@ export function useNotes(searchQuery?: string) {
   });
 
   const createNoteMutation = useMutation({
-    mutationFn: (newNote: {
-      title: string;
-      content: string;
-      tags?: string[];
-    }) => api.post("/notes", newNote),
+    mutationFn: (newNote: { title: string; content: string; tags?: string[] }) =>
+      api.post('/notes', newNote),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
       toast({
-        title: "Note created",
-        description: "Your note has been created successfully.",
+        title: 'Note created',
+        description: 'Your note has been created successfully.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create note",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to create note',
+        variant: 'destructive',
       });
     },
   });
@@ -56,17 +51,17 @@ export function useNotes(searchQuery?: string) {
     mutationFn: ({ id, data }: { id: number; data: Partial<Note> }) =>
       api.patch(`/notes/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
       toast({
-        title: "Note updated",
-        description: "Your note has been updated successfully.",
+        title: 'Note updated',
+        description: 'Your note has been updated successfully.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update note",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to update note',
+        variant: 'destructive',
       });
     },
   });
@@ -74,17 +69,17 @@ export function useNotes(searchQuery?: string) {
   const deleteNoteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/notes/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
       toast({
-        title: "Note deleted",
-        description: "Your note has been deleted successfully.",
+        title: 'Note deleted',
+        description: 'Your note has been deleted successfully.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete note",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to delete note',
+        variant: 'destructive',
       });
     },
   });

@@ -144,11 +144,11 @@ class Scheduler {
   async addReminder(reminderId: number): Promise<void> {
     try {
       const { Reminder, supabase } = await import('../../supabase');
-      const { data: reminder } = await supabase
+      const { data: reminder } = (await supabase
         .from('reminders')
         .select('*')
         .eq('id', reminderId)
-        .single() as { data: any };
+        .single()) as { data: any };
 
       if (reminder) {
         this.scheduleReminder(reminder, Reminder);

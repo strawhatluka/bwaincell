@@ -1,6 +1,6 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import { prisma } from "@/lib/db/prisma";
+import NextAuth, { NextAuthOptions } from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import { prisma } from '@/lib/db/prisma';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,28 +9,28 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
           scope: [
-            "openid",
-            "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/userinfo.profile",
+            'openid',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile',
             // Future scopes for Google Calendar, Gmail, Drive
             // 'https://www.googleapis.com/auth/calendar',
             // 'https://www.googleapis.com/auth/gmail.readonly',
             // 'https://www.googleapis.com/auth/drive.readonly',
-          ].join(" "),
+          ].join(' '),
         },
       },
     }),
   ],
   callbacks: {
     async signIn({ user, account }) {
-      console.log("[NEXTAUTH] Sign-in attempt for:", user.email);
+      console.log('[NEXTAUTH] Sign-in attempt for:', user.email);
 
       if (!user.email || !user.id) {
-        console.error("[NEXTAUTH] Missing email or id");
+        console.error('[NEXTAUTH] Missing email or id');
         return false;
       }
 
@@ -43,24 +43,20 @@ export const authOptions: NextAuthOptions = {
         if (!existingUser) {
           // Map email to Discord ID using environment variables
           const emailToDiscordMap: Record<string, string> = {
-            [process.env.STRAWHATLUKA_EMAIL || ""]:
-              process.env.STRAWHATLUKA_DISCORD_ID || "",
-            [process.env.DANDELION_EMAIL || ""]:
-              process.env.DANDELION_DISCORD_ID || "",
+            [process.env.STRAWHATLUKA_EMAIL || '']: process.env.STRAWHATLUKA_DISCORD_ID || '',
+            [process.env.DANDELION_EMAIL || '']: process.env.DANDELION_DISCORD_ID || '',
           };
 
           const discordId =
-            emailToDiscordMap[user.email] ||
-            process.env.STRAWHATLUKA_DISCORD_ID ||
-            "";
-          const guildId = process.env.GUILD_ID || "";
+            emailToDiscordMap[user.email] || process.env.STRAWHATLUKA_DISCORD_ID || '';
+          const guildId = process.env.GUILD_ID || '';
 
           // Create new user
           await prisma.user.create({
             data: {
               googleId: user.id,
               email: user.email,
-              name: user.name || "",
+              name: user.name || '',
               picture: user.image || null,
               discordId: discordId,
               guildId: guildId,
@@ -68,7 +64,7 @@ export const authOptions: NextAuthOptions = {
             },
           });
 
-          console.log("[NEXTAUTH] New user created:", user.email);
+          console.log('[NEXTAUTH] New user created:', user.email);
         } else {
           // Update existing user info
           await prisma.user.update({
@@ -80,19 +76,19 @@ export const authOptions: NextAuthOptions = {
             },
           });
 
-          console.log("[NEXTAUTH] User updated:", user.email);
+          console.log('[NEXTAUTH] User updated:', user.email);
         }
 
         return true;
       } catch (error) {
-        console.error("[NEXTAUTH] Error creating/updating user:", error);
+        console.error('[NEXTAUTH] Error creating/updating user:', error);
         return false;
       }
     },
     async jwt({ token, account, user }) {
       // Initial sign in - store tokens
       if (account && user) {
-        console.log("[NEXTAUTH] JWT callback - Initial sign in", {
+        console.log('[NEXTAUTH] JWT callback - Initial sign in', {
           email: user.email,
           hasAccessToken: !!account.access_token,
           hasRefreshToken: !!account.refresh_token,
@@ -127,11 +123,11 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: '/login',
+    error: '/login',
   },
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

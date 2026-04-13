@@ -84,7 +84,7 @@ router.post('/google/verify', async (req: Request, res: Response) => {
         updateData.guildId = process.env.GUILD_ID || '';
       }
 
-      user = await User.update(user.id, updateData) || user;
+      user = (await User.update(user.id, updateData)) || user;
 
       logger.info('[OAUTH] User updated', {
         email: googleUser.email,

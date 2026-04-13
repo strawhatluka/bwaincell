@@ -10,7 +10,7 @@ const commandsPath = path.join(__dirname, 'commands');
 // Load TypeScript command files directly
 const commandFiles = fs
   .readdirSync(commandsPath)
-  .filter(file => file.endsWith('.ts') && !file.endsWith('.d.ts') && !file.includes('.backup'));
+  .filter((file) => file.endsWith('.ts') && !file.endsWith('.d.ts') && !file.includes('.backup'));
 
 console.log(`Found ${commandFiles.length} command files`);
 
@@ -43,7 +43,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
     console.log(`✅ Successfully deployed ${data.length} application (/) commands.`);
     console.log('\nDeployed commands:');
-    data.forEach(cmd => {
+    data.forEach((cmd) => {
       console.log(`  - /${cmd.name}: ${cmd.description}`);
     });
   } catch (error) {

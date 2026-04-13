@@ -5,7 +5,7 @@
  * Requires CALENDAR scope to be added to OAuth configuration
  */
 
-import { GoogleApiClient } from "./client";
+import { GoogleApiClient } from './client';
 
 export interface CalendarEvent {
   id: string;
@@ -36,7 +36,7 @@ export class GoogleCalendarClient extends GoogleApiClient {
     timeMin?: string;
     timeMax?: string;
   }): Promise<CalendarEvent[]> {
-    throw new Error("Google Calendar integration not yet implemented");
+    throw new Error('Google Calendar integration not yet implemented');
     // Future implementation:
     // const response = await this.get<{ items: CalendarEvent[] }>(
     //   '/calendar/v3/calendars/primary/events'
@@ -49,7 +49,7 @@ export class GoogleCalendarClient extends GoogleApiClient {
    * TODO: Implement when Calendar scope is added
    */
   async createEvent(_event: Partial<CalendarEvent>): Promise<CalendarEvent> {
-    throw new Error("Google Calendar integration not yet implemented");
+    throw new Error('Google Calendar integration not yet implemented');
     // Future implementation:
     // return this.post<CalendarEvent>(
     //   '/calendar/v3/calendars/primary/events',
@@ -61,11 +61,8 @@ export class GoogleCalendarClient extends GoogleApiClient {
    * Update calendar event
    * TODO: Implement when Calendar scope is added
    */
-  async updateEvent(
-    _eventId: string,
-    _event: Partial<CalendarEvent>,
-  ): Promise<CalendarEvent> {
-    throw new Error("Google Calendar integration not yet implemented");
+  async updateEvent(_eventId: string, _event: Partial<CalendarEvent>): Promise<CalendarEvent> {
+    throw new Error('Google Calendar integration not yet implemented');
     // Future implementation:
     // return this.patch<CalendarEvent>(
     //   `/calendar/v3/calendars/primary/events/${eventId}`,
@@ -78,7 +75,7 @@ export class GoogleCalendarClient extends GoogleApiClient {
    * TODO: Implement when Calendar scope is added
    */
   async deleteEvent(_eventId: string): Promise<void> {
-    throw new Error("Google Calendar integration not yet implemented");
+    throw new Error('Google Calendar integration not yet implemented');
     // Future implementation:
     // return this.delete<void>(
     //   `/calendar/v3/calendars/primary/events/${eventId}`

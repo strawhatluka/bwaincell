@@ -1,24 +1,20 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthContext } from "@/contexts/AuthContext";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
-import { OfflineBanner } from "@/components/common/OfflineBanner";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { Header } from '@/components/layout/Header';
+import { OfflineBanner } from '@/components/common/OfflineBanner';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthContext();
   const router = useRouter();
 
   useEffect(() => {
     // Only redirect after loading completes
     if (!isLoading && !isAuthenticated) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
 

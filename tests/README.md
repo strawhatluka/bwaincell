@@ -69,11 +69,11 @@ tests/
 All tests follow the AAA structure:
 
 ```typescript
-describe("Feature Name", () => {
-  it("should do something specific", () => {
+describe('Feature Name', () => {
+  it('should do something specific', () => {
     // Arrange - Set up test data and conditions
-    const input = "test input";
-    const expected = "expected output";
+    const input = 'test input';
+    const expected = 'expected output';
 
     // Act - Execute the function/method being tested
     const result = functionUnderTest(input);
@@ -96,7 +96,7 @@ describe("Feature Name", () => {
 **Example:**
 
 ```typescript
-describe("Task API", () => {
+describe('Task API', () => {
   let testDb: Database;
 
   beforeEach(async () => {
@@ -107,7 +107,7 @@ describe("Task API", () => {
     await cleanupTestDatabase(testDb);
   });
 
-  it("should create task", async () => {
+  it('should create task', async () => {
     // Test logic with isolated database
   });
 });
@@ -182,20 +182,20 @@ npm test -- path/to/test.test.ts
 **Unit Test Example:**
 
 ```typescript
-import { describe, it, expect } from "@jest/globals";
-import { validateEmail } from "@utils/validators";
+import { describe, it, expect } from '@jest/globals';
+import { validateEmail } from '@utils/validators';
 
-describe("validateEmail", () => {
-  it("should validate correct email format", () => {
-    expect(validateEmail("user@example.com")).toBe(true);
+describe('validateEmail', () => {
+  it('should validate correct email format', () => {
+    expect(validateEmail('user@example.com')).toBe(true);
   });
 
-  it("should reject invalid email", () => {
-    expect(validateEmail("invalid-email")).toBe(false);
+  it('should reject invalid email', () => {
+    expect(validateEmail('invalid-email')).toBe(false);
   });
 
-  it("should handle edge cases", () => {
-    expect(validateEmail("")).toBe(false);
+  it('should handle edge cases', () => {
+    expect(validateEmail('')).toBe(false);
     expect(validateEmail(null)).toBe(false);
   });
 });
@@ -204,11 +204,11 @@ describe("validateEmail", () => {
 **Integration Test Example:**
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
-import request from "supertest";
-import { createApiServer } from "@src/api/server";
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import request from 'supertest';
+import { createApiServer } from '@src/api/server';
 
-describe("Task API Integration", () => {
+describe('Task API Integration', () => {
   let app: Express.Application;
   let jwtToken: string;
 
@@ -221,15 +221,15 @@ describe("Task API Integration", () => {
     await cleanupTestData();
   });
 
-  it("should create task via POST /api/tasks", async () => {
+  it('should create task via POST /api/tasks', async () => {
     const response = await request(app)
-      .post("/api/tasks")
-      .set("Authorization", `Bearer ${jwtToken}`)
-      .send({ text: "Test task", dueDate: "2026-01-15" });
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${jwtToken}`)
+      .send({ text: 'Test task', dueDate: '2026-01-15' });
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.text).toBe("Test task");
+    expect(response.body.data.text).toBe('Test task');
   });
 });
 ```
@@ -279,16 +279,16 @@ describe("Task API Integration", () => {
 
 ```typescript
 // tests/unit/utils/validators.test.ts
-import { validateTaskInput } from "@utils/validators";
+import { validateTaskInput } from '@utils/validators';
 
-describe("validateTaskInput", () => {
-  it("should accept valid input", () => {
-    const input = { text: "Task", dueDate: "2026-01-15" };
+describe('validateTaskInput', () => {
+  it('should accept valid input', () => {
+    const input = { text: 'Task', dueDate: '2026-01-15' };
     expect(validateTaskInput(input)).toBe(true);
   });
 
-  it("should reject empty text", () => {
-    expect(() => validateTaskInput({ text: "" })).toThrow("Text required");
+  it('should reject empty text', () => {
+    expect(() => validateTaskInput({ text: '' })).toThrow('Text required');
   });
 });
 ```
@@ -312,14 +312,14 @@ describe("validateTaskInput", () => {
 
 ```typescript
 // tests/integration/api/tasks.test.ts
-import request from "supertest";
-import { createApiServer } from "@src/api/server";
+import request from 'supertest';
+import { createApiServer } from '@src/api/server';
 
-describe("Task API", () => {
-  it("should list user tasks", async () => {
+describe('Task API', () => {
+  it('should list user tasks', async () => {
     const response = await request(app)
-      .get("/api/tasks")
-      .set("Authorization", `Bearer ${jwtToken}`);
+      .get('/api/tasks')
+      .set('Authorization', `Bearer ${jwtToken}`);
 
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body.data)).toBe(true);
@@ -345,13 +345,13 @@ describe("Task API", () => {
 
 ```typescript
 // tests/e2e/user-workflows/task-lifecycle.test.ts
-describe("Task Lifecycle E2E", () => {
-  it("should complete task creation to deletion workflow", async () => {
+describe('Task Lifecycle E2E', () => {
+  it('should complete task creation to deletion workflow', async () => {
     // 1. Authenticate user
-    const token = await authenticateUser("user@example.com");
+    const token = await authenticateUser('user@example.com');
 
     // 2. Create task
-    const task = await createTask(token, "Complete project");
+    const task = await createTask(token, 'Complete project');
 
     // 3. Mark as complete
     await completeTask(token, task.id);
@@ -364,7 +364,7 @@ describe("Task Lifecycle E2E", () => {
     await deleteTask(token, task.id);
 
     // 6. Verify deletion
-    await expect(getTask(token, task.id)).rejects.toThrow("Not found");
+    await expect(getTask(token, task.id)).rejects.toThrow('Not found');
   });
 });
 ```
@@ -387,7 +387,7 @@ export async function createTestDatabase(): Promise<Database> {
 
 // Generate JWT for testing
 export function generateTestJWT(userId: string): string {
-  return jwt.sign({ userId }, TEST_JWT_SECRET, { expiresIn: "1h" });
+  return jwt.sign({ userId }, TEST_JWT_SECRET, { expiresIn: '1h' });
 }
 
 // Clean up test data
@@ -405,10 +405,10 @@ export async function cleanupTestData(): Promise<void> {
 export function createTaskData(overrides = {}) {
   return {
     id: generateId(),
-    text: "Test task",
+    text: 'Test task',
     completed: false,
-    user_id: "test_user_123",
-    guild_id: "test_guild_456",
+    user_id: 'test_user_123',
+    guild_id: 'test_guild_456',
     created_at: new Date(),
     ...overrides,
   };
@@ -417,8 +417,8 @@ export function createTaskData(overrides = {}) {
 export function createUserData(overrides = {}) {
   return {
     id: generateId(),
-    email: "test@example.com",
-    discord_id: "123456789",
+    email: 'test@example.com',
+    discord_id: '123456789',
     ...overrides,
   };
 }
@@ -430,15 +430,15 @@ export function createUserData(overrides = {}) {
 
 ```typescript
 export const validUserData = {
-  id: "123",
-  email: "test@example.com",
-  name: "Test User",
+  id: '123',
+  email: 'test@example.com',
+  name: 'Test User',
 };
 
 export const invalidUserData = {
   id: null,
-  email: "invalid-email",
-  name: "",
+  email: 'invalid-email',
+  name: '',
 };
 ```
 
@@ -463,7 +463,7 @@ export const Client = jest.fn(() => ({
 
 ```typescript
 // Use test database or mock models
-jest.mock("@database/models/Task", () => ({
+jest.mock('@database/models/Task', () => ({
   findAll: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
@@ -477,7 +477,7 @@ jest.mock("@database/models/Task", () => ({
 // tests/__mocks__/google-auth-library.ts
 export const OAuth2Client = jest.fn(() => ({
   verifyIdToken: jest.fn().mockResolvedValue({
-    getPayload: () => ({ email: "test@example.com" }),
+    getPayload: () => ({ email: 'test@example.com' }),
   }),
 }));
 ```

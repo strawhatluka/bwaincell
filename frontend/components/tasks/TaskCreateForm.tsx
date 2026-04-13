@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
 
 interface TaskCreateFormProps {
   onCreate: (data: { description: string; dueDate?: string }) => void;
@@ -13,9 +13,9 @@ interface TaskCreateFormProps {
 }
 
 export function TaskCreateForm({ onCreate, isCreating }: TaskCreateFormProps) {
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [dueTime, setDueTime] = useState("");
+  const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [dueTime, setDueTime] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,9 +39,9 @@ export function TaskCreateForm({ onCreate, isCreating }: TaskCreateFormProps) {
       dueDate: combinedDueDate,
     });
 
-    setDescription("");
-    setDueDate("");
-    setDueTime("");
+    setDescription('');
+    setDueDate('');
+    setDueTime('');
   };
 
   return (
@@ -87,7 +87,7 @@ export function TaskCreateForm({ onCreate, isCreating }: TaskCreateFormProps) {
             className="bg-[#f59e0b] hover:bg-[#e08c00] text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
-            {isCreating ? "Creating..." : "Add Task"}
+            {isCreating ? 'Creating...' : 'Add Task'}
           </Button>
         </div>
       </form>

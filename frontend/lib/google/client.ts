@@ -5,10 +5,10 @@
  * Uses access tokens from NextAuth session
  */
 
-import { getSession } from "next-auth/react";
+import { getSession } from 'next-auth/react';
 
 export class GoogleApiClient {
-  private baseUrl = "https://www.googleapis.com";
+  private baseUrl = 'https://www.googleapis.com';
 
   /**
    * Get Google access token from session
@@ -18,7 +18,7 @@ export class GoogleApiClient {
       const session = await getSession();
       return session?.googleAccessToken || null;
     } catch (error) {
-      console.error("[GOOGLE-API] Failed to get access token:", error);
+      console.error('[GOOGLE-API] Failed to get access token:', error);
       return null;
     }
   }
@@ -32,26 +32,26 @@ export class GoogleApiClient {
       method?: string;
       headers?: Record<string, string>;
       body?: string;
-    } = {},
+    } = {}
   ): Promise<T> {
     const accessToken = await this.getAccessToken();
 
     if (!accessToken) {
-      throw new Error("No Google access token available");
+      throw new Error('No Google access token available');
     }
 
     const response = await globalThis.fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...options.headers,
       },
     });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      console.error("[GOOGLE-API] Request failed:", {
+      console.error('[GOOGLE-API] Request failed:', {
         endpoint,
         status: response.status,
         error,
@@ -66,7 +66,7 @@ export class GoogleApiClient {
    * GET request to Google API
    */
   protected async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "GET" });
+    return this.request<T>(endpoint, { method: 'GET' });
   }
 
   /**
@@ -74,7 +74,7 @@ export class GoogleApiClient {
    */
   protected async post<T>(endpoint: string, body: unknown): Promise<T> {
     return this.request<T>(endpoint, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(body),
     });
   }
@@ -84,7 +84,7 @@ export class GoogleApiClient {
    */
   protected async patch<T>(endpoint: string, body: unknown): Promise<T> {
     return this.request<T>(endpoint, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify(body),
     });
   }
@@ -93,6 +93,6 @@ export class GoogleApiClient {
    * DELETE request to Google API
    */
   protected async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "DELETE" });
+    return this.request<T>(endpoint, { method: 'DELETE' });
   }
 }

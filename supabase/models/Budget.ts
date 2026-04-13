@@ -52,11 +52,7 @@ class Budget {
       description,
     };
 
-    const { data, error } = await supabase
-      .from('budgets')
-      .insert(insert)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('budgets').insert(insert).select().single();
 
     if (error) throw error;
     return data;
@@ -77,11 +73,7 @@ class Budget {
       description,
     };
 
-    const { data, error } = await supabase
-      .from('budgets')
-      .insert(insert)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('budgets').insert(insert).select().single();
 
     if (error) throw error;
     return data;

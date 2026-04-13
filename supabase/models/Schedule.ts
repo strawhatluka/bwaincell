@@ -30,11 +30,7 @@ class Schedule {
       description,
     };
 
-    const { data, error } = await supabase
-      .from('schedules')
-      .insert(insert)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('schedules').insert(insert).select().single();
 
     if (error) throw error;
     return data;
@@ -48,10 +44,7 @@ class Schedule {
     // Get today's date in the configured timezone (not UTC)
     const today = DateTime.now().setZone(config.settings.timezone).toFormat('yyyy-MM-dd');
 
-    let query = supabase
-      .from('schedules')
-      .select('*')
-      .eq('guild_id', guildId);
+    let query = supabase.from('schedules').select('*').eq('guild_id', guildId);
 
     if (filter === 'upcoming') {
       query = query.gte('date', today);

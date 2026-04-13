@@ -74,17 +74,17 @@ backend/src/api/
 **File:** `backend/src/api/server.ts`
 
 ```typescript
-import express, { Application } from "express";
-import cors from "cors";
-import { logger } from "@shared/utils/logger";
+import express, { Application } from 'express';
+import cors from 'cors';
+import { logger } from '@shared/utils/logger';
 
 // Import route modules
-import healthRouter from "./routes/health";
-import tasksRouter from "./routes/tasks";
-import oauthRouter from "./routes/oauth";
+import healthRouter from './routes/health';
+import tasksRouter from './routes/tasks';
+import oauthRouter from './routes/oauth';
 
 // Import OAuth middleware
-import { authenticateToken } from "./middleware/oauth";
+import { authenticateToken } from './middleware/oauth';
 
 export function createApiServer(): Application {
   const app = express();
@@ -92,23 +92,20 @@ export function createApiServer(): Application {
   // CORS configuration
   app.use(
     cors({
-      origin: [
-        process.env.PWA_URL || "http://localhost:3001",
-        "https://bwaincell.sunny-stack.com",
-      ],
+      origin: [process.env.PWA_URL || 'http://localhost:3001', 'https://bwaincell.sunny-stack.com'],
       credentials: true,
-      methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-    }),
+      methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    })
   );
 
   // Body parsing middleware
-  app.use(express.json({ limit: "10mb" }));
+  app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
 
   // Request logging middleware
   app.use((req, res, next) => {
-    logger.debug("[API-REQUEST]", {
+    logger.debug('[API-REQUEST]', {
       method: req.method,
       path: req.path,
       query: req.query,
@@ -117,20 +114,20 @@ export function createApiServer(): Application {
   });
 
   // Public routes (no authentication)
-  app.use("/api/auth", oauthRouter);
-  app.get("/health", (req, res) => {
-    res.json({ status: "healthy" });
+  app.use('/api/auth', oauthRouter);
+  app.get('/health', (req, res) => {
+    res.json({ status: 'healthy' });
   });
 
   // Protected routes (require Bearer token)
-  app.use("/api/tasks", authenticateToken, tasksRouter);
+  app.use('/api/tasks', authenticateToken, tasksRouter);
 
   // Error handler
   app.use((err, req, res, next) => {
-    logger.error("[API-ERROR]", { error: err.message });
+    logger.error('[API-ERROR]', { error: err.message });
     res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error: 'Internal server error',
     });
   });
 
@@ -147,24 +144,24 @@ export function createApiServer(): Application {
 **File:** `backend/src/api/routes/tasks.ts`
 
 ```typescript
-import { Router, Request, Response, NextFunction } from "express";
-import { Task } from "@database";
-import { logger } from "@shared/utils/logger";
-import { validateTaskInput } from "../middleware/validation";
+import { Router, Request, Response, NextFunction } from 'express';
+import { Task } from '@database';
+import { logger } from '@shared/utils/logger';
+import { validateTaskInput } from '../middleware/validation';
 
 const router = Router();
 
 // GET /api/tasks - List all tasks for authenticated user
-router.get("/", async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user.discordId; // Set by authenticateToken middleware
 
     const tasks = await Task.findAll({
       where: { userId },
-      order: [["createdAt", "DESC"]],
+      order: [['createdAt', 'DESC']],
     });
 
-    logger.info("[API] Tasks retrieved", { userId, count: tasks.length });
+    logger.info('[API] Tasks retrieved', { userId, count: tasks.length });
 
     res.json({
       success: true,
@@ -176,7 +173,7 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // GET /api/tasks/:id - Get single task
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user.discordId;
     const { id } = req.params;
@@ -188,7 +185,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     if (!task) {
       return res.status(404).json({
         success: false,
-        error: "Task not found",
+        error: 'Task not found',
       });
     }
 
@@ -202,111 +199,95 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // POST /api/tasks - Create new task
-router.post(
-  "/",
-  validateTaskInput,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const userId = req.user.discordId;
-      const { title, description, dueDate, listId } = req.body;
+router.post('/', validateTaskInput, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.discordId;
+    const { title, description, dueDate, listId } = req.body;
 
-      const task = await Task.create({
-        userId,
-        title,
-        description,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        listId: listId || null,
-        completed: false,
-      });
+    const task = await Task.create({
+      userId,
+      title,
+      description,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      listId: listId || null,
+      completed: false,
+    });
 
-      logger.info("[API] Task created", { userId, taskId: task.id });
+    logger.info('[API] Task created', { userId, taskId: task.id });
 
-      res.status(201).json({
-        success: true,
-        data: task,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+    res.status(201).json({
+      success: true,
+      data: task,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // PATCH /api/tasks/:id - Update task
-router.patch(
-  "/:id",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const userId = req.user.discordId;
-      const { id } = req.params;
-      const updates = req.body;
+router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.discordId;
+    const { id } = req.params;
+    const updates = req.body;
 
-      const task = await Task.findOne({ where: { id, userId } });
+    const task = await Task.findOne({ where: { id, userId } });
 
-      if (!task) {
-        return res.status(404).json({
-          success: false,
-          error: "Task not found",
-        });
-      }
-
-      // Update only allowed fields
-      const allowedFields = [
-        "title",
-        "description",
-        "dueDate",
-        "completed",
-        "listId",
-      ];
-      Object.keys(updates).forEach((key) => {
-        if (allowedFields.includes(key)) {
-          task[key] = updates[key];
-        }
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        error: 'Task not found',
       });
-
-      await task.save();
-
-      logger.info("[API] Task updated", { userId, taskId: task.id });
-
-      res.json({
-        success: true,
-        data: task,
-      });
-    } catch (error) {
-      next(error);
     }
-  },
-);
+
+    // Update only allowed fields
+    const allowedFields = ['title', 'description', 'dueDate', 'completed', 'listId'];
+    Object.keys(updates).forEach((key) => {
+      if (allowedFields.includes(key)) {
+        task[key] = updates[key];
+      }
+    });
+
+    await task.save();
+
+    logger.info('[API] Task updated', { userId, taskId: task.id });
+
+    res.json({
+      success: true,
+      data: task,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // DELETE /api/tasks/:id - Delete task
-router.delete(
-  "/:id",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const userId = req.user.discordId;
-      const { id } = req.params;
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.discordId;
+    const { id } = req.params;
 
-      const task = await Task.findOne({ where: { id, userId } });
+    const task = await Task.findOne({ where: { id, userId } });
 
-      if (!task) {
-        return res.status(404).json({
-          success: false,
-          error: "Task not found",
-        });
-      }
-
-      await task.destroy();
-
-      logger.info("[API] Task deleted", { userId, taskId: id });
-
-      res.json({
-        success: true,
-        message: "Task deleted successfully",
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        error: 'Task not found',
       });
-    } catch (error) {
-      next(error);
     }
-  },
-);
+
+    await task.destroy();
+
+    logger.info('[API] Task deleted', { userId, taskId: id });
+
+    res.json({
+      success: true,
+      message: 'Task deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;
 ```
@@ -327,9 +308,9 @@ export default router;
 **File:** `backend/src/api/middleware/oauth.ts`
 
 ```typescript
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { logger } from "@shared/utils/logger";
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { logger } from '@shared/utils/logger';
 
 interface JwtPayload {
   discordId: string;
@@ -346,19 +327,15 @@ declare global {
   }
 }
 
-export function authenticateToken(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
+export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
 
   if (!token) {
-    logger.warn("[AUTH] No token provided", { path: req.path });
+    logger.warn('[AUTH] No token provided', { path: req.path });
     res.status(401).json({
       success: false,
-      error: "Authentication required",
+      error: 'Authentication required',
     });
     return;
   }
@@ -366,21 +343,21 @@ export function authenticateToken(
   try {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      throw new Error("JWT_SECRET not configured");
+      throw new Error('JWT_SECRET not configured');
     }
 
     const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
     req.user = decoded; // Attach user to request
 
-    logger.debug("[AUTH] Token verified", { discordId: decoded.discordId });
+    logger.debug('[AUTH] Token verified', { discordId: decoded.discordId });
     next();
   } catch (error) {
-    logger.warn("[AUTH] Invalid token", {
-      error: error instanceof Error ? error.message : "Unknown error",
+    logger.warn('[AUTH] Invalid token', {
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
     res.status(403).json({
       success: false,
-      error: "Invalid or expired token",
+      error: 'Invalid or expired token',
     });
   }
 }
@@ -391,24 +368,20 @@ export function authenticateToken(
 **File:** `backend/src/api/middleware/validation.ts`
 
 ```typescript
-import { Request, Response, NextFunction } from "express";
-import Joi from "joi";
-import { logger } from "@shared/utils/logger";
+import { Request, Response, NextFunction } from 'express';
+import Joi from 'joi';
+import { logger } from '@shared/utils/logger';
 
 // Task input validation schema
 const taskSchema = Joi.object({
   title: Joi.string().min(1).max(200).required(),
-  description: Joi.string().max(1000).optional().allow(""),
+  description: Joi.string().max(1000).optional().allow(''),
   dueDate: Joi.date().iso().optional().allow(null),
   listId: Joi.string().uuid().optional().allow(null),
   completed: Joi.boolean().optional(),
 });
 
-export function validateTaskInput(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function validateTaskInput(req: Request, res: Response, next: NextFunction): void {
   const { error, value } = taskSchema.validate(req.body, {
     abortEarly: false, // Return all errors, not just first
     stripUnknown: true, // Remove unknown fields
@@ -416,15 +389,15 @@ export function validateTaskInput(
 
   if (error) {
     const errors = error.details.map((detail) => ({
-      field: detail.path.join("."),
+      field: detail.path.join('.'),
       message: detail.message,
     }));
 
-    logger.warn("[VALIDATION] Invalid task input", { errors });
+    logger.warn('[VALIDATION] Invalid task input', { errors });
 
     res.status(400).json({
       success: false,
-      error: "Validation failed",
+      error: 'Validation failed',
       details: errors,
     });
     return;
@@ -444,13 +417,13 @@ export function validate(schema: Joi.Schema) {
 
     if (error) {
       const errors = error.details.map((detail) => ({
-        field: detail.path.join("."),
+        field: detail.path.join('.'),
         message: detail.message,
       }));
 
       res.status(400).json({
         success: false,
-        error: "Validation failed",
+        error: 'Validation failed',
         details: errors,
       });
       return;
@@ -467,16 +440,11 @@ export function validate(schema: Joi.Schema) {
 **File:** `backend/src/api/middleware/errorHandler.ts`
 
 ```typescript
-import { Request, Response, NextFunction } from "express";
-import { logger } from "@shared/utils/logger";
+import { Request, Response, NextFunction } from 'express';
+import { logger } from '@shared/utils/logger';
 
-export function errorHandler(
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
-  logger.error("[API-ERROR]", {
+export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction): void {
+  logger.error('[API-ERROR]', {
     error: err.message,
     stack: err.stack,
     method: req.method,
@@ -485,28 +453,28 @@ export function errorHandler(
   });
 
   // Handle specific error types
-  if (err.name === "SequelizeValidationError") {
+  if (err.name === 'SequelizeValidationError') {
     res.status(400).json({
       success: false,
-      error: "Validation failed",
+      error: 'Validation failed',
       details: err.message,
     });
     return;
   }
 
-  if (err.name === "SequelizeUniqueConstraintError") {
+  if (err.name === 'SequelizeUniqueConstraintError') {
     res.status(409).json({
       success: false,
-      error: "Resource already exists",
+      error: 'Resource already exists',
     });
     return;
   }
 
   // Generic error response
-  const isDevelopment = process.env.NODE_ENV === "development";
+  const isDevelopment = process.env.NODE_ENV === 'development';
   res.status(500).json({
     success: false,
-    error: "Internal server error",
+    error: 'Internal server error',
     ...(isDevelopment && { message: err.message, stack: err.stack }),
   });
 }
@@ -521,22 +489,22 @@ export function errorHandler(
 **File:** `backend/src/api/schemas/taskSchemas.ts`
 
 ```typescript
-import Joi from "joi";
+import Joi from 'joi';
 
 export const createTaskSchema = Joi.object({
   title: Joi.string().min(1).max(200).required().messages({
-    "string.empty": "Title cannot be empty",
-    "string.max": "Title must be less than 200 characters",
-    "any.required": "Title is required",
+    'string.empty': 'Title cannot be empty',
+    'string.max': 'Title must be less than 200 characters',
+    'any.required': 'Title is required',
   }),
-  description: Joi.string().max(1000).optional().allow(""),
+  description: Joi.string().max(1000).optional().allow(''),
   dueDate: Joi.date().iso().optional().allow(null),
   listId: Joi.string().uuid().optional().allow(null),
 });
 
 export const updateTaskSchema = Joi.object({
   title: Joi.string().min(1).max(200).optional(),
-  description: Joi.string().max(1000).optional().allow(""),
+  description: Joi.string().max(1000).optional().allow(''),
   dueDate: Joi.date().iso().optional().allow(null),
   completed: Joi.boolean().optional(),
   listId: Joi.string().uuid().optional().allow(null),
@@ -553,17 +521,17 @@ export const taskQuerySchema = Joi.object({
 ### Using Validation in Routes
 
 ```typescript
-import { validate } from "../middleware/validation";
-import { createTaskSchema, updateTaskSchema } from "../schemas/taskSchemas";
+import { validate } from '../middleware/validation';
+import { createTaskSchema, updateTaskSchema } from '../schemas/taskSchemas';
 
 // POST /api/tasks
-router.post("/", validate(createTaskSchema), async (req, res, next) => {
+router.post('/', validate(createTaskSchema), async (req, res, next) => {
   // req.body is now validated and sanitized
   // ...
 });
 
 // PATCH /api/tasks/:id
-router.patch("/:id", validate(updateTaskSchema), async (req, res, next) => {
+router.patch('/:id', validate(updateTaskSchema), async (req, res, next) => {
   // ...
 });
 ```
@@ -622,7 +590,7 @@ All API responses follow this format:
 **File:** `backend/src/api/utils/response.ts`
 
 ```typescript
-import { Response } from "express";
+import { Response } from 'express';
 
 export function successResponse(res: Response, data: any, statusCode = 200) {
   return res.status(statusCode).json({
@@ -641,7 +609,7 @@ export function errorResponse(res: Response, error: string, statusCode = 400) {
 export function validationErrorResponse(res: Response, details: any[]) {
   return res.status(400).json({
     success: false,
-    error: "Validation failed",
+    error: 'Validation failed',
     details,
   });
 }
@@ -656,14 +624,14 @@ export function notFoundResponse(res: Response, resource: string) {
 export function unauthorizedResponse(res: Response) {
   return res.status(401).json({
     success: false,
-    error: "Authentication required",
+    error: 'Authentication required',
   });
 }
 
 export function forbiddenResponse(res: Response) {
   return res.status(403).json({
     success: false,
-    error: "Access denied",
+    error: 'Access denied',
   });
 }
 ```
@@ -671,13 +639,13 @@ export function forbiddenResponse(res: Response) {
 ### Using Response Utilities
 
 ```typescript
-import { successResponse, notFoundResponse } from "../utils/response";
+import { successResponse, notFoundResponse } from '../utils/response';
 
-router.get("/:id", async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
   const task = await Task.findByPk(req.params.id);
 
   if (!task) {
-    return notFoundResponse(res, "Task");
+    return notFoundResponse(res, 'Task');
   }
 
   return successResponse(res, task);
@@ -691,27 +659,27 @@ router.get("/:id", async (req, res, next) => {
 ### Sequelize Model Usage
 
 ```typescript
-import { Task, List } from "@database";
-import { Op } from "sequelize";
+import { Task, List } from '@database';
+import { Op } from 'sequelize';
 
 // Find all tasks for user
 const tasks = await Task.findAll({
-  where: { userId: "user-123" },
-  order: [["createdAt", "DESC"]],
+  where: { userId: 'user-123' },
+  order: [['createdAt', 'DESC']],
 });
 
 // Find single task
 const task = await Task.findOne({
-  where: { id: "task-123", userId: "user-123" },
+  where: { id: 'task-123', userId: 'user-123' },
 });
 
 // Find task by primary key
-const task = await Task.findByPk("task-123");
+const task = await Task.findByPk('task-123');
 
 // Create task
 const task = await Task.create({
-  userId: "user-123",
-  title: "Buy groceries",
+  userId: 'user-123',
+  title: 'Buy groceries',
   completed: false,
 });
 
@@ -720,20 +688,20 @@ task.completed = true;
 await task.save();
 
 // Or update directly
-await Task.update({ completed: true }, { where: { id: "task-123" } });
+await Task.update({ completed: true }, { where: { id: 'task-123' } });
 
 // Delete task
 await task.destroy();
 
 // Or delete directly
 await Task.destroy({
-  where: { id: "task-123" },
+  where: { id: 'task-123' },
 });
 
 // Complex queries
 const tasks = await Task.findAll({
   where: {
-    userId: "user-123",
+    userId: 'user-123',
     completed: false,
     dueDate: {
       [Op.lte]: new Date(), // Overdue tasks
@@ -742,11 +710,11 @@ const tasks = await Task.findAll({
   include: [
     {
       model: List,
-      as: "list",
-      attributes: ["id", "name"],
+      as: 'list',
+      attributes: ['id', 'name'],
     },
   ],
-  order: [["dueDate", "ASC"]],
+  order: [['dueDate', 'ASC']],
   limit: 10,
   offset: 0,
 });
@@ -755,7 +723,7 @@ const tasks = await Task.findAll({
 ### Transaction Support
 
 ```typescript
-import { sequelize } from "@database";
+import { sequelize } from '@database';
 
 // Create transaction
 const transaction = await sequelize.transaction();
@@ -764,19 +732,19 @@ try {
   // All operations use the same transaction
   const task = await Task.create(
     {
-      userId: "user-123",
-      title: "Task 1",
+      userId: 'user-123',
+      title: 'Task 1',
     },
-    { transaction },
+    { transaction }
   );
 
   await Note.create(
     {
-      userId: "user-123",
+      userId: 'user-123',
       taskId: task.id,
-      content: "Task note",
+      content: 'Task note',
     },
-    { transaction },
+    { transaction }
   );
 
   // Commit transaction
@@ -797,20 +765,20 @@ try {
 **File:** `backend/src/api/routes/__tests__/tasks.test.ts`
 
 ```typescript
-import request from "supertest";
-import { createApiServer } from "@src/api/server";
-import { Task } from "@database";
-import jwt from "jsonwebtoken";
+import request from 'supertest';
+import { createApiServer } from '@src/api/server';
+import { Task } from '@database';
+import jwt from 'jsonwebtoken';
 
-describe("Tasks API", () => {
+describe('Tasks API', () => {
   let app;
   let authToken;
 
   beforeAll(() => {
     app = createApiServer();
     authToken = jwt.sign(
-      { discordId: "test-user-123", email: "test@example.com" },
-      process.env.JWT_SECRET,
+      { discordId: 'test-user-123', email: 'test@example.com' },
+      process.env.JWT_SECRET
     );
   });
 
@@ -818,54 +786,54 @@ describe("Tasks API", () => {
     await Task.sync({ force: true });
   });
 
-  describe("GET /api/tasks", () => {
-    it("should return all tasks for user", async () => {
+  describe('GET /api/tasks', () => {
+    it('should return all tasks for user', async () => {
       await Task.create({
-        id: "task-1",
-        userId: "test-user-123",
-        title: "Test Task",
+        id: 'task-1',
+        userId: 'test-user-123',
+        title: 'Test Task',
         completed: false,
       });
 
       const response = await request(app)
-        .get("/api/tasks")
-        .set("Authorization", `Bearer ${authToken}`)
+        .get('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveLength(1);
-      expect(response.body.data[0].title).toBe("Test Task");
+      expect(response.body.data[0].title).toBe('Test Task');
     });
 
-    it("should return 401 without auth token", async () => {
-      await request(app).get("/api/tasks").expect(401);
+    it('should return 401 without auth token', async () => {
+      await request(app).get('/api/tasks').expect(401);
     });
   });
 
-  describe("POST /api/tasks", () => {
-    it("should create new task", async () => {
+  describe('POST /api/tasks', () => {
+    it('should create new task', async () => {
       const response = await request(app)
-        .post("/api/tasks")
-        .set("Authorization", `Bearer ${authToken}`)
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
-          title: "New Task",
-          description: "Task description",
+          title: 'New Task',
+          description: 'Task description',
         })
         .expect(201);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data.title).toBe("New Task");
+      expect(response.body.data.title).toBe('New Task');
     });
 
-    it("should validate required fields", async () => {
+    it('should validate required fields', async () => {
       const response = await request(app)
-        .post("/api/tasks")
-        .set("Authorization", `Bearer ${authToken}`)
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({}) // Missing title
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe("Validation failed");
+      expect(response.body.error).toBe('Validation failed');
     });
   });
 });
@@ -882,7 +850,7 @@ describe("Tasks API", () => {
 **File:** `backend/database/models/BudgetCategory.ts`
 
 ```typescript
-import { Model, DataTypes, Sequelize } from "sequelize";
+import { Model, DataTypes, Sequelize } from 'sequelize';
 
 export class BudgetCategory extends Model {
   public id!: string;
@@ -915,9 +883,9 @@ export class BudgetCategory extends Model {
       },
       {
         sequelize,
-        tableName: "budget_categories",
+        tableName: 'budget_categories',
         timestamps: true,
-      },
+      }
     );
   }
 }
@@ -928,7 +896,7 @@ export class BudgetCategory extends Model {
 **File:** `backend/src/api/schemas/budgetCategorySchemas.ts`
 
 ```typescript
-import Joi from "joi";
+import Joi from 'joi';
 
 export const createBudgetCategorySchema = Joi.object({
   name: Joi.string().min(1).max(50).required(),
@@ -946,19 +914,19 @@ export const updateBudgetCategorySchema = Joi.object({
 **File:** `backend/src/api/routes/budgetCategories.ts`
 
 ```typescript
-import { Router } from "express";
-import { BudgetCategory } from "@database";
-import { validate } from "../middleware/validation";
+import { Router } from 'express';
+import { BudgetCategory } from '@database';
+import { validate } from '../middleware/validation';
 import {
   createBudgetCategorySchema,
   updateBudgetCategorySchema,
-} from "../schemas/budgetCategorySchemas";
-import { successResponse, notFoundResponse } from "../utils/response";
+} from '../schemas/budgetCategorySchemas';
+import { successResponse, notFoundResponse } from '../utils/response';
 
 const router = Router();
 
 // GET /api/budget-categories
-router.get("/", async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const userId = req.user.discordId;
     const categories = await BudgetCategory.findAll({ where: { userId } });
@@ -969,48 +937,21 @@ router.get("/", async (req, res, next) => {
 });
 
 // POST /api/budget-categories
-router.post(
-  "/",
-  validate(createBudgetCategorySchema),
-  async (req, res, next) => {
-    try {
-      const userId = req.user.discordId;
-      const category = await BudgetCategory.create({
-        userId,
-        ...req.body,
-      });
-      return successResponse(res, category, 201);
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+router.post('/', validate(createBudgetCategorySchema), async (req, res, next) => {
+  try {
+    const userId = req.user.discordId;
+    const category = await BudgetCategory.create({
+      userId,
+      ...req.body,
+    });
+    return successResponse(res, category, 201);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // PATCH /api/budget-categories/:id
-router.patch(
-  "/:id",
-  validate(updateBudgetCategorySchema),
-  async (req, res, next) => {
-    try {
-      const userId = req.user.discordId;
-      const category = await BudgetCategory.findOne({
-        where: { id: req.params.id, userId },
-      });
-
-      if (!category) {
-        return notFoundResponse(res, "Budget category");
-      }
-
-      await category.update(req.body);
-      return successResponse(res, category);
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-// DELETE /api/budget-categories/:id
-router.delete("/:id", async (req, res, next) => {
+router.patch('/:id', validate(updateBudgetCategorySchema), async (req, res, next) => {
   try {
     const userId = req.user.discordId;
     const category = await BudgetCategory.findOne({
@@ -1018,11 +959,30 @@ router.delete("/:id", async (req, res, next) => {
     });
 
     if (!category) {
-      return notFoundResponse(res, "Budget category");
+      return notFoundResponse(res, 'Budget category');
+    }
+
+    await category.update(req.body);
+    return successResponse(res, category);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/budget-categories/:id
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const userId = req.user.discordId;
+    const category = await BudgetCategory.findOne({
+      where: { id: req.params.id, userId },
+    });
+
+    if (!category) {
+      return notFoundResponse(res, 'Budget category');
     }
 
     await category.destroy();
-    return successResponse(res, { message: "Category deleted" });
+    return successResponse(res, { message: 'Category deleted' });
   } catch (error) {
     next(error);
   }
@@ -1036,10 +996,10 @@ export default router;
 **File:** `backend/src/api/server.ts`
 
 ```typescript
-import budgetCategoriesRouter from "./routes/budgetCategories";
+import budgetCategoriesRouter from './routes/budgetCategories';
 
 // ...
-app.use("/api/budget-categories", authenticateToken, budgetCategoriesRouter);
+app.use('/api/budget-categories', authenticateToken, budgetCategoriesRouter);
 ```
 
 #### Step 5: Write Tests
@@ -1047,35 +1007,32 @@ app.use("/api/budget-categories", authenticateToken, budgetCategoriesRouter);
 **File:** `backend/src/api/routes/__tests__/budgetCategories.test.ts`
 
 ```typescript
-import request from "supertest";
-import { createApiServer } from "@src/api/server";
-import { BudgetCategory } from "@database";
-import jwt from "jsonwebtoken";
+import request from 'supertest';
+import { createApiServer } from '@src/api/server';
+import { BudgetCategory } from '@database';
+import jwt from 'jsonwebtoken';
 
-describe("Budget Categories API", () => {
+describe('Budget Categories API', () => {
   let app;
   let authToken;
 
   beforeAll(() => {
     app = createApiServer();
-    authToken = jwt.sign(
-      { discordId: "test-user-123" },
-      process.env.JWT_SECRET,
-    );
+    authToken = jwt.sign({ discordId: 'test-user-123' }, process.env.JWT_SECRET);
   });
 
-  it("should create budget category", async () => {
+  it('should create budget category', async () => {
     const response = await request(app)
-      .post("/api/budget-categories")
-      .set("Authorization", `Bearer ${authToken}`)
+      .post('/api/budget-categories')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
-        name: "Groceries",
+        name: 'Groceries',
         monthlyLimit: 500,
       })
       .expect(201);
 
     expect(response.body.success).toBe(true);
-    expect(response.body.data.name).toBe("Groceries");
+    expect(response.body.data.name).toBe('Groceries');
   });
 });
 ```
@@ -1088,7 +1045,7 @@ describe("Budget Categories API", () => {
 
 ```typescript
 // Good
-router.get("/", async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const data = await fetchData();
     res.json({ success: true, data });
@@ -1102,7 +1059,7 @@ router.get("/", async (req, res, next) => {
 
 ```typescript
 // Always validate request body, query params, and URL params
-router.post("/", validate(schema), async (req, res) => {
+router.post('/', validate(schema), async (req, res) => {
   // req.body is now safe to use
 });
 ```
@@ -1126,16 +1083,16 @@ const task = await Task.findOne({
 });
 
 if (!task) {
-  return res.status(404).json({ error: "Task not found" });
+  return res.status(404).json({ error: 'Task not found' });
 }
 ```
 
 ### 5. Log Important Events
 
 ```typescript
-logger.info("[API] Task created", { userId, taskId });
-logger.warn("[API] Unauthorized access attempt", { userId, resource });
-logger.error("[API] Database error", { error: err.message });
+logger.info('[API] Task created', { userId, taskId });
+logger.warn('[API] Unauthorized access attempt', { userId, resource });
+logger.error('[API] Database error', { error: err.message });
 ```
 
 ### 6. Use Transactions for Multi-Step Operations
@@ -1155,7 +1112,7 @@ try {
 ### 7. Implement Pagination
 
 ```typescript
-router.get("/", async (req, res) => {
+router.get('/', async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const offset = parseInt(req.query.offset) || 0;
 

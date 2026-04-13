@@ -49,13 +49,13 @@ lib/
 **Usage:**
 
 ```typescript
-import { api } from "@/lib/api";
+import { api } from '@/lib/api';
 
 // Typed API calls
-const tasks = await api.get<Task[]>("/tasks");
-const newTask = await api.post<Task>("/tasks", { text: "New task" });
-await api.patch<Task>("/tasks/123", { completed: true });
-await api.delete("/tasks/123");
+const tasks = await api.get<Task[]>('/tasks');
+const newTask = await api.post<Task>('/tasks', { text: 'New task' });
+await api.patch<Task>('/tasks/123', { completed: true });
+await api.delete('/tasks/123');
 ```
 
 **Response Interface:**
@@ -82,10 +82,10 @@ interface ApiResponse<T = unknown> {
 **Usage:**
 
 ```typescript
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 // Merge classes with conflict resolution
-const className = cn("px-4 py-2", "px-6", conditionalClass && "bg-blue-500");
+const className = cn('px-4 py-2', 'px-6', conditionalClass && 'bg-blue-500');
 // Result: 'px-6 py-2 bg-blue-500' (px-4 resolved to px-6)
 ```
 

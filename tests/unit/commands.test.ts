@@ -4,22 +4,22 @@ import { mockTask, mockList, mockNote, mockReminder, mockBudget } from '../mocks
 
 // Create a mock interaction object for testing
 const mockInteraction = {
-    user: { id: 'user-1', username: 'TestUser' },
-    guild: { id: 'guild-1' },
-    guildId: 'guild-1',
-    options: {
-        getSubcommand: jest.fn(),
-        getString: jest.fn(),
-        getInteger: jest.fn(),
-        getBoolean: jest.fn(),
-        getNumber: jest.fn()
-    },
-    reply: jest.fn(),
-    deferReply: jest.fn(),
-    editReply: jest.fn(),
-    followUp: jest.fn(),
-    replied: false,
-    deferred: false
+  user: { id: 'user-1', username: 'TestUser' },
+  guild: { id: 'guild-1' },
+  guildId: 'guild-1',
+  options: {
+    getSubcommand: jest.fn(),
+    getString: jest.fn(),
+    getInteger: jest.fn(),
+    getBoolean: jest.fn(),
+    getNumber: jest.fn(),
+  },
+  reply: jest.fn(),
+  deferReply: jest.fn(),
+  editReply: jest.fn(),
+  followUp: jest.fn(),
+  replied: false,
+  deferred: false,
 };
 
 // Mock database models - using relative paths from commands directory
@@ -83,9 +83,11 @@ describe('Discord Commands', () => {
         null
       );
 
-      expect(mockInteraction.editReply).toHaveBeenCalledWith(expect.objectContaining({
-        embeds: expect.any(Array),
-      }));
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          embeds: expect.any(Array),
+        })
+      );
     });
 
     it('should list all tasks', async () => {
@@ -95,11 +97,7 @@ describe('Discord Commands', () => {
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockTask.getUserTasks).toHaveBeenCalledWith(
-        'user-1',
-        'guild-1',
-        'all'
-      );
+      expect(mockTask.getUserTasks).toHaveBeenCalledWith('user-1', 'guild-1', 'all');
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -111,11 +109,7 @@ describe('Discord Commands', () => {
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockTask.completeTask).toHaveBeenCalledWith(
-        1,
-        'user-1',
-        'guild-1'
-      );
+      expect(mockTask.completeTask).toHaveBeenCalledWith(1, 'user-1', 'guild-1');
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -128,9 +122,11 @@ describe('Discord Commands', () => {
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockInteraction.editReply).toHaveBeenCalledWith(expect.objectContaining({
-        content: expect.stringContaining('error'),
-      }));
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('error'),
+        })
+      );
     });
   });
 
@@ -156,11 +152,7 @@ describe('Discord Commands', () => {
 
       await listCommand.execute(mockInteraction);
 
-      expect(mockList.createList).toHaveBeenCalledWith(
-        'user-1',
-        'guild-1',
-        'Shopping List'
-      );
+      expect(mockList.createList).toHaveBeenCalledWith('user-1', 'guild-1', 'Shopping List');
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -171,10 +163,7 @@ describe('Discord Commands', () => {
 
       await listCommand.execute(mockInteraction);
 
-      expect(mockList.getUserLists).toHaveBeenCalledWith(
-        'user-1',
-        'guild-1'
-      );
+      expect(mockList.getUserLists).toHaveBeenCalledWith('user-1', 'guild-1');
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -186,11 +175,7 @@ describe('Discord Commands', () => {
 
       await listCommand.execute(mockInteraction);
 
-      expect(mockList.deleteList).toHaveBeenCalledWith(
-        'user-1',
-        'guild-1',
-        'Shopping List'
-      );
+      expect(mockList.deleteList).toHaveBeenCalledWith('user-1', 'guild-1', 'Shopping List');
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -240,10 +225,7 @@ describe('Discord Commands', () => {
 
       await noteCommand.execute(mockInteraction);
 
-      expect(mockNote.getNotes).toHaveBeenCalledWith(
-        'user-1',
-        'guild-1'
-      );
+      expect(mockNote.getNotes).toHaveBeenCalledWith('user-1', 'guild-1');
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -261,11 +243,7 @@ describe('Discord Commands', () => {
 
       await noteCommand.execute(mockInteraction);
 
-      expect(mockNote.getNote).toHaveBeenCalledWith(
-        1,
-        'user-1',
-        'guild-1'
-      );
+      expect(mockNote.getNote).toHaveBeenCalledWith(1, 'user-1', 'guild-1');
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -309,10 +287,7 @@ describe('Discord Commands', () => {
 
       await reminderCommand.execute(mockInteraction);
 
-      expect(mockReminder.getUserReminders).toHaveBeenCalledWith(
-        'user-1',
-        'guild-1'
-      );
+      expect(mockReminder.getUserReminders).toHaveBeenCalledWith('user-1', 'guild-1');
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -335,7 +310,7 @@ describe('Discord Commands', () => {
 
     it('should add an expense', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('expense');
-      (mockInteraction.options as any).getNumber = jest.fn().mockReturnValue(50.00);
+      (mockInteraction.options as any).getNumber = jest.fn().mockReturnValue(50.0);
       mockInteraction.options.getString.mockImplementation((name: any) => {
         if (name === 'category') return 'food';
         if (name === 'description') return 'Groceries';
@@ -349,7 +324,7 @@ describe('Discord Commands', () => {
         'user-1',
         'guild-1',
         'food',
-        50.00,
+        50.0,
         'Groceries'
       );
 
@@ -363,11 +338,7 @@ describe('Discord Commands', () => {
 
       await budgetCommand.execute(mockInteraction);
 
-      expect(mockBudget.getSummary).toHaveBeenCalledWith(
-        'user-1',
-        'guild-1',
-        null
-      );
+      expect(mockBudget.getSummary).toHaveBeenCalledWith('user-1', 'guild-1', null);
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -379,11 +350,7 @@ describe('Discord Commands', () => {
 
       await budgetCommand.execute(mockInteraction);
 
-      expect(mockBudget.getSummary).toHaveBeenCalledWith(
-        'user-1',
-        'guild-1',
-        null
-      );
+      expect(mockBudget.getSummary).toHaveBeenCalledWith('user-1', 'guild-1', null);
 
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
@@ -398,9 +365,11 @@ describe('Discord Commands', () => {
 
       await taskCommand.execute(mockInteraction);
 
-      expect(mockInteraction.editReply).toHaveBeenCalledWith(expect.objectContaining({
-        content: expect.stringContaining('This command can only be used in a server'),
-      }));
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('This command can only be used in a server'),
+        })
+      );
     });
 
     it('should handle database connection errors', async () => {
@@ -411,9 +380,11 @@ describe('Discord Commands', () => {
 
       await listCommand.execute(mockInteraction);
 
-      expect(mockInteraction.editReply).toHaveBeenCalledWith(expect.objectContaining({
-        content: expect.stringContaining('error'),
-      }));
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining('error'),
+        })
+      );
     });
   });
 });

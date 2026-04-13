@@ -7,9 +7,7 @@ export const mockClient = {
     username: 'TestBot',
   },
   guilds: {
-    cache: new Map([
-      ['guild-1', { id: 'guild-1', name: 'Test Guild' }],
-    ]),
+    cache: new Map([['guild-1', { id: 'guild-1', name: 'Test Guild' }]]),
   },
   commands: new Map(),
   on: jest.fn(),

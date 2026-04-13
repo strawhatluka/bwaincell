@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { format, isPast, parseISO } from "date-fns";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Calendar, Clock } from "lucide-react";
+import { useState } from 'react';
+import { format, isPast, parseISO } from 'date-fns';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { Pencil, Trash2, Calendar, Clock } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,9 +12,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Task {
   id: number;
@@ -40,12 +40,8 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
 
   // Parse existing date and time from dueDate
   const parsedDate = task.dueDate ? parseISO(task.dueDate) : null;
-  const [dueDate, setDueDate] = useState(
-    parsedDate ? format(parsedDate, "yyyy-MM-dd") : "",
-  );
-  const [dueTime, setDueTime] = useState(
-    parsedDate ? format(parsedDate, "HH:mm") : "",
-  );
+  const [dueDate, setDueDate] = useState(parsedDate ? format(parsedDate, 'yyyy-MM-dd') : '');
+  const [dueTime, setDueTime] = useState(parsedDate ? format(parsedDate, 'HH:mm') : '');
 
   const handleToggleComplete = () => {
     onUpdate(task.id, { completed: !task.completed });
@@ -73,8 +69,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
     setIsDeleteOpen(false);
   };
 
-  const isOverdue =
-    task.dueDate && !task.completed && isPast(parseISO(task.dueDate));
+  const isOverdue = task.dueDate && !task.completed && isPast(parseISO(task.dueDate));
 
   return (
     <>
@@ -87,7 +82,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
 
         <div className="flex-1 min-w-0">
           <p
-            className={`text-sm font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}
+            className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}
           >
             {task.description}
           </p>
@@ -98,13 +93,13 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
                 <p
                   className={`text-xs ${
                     isOverdue
-                      ? "text-red-600 font-medium"
+                      ? 'text-red-600 font-medium'
                       : task.completed
-                        ? "text-muted-foreground/70"
-                        : "text-muted-foreground"
+                        ? 'text-muted-foreground/70'
+                        : 'text-muted-foreground'
                   }`}
                 >
-                  {format(parseISO(task.dueDate), "MMM d, yyyy")}
+                  {format(parseISO(task.dueDate), 'MMM d, yyyy')}
                 </p>
               </div>
               <div className="flex items-center gap-1">
@@ -112,18 +107,16 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
                 <p
                   className={`text-xs ${
                     isOverdue
-                      ? "text-red-600 font-medium"
+                      ? 'text-red-600 font-medium'
                       : task.completed
-                        ? "text-muted-foreground/70"
-                        : "text-muted-foreground"
+                        ? 'text-muted-foreground/70'
+                        : 'text-muted-foreground'
                   }`}
                 >
-                  {format(parseISO(task.dueDate), "h:mm a")}
+                  {format(parseISO(task.dueDate), 'h:mm a')}
                 </p>
               </div>
-              {isOverdue && (
-                <p className="text-xs text-red-600 font-medium">(Overdue)</p>
-              )}
+              {isOverdue && <p className="text-xs text-red-600 font-medium">(Overdue)</p>}
             </div>
           )}
         </div>
@@ -153,9 +146,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
-            <DialogDescription>
-              Update your task details below.
-            </DialogDescription>
+            <DialogDescription>Update your task details below.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -190,10 +181,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleEdit}
-              className="bg-[#f59e0b] hover:bg-[#e08c00]"
-            >
+            <Button onClick={handleEdit} className="bg-[#f59e0b] hover:bg-[#e08c00]">
               Save Changes
             </Button>
           </DialogFooter>
@@ -206,8 +194,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
           <DialogHeader>
             <DialogTitle>Delete Task</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this task? This action cannot be
-              undone.
+              Are you sure you want to delete this task? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -5,7 +5,7 @@
  * Requires GMAIL scopes to be added to OAuth configuration
  */
 
-import { GoogleApiClient } from "./client";
+import { GoogleApiClient } from './client';
 
 export interface GmailMessage {
   id: string;
@@ -39,7 +39,7 @@ export class GmailClient extends GoogleApiClient {
     q?: string;
     labelIds?: string[];
   }): Promise<GmailMessage[]> {
-    throw new Error("Gmail integration not yet implemented");
+    throw new Error('Gmail integration not yet implemented');
     // Future implementation:
     // const response = await this.get<{ messages: GmailMessage[] }>(
     //   '/gmail/v1/users/me/messages'
@@ -52,7 +52,7 @@ export class GmailClient extends GoogleApiClient {
    * TODO: Implement when Gmail scope is added
    */
   async getMessage(_messageId: string): Promise<GmailMessage> {
-    throw new Error("Gmail integration not yet implemented");
+    throw new Error('Gmail integration not yet implemented');
     // Future implementation:
     // return this.get<GmailMessage>(
     //   `/gmail/v1/users/me/messages/${messageId}`
@@ -69,7 +69,7 @@ export class GmailClient extends GoogleApiClient {
     body: string;
     from?: string;
   }): Promise<GmailMessage> {
-    throw new Error("Gmail integration not yet implemented");
+    throw new Error('Gmail integration not yet implemented');
     // Future implementation:
     // const rawMessage = this.createRawMessage(params);
     // return this.post<GmailMessage>(
@@ -88,20 +88,20 @@ export class GmailClient extends GoogleApiClient {
     body: string;
     from?: string;
   }): string {
-    const from = params.from || "me";
+    const from = params.from || 'me';
     const message = [
       `From: ${from}`,
       `To: ${params.to}`,
       `Subject: ${params.subject}`,
-      "",
+      '',
       params.body,
-    ].join("\n");
+    ].join('\n');
 
     return globalThis
       .btoa(unescape(encodeURIComponent(message)))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
   }
 }
 

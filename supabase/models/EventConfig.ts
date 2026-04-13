@@ -60,10 +60,7 @@ class EventConfig {
    * Get all enabled event configurations
    */
   static async getEnabledConfigs(): Promise<EventConfigRow[]> {
-    const { data, error } = await supabase
-      .from('event_configs')
-      .select('*')
-      .eq('is_enabled', true);
+    const { data, error } = await supabase.from('event_configs').select('*').eq('is_enabled', true);
 
     if (error) throw error;
     return data || [];

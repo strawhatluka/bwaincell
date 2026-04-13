@@ -35,11 +35,7 @@ export class User {
   }
 
   static async findByEmail(email: string): Promise<UserRow | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
+    const { data, error } = await supabase.from('users').select('*').eq('email', email).single();
 
     if (error && error.code === 'PGRST116') return null; // No rows found
     if (error) throw error;
@@ -47,11 +43,7 @@ export class User {
   }
 
   static async create(userData: UserInsert): Promise<UserRow> {
-    const { data, error } = await supabase
-      .from('users')
-      .insert(userData)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('users').insert(userData).select().single();
 
     if (error) throw error;
     return data;

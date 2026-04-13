@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { TaskList } from "@/components/tasks/TaskList";
-import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { TaskList } from '@/components/tasks/TaskList';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 export default function TasksPage() {
   return (

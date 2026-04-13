@@ -24,11 +24,7 @@ class Note {
       tags,
     };
 
-    const { data, error } = await supabase
-      .from('notes')
-      .insert(insert)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('notes').insert(insert).select().single();
 
     if (error) throw error;
     return data;
@@ -114,10 +110,7 @@ class Note {
   }
 
   static async getNotesByTag(guildId: string, tag: string): Promise<NoteRow[]> {
-    const { data, error } = await supabase
-      .from('notes')
-      .select('*')
-      .eq('guild_id', guildId);
+    const { data, error } = await supabase.from('notes').select('*').eq('guild_id', guildId);
 
     if (error) throw error;
 
@@ -128,10 +121,7 @@ class Note {
   }
 
   static async getAllTags(guildId: string): Promise<string[]> {
-    const { data, error } = await supabase
-      .from('notes')
-      .select('tags')
-      .eq('guild_id', guildId);
+    const { data, error } = await supabase.from('notes').select('tags').eq('guild_id', guildId);
 
     if (error) throw error;
 

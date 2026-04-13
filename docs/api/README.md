@@ -356,9 +356,9 @@ No authentication required.
 
 ```typescript
 // Authenticate with Google ID token
-const auth = await fetch("http://localhost:3000/api/auth/google/verify", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
+const auth = await fetch('http://localhost:3000/api/auth/google/verify', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ idToken: googleIdToken }),
 });
 
@@ -366,7 +366,7 @@ const { data } = await auth.json();
 const accessToken = data.accessToken;
 
 // Fetch tasks
-const tasks = await fetch("http://localhost:3000/api/tasks", {
+const tasks = await fetch('http://localhost:3000/api/tasks', {
   headers: { Authorization: `Bearer ${accessToken}` },
 });
 

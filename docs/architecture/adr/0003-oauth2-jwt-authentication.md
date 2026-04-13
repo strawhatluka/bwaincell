@@ -93,15 +93,15 @@ We will implement **OAuth2 for initial authentication** + **JWT (JSON Web Tokens
 **File:** `backend/src/api/routes/oauth.ts`
 
 ```typescript
-import { Router } from "express";
-import { OAuth2Client } from "google-auth-library";
-import jwt from "jsonwebtoken";
+import { Router } from 'express';
+import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 
 const router = Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // POST /api/auth/google/verify
-router.post("/google/verify", async (req, res) => {
+router.post('/google/verify', async (req, res) => {
   const { idToken } = req.body;
 
   try {
@@ -120,7 +120,7 @@ router.post("/google/verify", async (req, res) => {
     if (!discordId) {
       return res.status(403).json({
         success: false,
-        error: "Email not authorized",
+        error: 'Email not authorized',
       });
     }
 
@@ -132,7 +132,7 @@ router.post("/google/verify", async (req, res) => {
         name: payload.name,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" },
+      { expiresIn: '7d' }
     );
 
     res.json({
@@ -149,7 +149,7 @@ router.post("/google/verify", async (req, res) => {
   } catch (error) {
     res.status(401).json({
       success: false,
-      error: "Invalid token",
+      error: 'Invalid token',
     });
   }
 });
@@ -172,8 +172,8 @@ export default router;
 **File:** `backend/src/api/middleware/oauth.ts`
 
 ```typescript
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
 interface JwtPayload {
   discordId: string;
@@ -189,18 +189,14 @@ declare global {
   }
 }
 
-export function authenticateToken(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
+export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
 
   if (!token) {
     res.status(401).json({
       success: false,
-      error: "Authentication required",
+      error: 'Authentication required',
     });
     return;
   }
@@ -212,7 +208,7 @@ export function authenticateToken(
   } catch (error) {
     res.status(403).json({
       success: false,
-      error: "Invalid or expired token",
+      error: 'Invalid or expired token',
     });
   }
 }
@@ -223,8 +219,8 @@ export function authenticateToken(
 **File:** `frontend/app/api/auth/[...nextauth]/route.ts`
 
 ```typescript
-import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import NextAuth from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
 
 export const authOptions = {
   providers: [
@@ -237,14 +233,11 @@ export const authOptions = {
     async jwt({ token, account }) {
       if (account) {
         // Send Google ID token to backend for verification
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/verify`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken: account.id_token }),
-          },
-        );
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: account.id_token }),
+        });
 
         const data = await response.json();
 
@@ -273,7 +266,7 @@ export { handler as GET, handler as POST };
 **File:** `frontend/lib/api.ts`
 
 ```typescript
-import { getSession } from "next-auth/react";
+import { getSession } from 'next-auth/react';
 
 export async function fetchTasks() {
   const session = await getSession();
@@ -281,7 +274,7 @@ export async function fetchTasks() {
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tasks`, {
     headers: {
       Authorization: `Bearer ${session.accessToken}`,
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 

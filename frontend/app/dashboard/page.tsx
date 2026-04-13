@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useAuthContext } from "@/contexts/AuthContext";
-import { Card } from "@/components/ui/card";
+import { useAuthContext } from '@/contexts/AuthContext';
+import { Card } from '@/components/ui/card';
 
 export default function DashboardPage() {
   const { username } = useAuthContext();
@@ -10,7 +10,7 @@ export default function DashboardPage() {
     <div className="max-w-4xl w-full mx-auto">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-twilight-600 via-dusk-600 to-dawn-600 bg-clip-text text-transparent mb-2 break-words">
-          Welcome back, {username || "User"}!
+          Welcome back, {username || 'User'}!
         </h1>
       </div>
 
@@ -23,10 +23,9 @@ export default function DashboardPage() {
         </p>
         <br />
         <p className="text-foreground text-sm sm:text-base">
-          You are my biggest supporter and can bring calm to the tangled web of
-          thoughts that scatter accross my brain. You are the fresh rain after a
-          long drought, the shining light amidst a dark night, the extra chicky
-          nugget in my happy meal.
+          You are my biggest supporter and can bring calm to the tangled web of thoughts that
+          scatter accross my brain. You are the fresh rain after a long drought, the shining light
+          amidst a dark night, the extra chicky nugget in my happy meal.
         </p>
         <br />
         <p className="text-foreground text-sm sm:text-base">
@@ -37,13 +36,9 @@ export default function DashboardPage() {
           So to you, Princess, I give you our Bwaincell.
         </p>
         <br />
-        <p className="text-foreground text-sm sm:text-base">
-          I love you, always
-        </p>
+        <p className="text-foreground text-sm sm:text-base">I love you, always</p>
         <br />
-        <p className="text-foreground text-sm sm:text-base">
-          Your Onion Knight
-        </p>
+        <p className="text-foreground text-sm sm:text-base">Your Onion Knight</p>
       </div>
     </div>
   );

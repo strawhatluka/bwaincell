@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useNotes } from "@/hooks/useNotes";
-import { NoteCard } from "./NoteCard";
-import { NoteEditor } from "./NoteEditor";
-import { NoteGridSkeleton } from "./NoteSkeleton";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, StickyNote, Search } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useNotes } from '@/hooks/useNotes';
+import { NoteCard } from './NoteCard';
+import { NoteEditor } from './NoteEditor';
+import { NoteGridSkeleton } from './NoteSkeleton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Plus, StickyNote, Search } from 'lucide-react';
 
 interface Note {
   id: number;
@@ -21,21 +21,14 @@ interface Note {
 }
 
 export function NoteGrid() {
-  const [searchInput, setSearchInput] = useState("");
-  const [activeSearch, setActiveSearch] = useState("");
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [wasSaving, setWasSaving] = useState(false);
 
-  const {
-    notes,
-    isLoading,
-    createNote,
-    updateNote,
-    deleteNote,
-    isCreating,
-    isUpdating,
-  } = useNotes(activeSearch);
+  const { notes, isLoading, createNote, updateNote, deleteNote, isCreating, isUpdating } =
+    useNotes(activeSearch);
 
   // Close dialog when save completes successfully
   useEffect(() => {
@@ -60,8 +53,8 @@ export function NoteGrid() {
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
     // Clear search if input is empty
-    if (value === "") {
-      setActiveSearch("");
+    if (value === '') {
+      setActiveSearch('');
     }
   };
 
@@ -77,7 +70,7 @@ export function NoteGrid() {
 
   const handleSaveNote = (
     data: { title: string; content: string; tags: string[] },
-    noteId?: number,
+    noteId?: number
   ) => {
     // Don't close dialog immediately - wait for mutation to complete
     // The dialog will close when isSaving becomes false
@@ -104,10 +97,7 @@ export function NoteGrid() {
             className="pl-10 border-[#f59e0b]/30 focus-visible:ring-[#f59e0b]"
           />
         </form>
-        <Button
-          onClick={handleCreateNote}
-          className="bg-[#f59e0b] hover:bg-[#e08c00]"
-        >
+        <Button onClick={handleCreateNote} className="bg-[#f59e0b] hover:bg-[#e08c00]">
           <Plus className="w-4 h-4 mr-2" />
           Create Note
         </Button>
@@ -117,18 +107,15 @@ export function NoteGrid() {
         <div className="text-center py-12 bg-card rounded-lg border border-border">
           <StickyNote className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
           <h3 className="text-lg font-medium text-foreground mb-1">
-            {activeSearch ? "No notes found" : "No notes yet"}
+            {activeSearch ? 'No notes found' : 'No notes yet'}
           </h3>
           <p className="text-muted-foreground mb-4">
             {activeSearch
-              ? "Try a different search term."
-              : "Start writing down your thoughts and ideas!"}
+              ? 'Try a different search term.'
+              : 'Start writing down your thoughts and ideas!'}
           </p>
           {!activeSearch && (
-            <Button
-              onClick={handleCreateNote}
-              className="bg-[#f59e0b] hover:bg-[#e08c00]"
-            >
+            <Button onClick={handleCreateNote} className="bg-[#f59e0b] hover:bg-[#e08c00]">
               <Plus className="w-4 h-4 mr-2" />
               Create Your First Note
             </Button>
@@ -137,12 +124,7 @@ export function NoteGrid() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {notes.map((note) => (
-            <NoteCard
-              key={note.id}
-              note={note}
-              onEdit={handleEditNote}
-              onDelete={deleteNote}
-            />
+            <NoteCard key={note.id} note={note} onEdit={handleEditNote} onDelete={deleteNote} />
           ))}
         </div>
       )}

@@ -179,12 +179,12 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
     // Edit task modal
     if (customId.startsWith('task_edit_')) {
       const taskId = parseInt(customId.split('_')[2]);
-      const { data: task } = await supabase
+      const { data: task } = (await supabase
         .from('tasks')
         .select('*')
         .eq('id', taskId)
         .eq('guild_id', guildId)
-        .single() as { data: TaskRow | null };
+        .single()) as { data: TaskRow | null };
 
       if (!task) {
         // Check if already acknowledged before responding

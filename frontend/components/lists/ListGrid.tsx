@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useLists } from "@/hooks/useLists";
-import { ListCard } from "./ListCard";
-import { ListGridSkeleton } from "./ListSkeleton";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import { useLists } from '@/hooks/useLists';
+import { ListCard } from './ListCard';
+import { ListGridSkeleton } from './ListSkeleton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -15,20 +15,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Plus, List as ListIcon } from "lucide-react";
+} from '@/components/ui/dialog';
+import { Plus, List as ListIcon } from 'lucide-react';
 
 export function ListGrid() {
   const { lists, isLoading, createList, deleteList, isCreating } = useLists();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newListName, setNewListName] = useState("");
+  const [newListName, setNewListName] = useState('');
 
   const handleCreateList = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newListName.trim()) return;
 
     createList({ name: newListName.trim() });
-    setNewListName("");
+    setNewListName('');
     setIsCreateOpen(false);
   };
 
@@ -81,7 +81,7 @@ export function ListGrid() {
                   disabled={isCreating || !newListName.trim()}
                   className="bg-[#f59e0b] hover:bg-[#e08c00]"
                 >
-                  {isCreating ? "Creating..." : "Create List"}
+                  {isCreating ? 'Creating...' : 'Create List'}
                 </Button>
               </DialogFooter>
             </form>
@@ -92,16 +92,9 @@ export function ListGrid() {
       {lists.length === 0 ? (
         <div className="text-center py-12 bg-card rounded-lg border border-border">
           <ListIcon className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-          <h3 className="text-lg font-medium text-foreground mb-1">
-            No lists yet
-          </h3>
-          <p className="text-muted-foreground mb-4">
-            Create your first list to get organized!
-          </p>
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            className="bg-[#f59e0b] hover:bg-[#e08c00]"
-          >
+          <h3 className="text-lg font-medium text-foreground mb-1">No lists yet</h3>
+          <p className="text-muted-foreground mb-4">Create your first list to get organized!</p>
+          <Button onClick={() => setIsCreateOpen(true)} className="bg-[#f59e0b] hover:bg-[#e08c00]">
             <Plus className="w-4 h-4 mr-2" />
             Create Your First List
           </Button>

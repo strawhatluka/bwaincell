@@ -6,16 +6,16 @@ const mockBotLifecycleClient: any = {
   destroy: jest.fn(),
   user: null,
   guilds: {
-    cache: new Map()
+    cache: new Map(),
   },
   commands: {
-    set: jest.fn()
+    set: jest.fn(),
   },
   readyAt: null,
   uptime: 0,
   ws: {
-    ping: 50
-  }
+    ping: 50,
+  },
 };
 
 jest.mock('discord.js', () => ({
@@ -24,19 +24,19 @@ jest.mock('discord.js', () => ({
     Guilds: 1,
     GuildMessages: 512,
     MessageContent: 32768,
-    GuildMembers: 2
+    GuildMembers: 2,
   },
   Partials: {
     Message: 'MESSAGE',
     Channel: 'CHANNEL',
-    Reaction: 'REACTION'
+    Reaction: 'REACTION',
   },
   ActivityType: {
     Playing: 0,
     Streaming: 1,
     Listening: 2,
-    Watching: 3
-  }
+    Watching: 3,
+  },
 }));
 
 // Mock process events
@@ -70,11 +70,11 @@ const mockBotSequelize = {
   authenticate: jest.fn(),
   sync: jest.fn(),
   close: jest.fn(),
-  transaction: jest.fn()
+  transaction: jest.fn(),
 };
 
 jest.mock('sequelize', () => ({
-  Sequelize: jest.fn(() => mockBotSequelize)
+  Sequelize: jest.fn(() => mockBotSequelize),
 }));
 
 describe('Bot Lifecycle Integration', () => {
@@ -100,7 +100,7 @@ describe('Bot Lifecycle Integration', () => {
       const botConfig = {
         token: 'test-token',
         intents: [1, 512, 32768], // Guilds, GuildMessages, MessageContent
-        partials: ['MESSAGE', 'CHANNEL']
+        partials: ['MESSAGE', 'CHANNEL'],
       };
 
       const initializeBot = async (config: typeof botConfig) => {
@@ -144,7 +144,10 @@ describe('Bot Lifecycle Integration', () => {
       expect(mockBotSequelize.sync).toHaveBeenCalledWith({ alter: true });
       expect(mockBotLifecycleClient.login).toHaveBeenCalledWith('test-token');
       expect(mockBotLifecycleClient.on).toHaveBeenCalledWith('ready', expect.any(Function));
-      expect(mockBotLifecycleClient.on).toHaveBeenCalledWith('interactionCreate', expect.any(Function));
+      expect(mockBotLifecycleClient.on).toHaveBeenCalledWith(
+        'interactionCreate',
+        expect.any(Function)
+      );
       expect(result.success).toBe(true);
     });
 
@@ -194,7 +197,7 @@ describe('Bot Lifecycle Integration', () => {
               throw lastError;
             }
             // Wait before retry
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 100));
           }
         }
         // This should never be reached, but TypeScript needs it
@@ -214,12 +217,14 @@ describe('Bot Lifecycle Integration', () => {
     test('should register and handle ready event', async () => {
       let readyHandler: ((args?: any) => any) | null = null;
 
-      mockBotLifecycleClient.on.mockImplementation((event: string, handler: (args?: any) => any) => {
-        if (event === 'ready') {
-          readyHandler = handler;
+      mockBotLifecycleClient.on.mockImplementation(
+        (event: string, handler: (args?: any) => any) => {
+          if (event === 'ready') {
+            readyHandler = handler;
+          }
+          return mockBotLifecycleClient;
         }
-        return mockBotLifecycleClient;
-      });
+      );
 
       const setupEventHandlers = () => {
         mockBotLifecycleClient.on('ready', () => {
@@ -252,12 +257,14 @@ describe('Bot Lifecycle Integration', () => {
     test('should handle interaction events', async () => {
       let interactionHandler: ((args?: any) => any) | null = null;
 
-      mockBotLifecycleClient.on.mockImplementation((event: string, handler: (args?: any) => any) => {
-        if (event === 'interactionCreate') {
-          interactionHandler = handler;
+      mockBotLifecycleClient.on.mockImplementation(
+        (event: string, handler: (args?: any) => any) => {
+          if (event === 'interactionCreate') {
+            interactionHandler = handler;
+          }
+          return mockBotLifecycleClient;
         }
-        return mockBotLifecycleClient;
-      });
+      );
 
       const setupInteractionHandler = () => {
         mockBotLifecycleClient.on('interactionCreate', async (interaction: any) => {
@@ -279,7 +286,7 @@ describe('Bot Lifecycle Integration', () => {
       const mockInteraction = {
         isChatInputCommand: jest.fn().mockReturnValue(true),
         commandName: 'test',
-        reply: jest.fn().mockResolvedValue(undefined)
+        reply: jest.fn().mockResolvedValue(undefined),
       };
 
       if (interactionHandler) {
@@ -293,12 +300,14 @@ describe('Bot Lifecycle Integration', () => {
     test('should handle error events gracefully', async () => {
       let errorHandler: ((args?: any) => any) | null = null;
 
-      mockBotLifecycleClient.on.mockImplementation((event: string, handler: (args?: any) => any) => {
-        if (event === 'error') {
-          errorHandler = handler;
+      mockBotLifecycleClient.on.mockImplementation(
+        (event: string, handler: (args?: any) => any) => {
+          if (event === 'error') {
+            errorHandler = handler;
+          }
+          return mockBotLifecycleClient;
         }
-        return mockBotLifecycleClient;
-      });
+      );
 
       const errorLog: Error[] = [];
 
@@ -342,7 +351,6 @@ describe('Bot Lifecycle Integration', () => {
 
           // 4. Exit process
           process.exit(0);
-
         } catch (error) {
           console.error('Error during shutdown:', error);
           process.exit(1);
@@ -432,7 +440,7 @@ describe('Bot Lifecycle Integration', () => {
           guilds: mockBotLifecycleClient.guilds.cache.size,
           ping: mockBotLifecycleClient.ws.ping,
           ready: !!mockBotLifecycleClient.readyAt,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
 
         return health;
@@ -464,7 +472,7 @@ describe('Bot Lifecycle Integration', () => {
           await mockBotSequelize.close();
 
           // Simulate restart delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
           await mockBotSequelize.authenticate();
           await mockBotLifecycleClient.login('test-token');
@@ -511,7 +519,7 @@ describe('Bot Lifecycle Integration', () => {
       const validConfig = {
         token: 'valid-token',
         database: { host: 'localhost' },
-        intents: [1, 512]
+        intents: [1, 512],
       };
 
       const validResult = validateConfig(validConfig);
@@ -521,7 +529,7 @@ describe('Bot Lifecycle Integration', () => {
       // Test invalid config
       const invalidConfig = {
         database: {},
-        intents: 'invalid'
+        intents: 'invalid',
       };
 
       const invalidResult = validateConfig(invalidConfig);
@@ -538,17 +546,17 @@ describe('Bot Lifecycle Integration', () => {
         ...originalEnv,
         DISCORD_TOKEN: 'env-token',
         DATABASE_HOST: 'env-host',
-        NODE_ENV: 'test'
+        NODE_ENV: 'test',
       };
 
       const loadConfig = () => {
         return {
           token: process.env.DISCORD_TOKEN,
           database: {
-            host: process.env.DATABASE_HOST
+            host: process.env.DATABASE_HOST,
           },
           environment: process.env.NODE_ENV,
-          debug: process.env.NODE_ENV !== 'production'
+          debug: process.env.NODE_ENV !== 'production',
         };
       };
 

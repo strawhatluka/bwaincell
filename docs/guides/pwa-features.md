@@ -104,7 +104,7 @@ Comprehensive guide to Progressive Web App (PWA) features in Bwaincell - making 
 **File:** `frontend/pages/_app.tsx`
 
 ```tsx
-import Head from "next/head";
+import Head from 'next/head';
 
 function MyApp({ Component, pageProps }) {
   return (
@@ -144,30 +144,30 @@ export default MyApp;
 
 ```javascript
 // Service Worker for Bwaincell PWA
-const CACHE_NAME = "bwaincell-v1";
-const RUNTIME_CACHE = "bwaincell-runtime-v1";
+const CACHE_NAME = 'bwaincell-v1';
+const RUNTIME_CACHE = 'bwaincell-runtime-v1';
 
 // Static assets to cache on install
 const urlsToCache = [
-  "/",
-  "/dashboard",
-  "/dashboard/tasks",
-  "/dashboard/lists",
-  "/dashboard/notes",
-  "/dashboard/reminders",
-  "/dashboard/budget",
-  "/manifest.json",
-  "/icon-192.png",
-  "/icon-512.png",
+  '/',
+  '/dashboard',
+  '/dashboard/tasks',
+  '/dashboard/lists',
+  '/dashboard/notes',
+  '/dashboard/reminders',
+  '/dashboard/budget',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
 ];
 
 // Install event - cache static assets
-self.addEventListener("install", (event) => {
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("[SW] Caching static assets");
+      console.log('[SW] Caching static assets');
       return cache.addAll(urlsToCache);
-    }),
+    })
   );
 
   // Activate immediately
@@ -175,18 +175,18 @@ self.addEventListener("install", (event) => {
 });
 
 // Activate event - clean up old caches
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
-            console.log("[SW] Deleting old cache:", cacheName);
+            console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
-        }),
+        })
       );
-    }),
+    })
   );
 
   // Take control immediately
@@ -194,12 +194,12 @@ self.addEventListener("activate", (event) => {
 });
 
 // Fetch event - serve from cache, fallback to network
-self.addEventListener("fetch", (event) => {
+self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // API requests: Network first, cache fallback
-  if (url.pathname.startsWith("/api/")) {
+  if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -216,16 +216,15 @@ self.addEventListener("fetch", (event) => {
           // Network failed, return cached response
           return caches.match(request).then((cachedResponse) => {
             if (cachedResponse) {
-              console.log("[SW] Serving cached API response:", request.url);
+              console.log('[SW] Serving cached API response:', request.url);
               return cachedResponse;
             }
             // No cache, return offline response
-            return new Response(
-              JSON.stringify({ success: false, error: "Offline" }),
-              { headers: { "Content-Type": "application/json" } },
-            );
+            return new Response(JSON.stringify({ success: false, error: 'Offline' }), {
+              headers: { 'Content-Type': 'application/json' },
+            });
           });
-        }),
+        })
     );
     return;
   }
@@ -234,14 +233,14 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
-        console.log("[SW] Serving from cache:", request.url);
+        console.log('[SW] Serving from cache:', request.url);
         return cachedResponse;
       }
 
       // Not in cache, fetch from network
       return fetch(request).then((response) => {
         // Don't cache failed requests
-        if (!response || response.status !== 200 || response.type === "error") {
+        if (!response || response.status !== 200 || response.type === 'error') {
           return response;
         }
 
@@ -253,20 +252,20 @@ self.addEventListener("fetch", (event) => {
 
         return response;
       });
-    }),
+    })
   );
 });
 
 // Background sync event
-self.addEventListener("sync", (event) => {
-  if (event.tag === "sync-tasks") {
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-tasks') {
     event.waitUntil(syncTasks());
   }
 });
 
 // Sync pending tasks with server
 async function syncTasks() {
-  console.log("[SW] Syncing tasks with server");
+  console.log('[SW] Syncing tasks with server');
 
   // Get pending changes from IndexedDB
   // Send to server
@@ -274,30 +273,26 @@ async function syncTasks() {
 }
 
 // Push notification event
-self.addEventListener("push", (event) => {
+self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
 
   const options = {
-    body: data.body || "You have a new notification",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    body: data.body || 'You have a new notification',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     vibrate: [200, 100, 200],
-    tag: data.tag || "default",
+    tag: data.tag || 'default',
     requireInteraction: true,
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title || "Bwaincell", options),
-  );
+  event.waitUntil(self.registration.showNotification(data.title || 'Bwaincell', options));
 });
 
 // Notification click event
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  event.waitUntil(
-    clients.openWindow(event.notification.data?.url || "/dashboard"),
-  );
+  event.waitUntil(clients.openWindow(event.notification.data?.url || '/dashboard'));
 });
 ```
 
@@ -306,27 +301,27 @@ self.addEventListener("notificationclick", (event) => {
 **File:** `frontend/pages/_app.tsx`
 
 ```tsx
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 function MyApp({ Component, pageProps }) {
   useEffect(() => {
     // Register service worker
-    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       navigator.serviceWorker
-        .register("/service-worker.js")
+        .register('/service-worker.js')
         .then((registration) => {
-          console.log("[SW] Registered:", registration.scope);
+          console.log('[SW] Registered:', registration.scope);
 
           // Check for updates every hour
           setInterval(
             () => {
               registration.update();
             },
-            60 * 60 * 1000,
+            60 * 60 * 1000
           );
         })
         .catch((error) => {
-          console.error("[SW] Registration failed:", error);
+          console.error('[SW] Registration failed:', error);
         });
     }
   }, []);
@@ -346,7 +341,7 @@ export default MyApp;
 **File:** `frontend/components/OfflineBanner.tsx`
 
 ```tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 export default function OfflineBanner() {
   const [isOnline, setIsOnline] = useState(true);
@@ -359,12 +354,12 @@ export default function OfflineBanner() {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -372,9 +367,7 @@ export default function OfflineBanner() {
 
   return (
     <div className="fixed top-0 left-0 right-0 bg-yellow-500 text-white py-2 px-4 text-center z-50">
-      <p className="font-semibold">
-        ⚠️ You are offline. Some features may be limited.
-      </p>
+      <p className="font-semibold">⚠️ You are offline. Some features may be limited.</p>
     </div>
   );
 }
@@ -388,7 +381,7 @@ export default function OfflineBanner() {
 // Open IndexedDB database
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("bwaincell-offline", 1);
+    const request = indexedDB.open('bwaincell-offline', 1);
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
@@ -397,12 +390,12 @@ function openDB(): Promise<IDBDatabase> {
       const db = (event.target as IDBOpenDBRequest).result;
 
       // Create object stores
-      if (!db.objectStoreNames.contains("tasks")) {
-        db.createObjectStore("tasks", { keyPath: "id" });
+      if (!db.objectStoreNames.contains('tasks')) {
+        db.createObjectStore('tasks', { keyPath: 'id' });
       }
 
-      if (!db.objectStoreNames.contains("pendingChanges")) {
-        db.createObjectStore("pendingChanges", { autoIncrement: true });
+      if (!db.objectStoreNames.contains('pendingChanges')) {
+        db.createObjectStore('pendingChanges', { autoIncrement: true });
       }
     };
   });
@@ -411,8 +404,8 @@ function openDB(): Promise<IDBDatabase> {
 // Store task offline
 export async function storeTaskOffline(task: Task): Promise<void> {
   const db = await openDB();
-  const transaction = db.transaction(["tasks"], "readwrite");
-  const store = transaction.objectStore("tasks");
+  const transaction = db.transaction(['tasks'], 'readwrite');
+  const store = transaction.objectStore('tasks');
 
   return new Promise((resolve, reject) => {
     const request = store.put(task);
@@ -424,8 +417,8 @@ export async function storeTaskOffline(task: Task): Promise<void> {
 // Get all tasks from offline storage
 export async function getTasksOffline(): Promise<Task[]> {
   const db = await openDB();
-  const transaction = db.transaction(["tasks"], "readonly");
-  const store = transaction.objectStore("tasks");
+  const transaction = db.transaction(['tasks'], 'readonly');
+  const store = transaction.objectStore('tasks');
 
   return new Promise((resolve, reject) => {
     const request = store.getAll();
@@ -437,13 +430,13 @@ export async function getTasksOffline(): Promise<Task[]> {
 // Queue change for background sync
 export async function queueChange(change: PendingChange): Promise<void> {
   const db = await openDB();
-  const transaction = db.transaction(["pendingChanges"], "readwrite");
-  const store = transaction.objectStore("pendingChanges");
+  const transaction = db.transaction(['pendingChanges'], 'readwrite');
+  const store = transaction.objectStore('pendingChanges');
 
   return new Promise((resolve, reject) => {
     const request = store.add(change);
     request.onsuccess = () => {
-      console.log("[Offline] Change queued for sync");
+      console.log('[Offline] Change queued for sync');
       resolve();
     };
     request.onerror = () => reject(request.error);
@@ -454,8 +447,8 @@ export async function queueChange(change: PendingChange): Promise<void> {
 ### Optimistic UI Updates
 
 ```tsx
-import { useState } from "react";
-import { queueChange, storeTaskOffline } from "../lib/offlineStorage";
+import { useState } from 'react';
+import { queueChange, storeTaskOffline } from '../lib/offlineStorage';
 
 export default function TaskForm() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -473,9 +466,9 @@ export default function TaskForm() {
     try {
       if (navigator.onLine) {
         // Online: Send to server
-        const response = await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(taskData),
         });
 
@@ -486,12 +479,12 @@ export default function TaskForm() {
       } else {
         // Offline: Store locally and queue for sync
         await storeTaskOffline(newTask);
-        await queueChange({ type: "CREATE_TASK", data: taskData });
+        await queueChange({ type: 'CREATE_TASK', data: taskData });
       }
     } catch (error) {
       // Revert optimistic update on error
       setTasks((prev) => prev.filter((t) => t.id !== newTask.id));
-      alert("Failed to create task");
+      alert('Failed to create task');
     }
   };
 
@@ -518,31 +511,25 @@ export default function TaskForm() {
 **File:** `frontend/contexts/ThemeContext.tsx`
 
 ```tsx
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type Theme = "light" | "dark" | "system";
+type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
   theme: Theme;
-  resolvedTheme: "light" | "dark";
+  resolvedTheme: 'light' | 'dark';
   setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<Theme>('system');
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
   // Load theme from localStorage
   useEffect(() => {
-    const savedTheme = localStorage.getItem("bwaincell-theme") as Theme | null;
+    const savedTheme = localStorage.getItem('bwaincell-theme') as Theme | null;
     if (savedTheme) {
       setTheme(savedTheme);
     }
@@ -550,43 +537,39 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Resolve system theme
   useEffect(() => {
-    if (theme === "system") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      setResolvedTheme(mediaQuery.matches ? "dark" : "light");
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      setResolvedTheme(mediaQuery.matches ? 'dark' : 'light');
 
       const handleChange = (e: MediaQueryListEvent) => {
-        setResolvedTheme(e.matches ? "dark" : "light");
+        setResolvedTheme(e.matches ? 'dark' : 'light');
       };
 
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     } else {
-      setResolvedTheme(theme === "dark" ? "dark" : "light");
+      setResolvedTheme(theme === 'dark' ? 'dark' : 'light');
     }
   }, [theme]);
 
   // Apply theme to document
   useEffect(() => {
-    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(resolvedTheme);
 
     // Update theme-color meta tag
-    const themeColor = resolvedTheme === "dark" ? "#1a202c" : "#ffffff";
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", themeColor);
+    const themeColor = resolvedTheme === 'dark' ? '#1a202c' : '#ffffff';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColor);
   }, [resolvedTheme]);
 
   // Save theme to localStorage
   const handleSetTheme = (newTheme: Theme) => {
     setTheme(newTheme);
-    localStorage.setItem("bwaincell-theme", newTheme);
+    localStorage.setItem('bwaincell-theme', newTheme);
   };
 
   return (
-    <ThemeContext.Provider
-      value={{ theme, resolvedTheme, setTheme: handleSetTheme }}
-    >
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme: handleSetTheme }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -595,7 +578,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error("useTheme must be used within ThemeProvider");
+    throw new Error('useTheme must be used within ThemeProvider');
   }
   return context;
 }
@@ -604,12 +587,8 @@ export function useTheme() {
 ### Dark Mode Toggle Component
 
 ```tsx
-import { useTheme } from "../contexts/ThemeContext";
-import {
-  SunIcon,
-  MoonIcon,
-  ComputerDesktopIcon,
-} from "@heroicons/react/24/outline";
+import { useTheme } from '../contexts/ThemeContext';
+import { SunIcon, MoonIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -617,24 +596,24 @@ export default function ThemeToggle() {
   return (
     <div className="flex space-x-2">
       <button
-        onClick={() => setTheme("light")}
-        className={`p-2 rounded ${theme === "light" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+        onClick={() => setTheme('light')}
+        className={`p-2 rounded ${theme === 'light' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
         aria-label="Light mode"
       >
         <SunIcon className="w-5 h-5" />
       </button>
 
       <button
-        onClick={() => setTheme("dark")}
-        className={`p-2 rounded ${theme === "dark" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+        onClick={() => setTheme('dark')}
+        className={`p-2 rounded ${theme === 'dark' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
         aria-label="Dark mode"
       >
         <MoonIcon className="w-5 h-5" />
       </button>
 
       <button
-        onClick={() => setTheme("system")}
-        className={`p-2 rounded ${theme === "system" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+        onClick={() => setTheme('system')}
+        className={`p-2 rounded ${theme === 'system' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
         aria-label="System theme"
       >
         <ComputerDesktopIcon className="w-5 h-5" />
@@ -650,17 +629,14 @@ export default function ThemeToggle() {
 
 ```javascript
 module.exports = {
-  darkMode: "class", // Use class-based dark mode
-  content: [
-    "./pages/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
-  ],
+  darkMode: 'class', // Use class-based dark mode
+  content: ['./pages/**/*.{js,ts,jsx,tsx}', './components/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
         primary: {
-          light: "#e84d8a",
-          dark: "#c93d73",
+          light: '#e84d8a',
+          dark: '#c93d73',
         },
       },
     },
@@ -685,18 +661,18 @@ module.exports = {
 
 ```tsx
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (!("Notification" in window)) {
-    console.error("Notifications not supported");
+  if (!('Notification' in window)) {
+    console.error('Notifications not supported');
     return false;
   }
 
-  if (Notification.permission === "granted") {
+  if (Notification.permission === 'granted') {
     return true;
   }
 
-  if (Notification.permission !== "denied") {
+  if (Notification.permission !== 'denied') {
     const permission = await Notification.requestPermission();
-    return permission === "granted";
+    return permission === 'granted';
   }
 
   return false;
@@ -721,16 +697,16 @@ export async function subscribeToPushNotifications(): Promise<PushSubscription |
       });
 
       // Send subscription to server
-      await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(subscription),
       });
     }
 
     return subscription;
   } catch (error) {
-    console.error("Push subscription failed:", error);
+    console.error('Push subscription failed:', error);
     return null;
   }
 }
@@ -740,16 +716,16 @@ export async function subscribeToPushNotifications(): Promise<PushSubscription |
 
 ```typescript
 // backend/src/api/routes/push.ts
-import webpush from "web-push";
+import webpush from 'web-push';
 
 // Configure web-push
 webpush.setVapidDetails(
-  "mailto:admin@bwaincell.app",
+  'mailto:admin@bwaincell.app',
   process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
+  process.env.VAPID_PRIVATE_KEY!
 );
 
-router.post("/push/send", authenticateUser, async (req, res) => {
+router.post('/push/send', authenticateUser, async (req, res) => {
   const { title, body, url } = req.body;
 
   // Get user's push subscriptions from database
@@ -760,16 +736,13 @@ router.post("/push/send", authenticateUser, async (req, res) => {
   // Send notification to all subscriptions
   const results = await Promise.allSettled(
     subscriptions.map((sub) =>
-      webpush.sendNotification(
-        sub.subscription,
-        JSON.stringify({ title, body, url }),
-      ),
-    ),
+      webpush.sendNotification(sub.subscription, JSON.stringify({ title, body, url }))
+    )
   );
 
   res.json({
     success: true,
-    sent: results.filter((r) => r.status === "fulfilled").length,
+    sent: results.filter((r) => r.status === 'fulfilled').length,
   });
 });
 ```
@@ -781,7 +754,7 @@ router.post("/push/send", authenticateUser, async (req, res) => {
 ### Install Prompt
 
 ```tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 export default function InstallPrompt() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
@@ -795,9 +768,9 @@ export default function InstallPrompt() {
       setShowPrompt(true);
     };
 
-    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener('beforeinstallprompt', handler);
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const handleInstall = async () => {
@@ -809,10 +782,10 @@ export default function InstallPrompt() {
     // Wait for user response
     const { outcome } = await installPrompt.userChoice;
 
-    if (outcome === "accepted") {
-      console.log("[PWA] User accepted install");
+    if (outcome === 'accepted') {
+      console.log('[PWA] User accepted install');
     } else {
-      console.log("[PWA] User dismissed install");
+      console.log('[PWA] User dismissed install');
     }
 
     // Clear prompt
@@ -854,7 +827,7 @@ export function useIsInstalled(): boolean {
   useEffect(() => {
     // Check if running in standalone mode
     const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone;
 
     setIsInstalled(isStandalone);
@@ -875,44 +848,44 @@ export async function registerBackgroundSync(tag: string): Promise<void> {
   try {
     const registration = await navigator.serviceWorker.ready;
 
-    if ("sync" in registration) {
+    if ('sync' in registration) {
       await (registration as any).sync.register(tag);
-      console.log("[Sync] Registered:", tag);
+      console.log('[Sync] Registered:', tag);
     }
   } catch (error) {
-    console.error("[Sync] Registration failed:", error);
+    console.error('[Sync] Registration failed:', error);
   }
 }
 
 // Usage
-await registerBackgroundSync("sync-tasks");
+await registerBackgroundSync('sync-tasks');
 ```
 
 ### Handle Background Sync (Service Worker)
 
 ```javascript
 // service-worker.js
-self.addEventListener("sync", (event) => {
-  if (event.tag === "sync-tasks") {
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-tasks') {
     event.waitUntil(syncTasks());
   }
 });
 
 async function syncTasks() {
-  console.log("[SW] Syncing tasks with server");
+  console.log('[SW] Syncing tasks with server');
 
   try {
     // Get pending changes from IndexedDB
     const db = await openDB();
-    const transaction = db.transaction(["pendingChanges"], "readonly");
-    const store = transaction.objectStore("pendingChanges");
+    const transaction = db.transaction(['pendingChanges'], 'readonly');
+    const store = transaction.objectStore('pendingChanges');
     const changes = await store.getAll();
 
     // Send each change to server
     for (const change of changes) {
-      await fetch("/api/tasks", {
-        method: change.type === "CREATE_TASK" ? "POST" : "PUT",
-        headers: { "Content-Type": "application/json" },
+      await fetch('/api/tasks', {
+        method: change.type === 'CREATE_TASK' ? 'POST' : 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(change.data),
       });
 
@@ -920,9 +893,9 @@ async function syncTasks() {
       await store.delete(change.id);
     }
 
-    console.log("[SW] Sync completed");
+    console.log('[SW] Sync completed');
   } catch (error) {
-    console.error("[SW] Sync failed:", error);
+    console.error('[SW] Sync failed:', error);
     throw error; // Retry sync later
   }
 }
@@ -937,14 +910,8 @@ async function syncTasks() {
 **File:** `frontend/contexts/AuthContext.tsx`
 
 ```tsx
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-import { useSession } from "next-auth/react";
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
 
 interface User {
   id: string;
@@ -981,18 +948,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const login = () => {
-    window.location.href = "/api/auth/signin";
+    window.location.href = '/api/auth/signin';
   };
 
   const logout = () => {
-    window.location.href = "/api/auth/signout";
+    window.location.href = '/api/auth/signout';
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isLoading: status === "loading",
+        isLoading: status === 'loading',
         isAuthenticated: !!user,
         login,
         logout,
@@ -1006,7 +973,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
+    throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
 }
@@ -1021,15 +988,15 @@ export function useAuth() {
 **File:** `frontend/store/taskStore.ts`
 
 ```typescript
-import create from "zustand";
-import { persist } from "zustand/middleware";
+import create from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface Task {
   id: string;
   title: string;
   completed: boolean;
   dueDate?: string;
-  priority: "low" | "medium" | "high";
+  priority: 'low' | 'medium' | 'high';
 }
 
 interface TaskStore {
@@ -1053,7 +1020,7 @@ export const useTaskStore = create<TaskStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await fetch("/api/tasks");
+          const response = await fetch('/api/tasks');
           const { data } = await response.json();
 
           set({ tasks: data, isLoading: false });
@@ -1064,9 +1031,9 @@ export const useTaskStore = create<TaskStore>()(
 
       createTask: async (task) => {
         try {
-          const response = await fetch("/api/tasks", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+          const response = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(task),
           });
 
@@ -1081,8 +1048,8 @@ export const useTaskStore = create<TaskStore>()(
       updateTask: async (id, updates) => {
         try {
           const response = await fetch(`/api/tasks/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
           });
 
@@ -1098,7 +1065,7 @@ export const useTaskStore = create<TaskStore>()(
 
       deleteTask: async (id) => {
         try {
-          await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+          await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
 
           set((state) => ({
             tasks: state.tasks.filter((t) => t.id !== id),
@@ -1109,17 +1076,17 @@ export const useTaskStore = create<TaskStore>()(
       },
     }),
     {
-      name: "bwaincell-task-storage", // LocalStorage key
+      name: 'bwaincell-task-storage', // LocalStorage key
       partialize: (state) => ({ tasks: state.tasks }), // Only persist tasks
-    },
-  ),
+    }
+  )
 );
 ```
 
 **Usage:**
 
 ```tsx
-import { useTaskStore } from "../store/taskStore";
+import { useTaskStore } from '../store/taskStore';
 
 export default function TaskList() {
   const { tasks, isLoading, fetchTasks, updateTask } = useTaskStore();

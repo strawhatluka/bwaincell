@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]/route';
+import { prisma } from '@/lib/db/prisma';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * GET /api/reminders
@@ -15,10 +15,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -27,10 +24,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const reminders = await prisma.reminder.findMany({
@@ -38,7 +32,7 @@ export async function GET(request: NextRequest) {
         guildId: user.guildId,
         active: true,
       },
-      orderBy: { nextTrigger: "asc" },
+      orderBy: { nextTrigger: 'asc' },
     });
 
     // Convert time field from DateTime to string (HH:MM format)
@@ -52,13 +46,13 @@ export async function GET(request: NextRequest) {
       data: formattedReminders,
     });
   } catch (error) {
-    console.error("[API] GET /api/reminders error:", error);
+    console.error('[API] GET /api/reminders error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch reminders",
+        error: 'Failed to fetch reminders',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -38,12 +38,12 @@ export async function handleSelectMenuInteraction(
     // Task quick action
     if (customId === 'task_quick_action') {
       const taskId = parseInt(interaction.values[0]);
-      const { data: task } = await supabase
+      const { data: task } = (await supabase
         .from('tasks')
         .select('*')
         .eq('id', taskId)
         .eq('guild_id', guildId)
-        .single() as { data: TaskRow | null };
+        .single()) as { data: TaskRow | null };
 
       if (!task) {
         await interaction.editReply({
@@ -293,12 +293,12 @@ export async function handleSelectMenuInteraction(
     // List quick select
     if (customId === 'list_quick_select') {
       const listId = parseInt(interaction.values[0]);
-      const { data: list } = await supabase
+      const { data: list } = (await supabase
         .from('lists')
         .select('*')
         .eq('id', listId)
         .eq('guild_id', guildId)
-        .single() as { data: ListRow | null };
+        .single()) as { data: ListRow | null };
 
       if (!list) {
         await interaction.editReply({

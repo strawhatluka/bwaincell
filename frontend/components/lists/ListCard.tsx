@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useLists } from "@/hooks/useLists";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Plus, X } from "lucide-react";
+import { useState } from 'react';
+import { useLists } from '@/hooks/useLists';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Trash2, Plus, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 interface ListItem {
   text: string;
@@ -36,15 +36,8 @@ interface ListCardProps {
 }
 
 export function ListCard({ list }: ListCardProps) {
-  const {
-    addItem,
-    removeItem,
-    toggleItem,
-    clearCompleted,
-    deleteList,
-    isAddingItem,
-  } = useLists();
-  const [newItem, setNewItem] = useState("");
+  const { addItem, removeItem, toggleItem, clearCompleted, deleteList, isAddingItem } = useLists();
+  const [newItem, setNewItem] = useState('');
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const handleAddItem = (e: React.FormEvent) => {
@@ -52,7 +45,7 @@ export function ListCard({ list }: ListCardProps) {
     if (!newItem.trim()) return;
 
     addItem({ listName: list.name, item: newItem.trim() });
-    setNewItem("");
+    setNewItem('');
   };
 
   const handleRemoveItem = (itemText: string) => {
@@ -102,7 +95,7 @@ export function ListCard({ list }: ListCardProps) {
                   className="data-[state=checked]:bg-[#f59e0b] data-[state=checked]:border-[#f59e0b]"
                 />
                 <span
-                  className={`flex-1 text-sm ${item.completed ? "line-through text-muted-foreground" : "text-foreground"}`}
+                  className={`flex-1 text-sm ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}
                 >
                   {item.text}
                 </span>
@@ -139,10 +132,10 @@ export function ListCard({ list }: ListCardProps) {
 
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            {list.items.length} {list.items.length === 1 ? "item" : "items"}
+            {list.items.length} {list.items.length === 1 ? 'item' : 'items'}
             {list.items.filter((item) => item.completed).length > 0 && (
               <span className="text-muted-foreground/70">
-                {" "}
+                {' '}
                 ({list.items.filter((item) => item.completed).length} completed)
               </span>
             )}
@@ -166,8 +159,7 @@ export function ListCard({ list }: ListCardProps) {
           <DialogHeader>
             <DialogTitle>Delete List</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{list.name}"? This action cannot
-              be undone.
+              Are you sure you want to delete "{list.name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

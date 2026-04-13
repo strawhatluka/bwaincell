@@ -17,7 +17,7 @@ class List {
   ): Promise<ListRow | null> {
     const { data } = await supabase.from('lists').select('*').eq('guild_id', guildId);
     if (!data) return null;
-    return data.find(l => l.name.toLowerCase() === listName.toLowerCase()) || null;
+    return data.find((l) => l.name.toLowerCase() === listName.toLowerCase()) || null;
   }
 
   static async createList(guildId: string, name: string, userId?: string): Promise<ListRow | null> {
@@ -71,9 +71,7 @@ class List {
     if (!list) return null;
 
     const items = list.items || [];
-    const index = items.findIndex(
-      (item) => item.text.toLowerCase() === itemText.toLowerCase()
-    );
+    const index = items.findIndex((item) => item.text.toLowerCase() === itemText.toLowerCase());
 
     if (index === -1) return null;
 
@@ -125,10 +123,7 @@ class List {
 
     if (!targetList) return false;
 
-    const { error } = await supabase
-      .from('lists')
-      .delete()
-      .eq('id', targetList.id);
+    const { error } = await supabase.from('lists').delete().eq('id', targetList.id);
 
     return !error;
   }

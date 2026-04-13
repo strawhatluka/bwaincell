@@ -76,18 +76,18 @@ We will migrate from **SQLite** to **PostgreSQL 15** for all production deployme
 **File:** `backend/database/index.ts`
 
 ```typescript
-import { Sequelize } from "sequelize";
+import { Sequelize } from 'sequelize';
 
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error("DATABASE_URL environment variable is required");
+  throw new Error('DATABASE_URL environment variable is required');
 }
 
 // Auto-detect dialect from DATABASE_URL
 const sequelize = new Sequelize(databaseUrl, {
-  dialect: databaseUrl.startsWith("postgresql") ? "postgres" : "sqlite",
-  logging: (sql: string) => logger.info("SQL Query", { query: sql }),
+  dialect: databaseUrl.startsWith('postgresql') ? 'postgres' : 'sqlite',
+  logging: (sql: string) => logger.info('SQL Query', { query: sql }),
   pool: {
     max: 10, // Maximum connections
     min: 2, // Minimum connections
@@ -97,8 +97,7 @@ const sequelize = new Sequelize(databaseUrl, {
   dialectOptions: {
     // SSL for cloud PostgreSQL deployments
     ssl:
-      process.env.NODE_ENV === "production" &&
-      process.env.DEPLOYMENT_MODE !== "pi"
+      process.env.NODE_ENV === 'production' && process.env.DEPLOYMENT_MODE !== 'pi'
         ? {
             require: true,
             rejectUnauthorized: false,
@@ -143,7 +142,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5433:5432"
+      - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -417,10 +416,10 @@ export default class Task extends Model {
       },
       {
         sequelize,
-        tableName: "tasks",
+        tableName: 'tasks',
         timestamps: true,
         underscored: true, // snake_case columns for PostgreSQL
-      },
+      }
     );
   }
 }

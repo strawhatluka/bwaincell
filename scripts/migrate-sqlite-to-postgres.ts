@@ -152,7 +152,12 @@ async function migrateTable(tableName: string): Promise<MigrationStats> {
 
       // Stringify JSON/JSONB columns for proper binding
       const values = Object.values(row).map((value) => {
-        if (typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Date)) {
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          !Array.isArray(value) &&
+          !(value instanceof Date)
+        ) {
           return JSON.stringify(value);
         }
         if (Array.isArray(value)) {
