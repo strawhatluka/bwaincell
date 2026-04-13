@@ -2,69 +2,14 @@
 # Bwaincell - Production Docker Compose (Monorepo)
 # =============================================================================
 # Architecture:
-#   - Backend (Discord Bot + Express API) + PostgreSQL → Raspberry Pi (sunny-pi)
+#   - Backend (Discord Bot + Express API) → Raspberry Pi (sunny-pi)
+#   - Database: Supabase (hosted PostgreSQL)
 #   - Frontend (Next.js PWA) → Vercel (separate deployment)
 # =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
-  # PostgreSQL Database - Production
-  # ---------------------------------------------------------------------------
-  postgres:
-    image: postgres:15-alpine
-    container_name: bwaincell-db
-    restart: unless-stopped
-
-    # Load environment variables from .env
-    env_file:
-      - .env
-
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-bwaincell}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-bwaincell}
-
-    volumes:
-      # Persistent data storage on Pi
-      - postgres-data:/var/lib/postgresql/data
-      # Database initialization script (path relative to repo root)
-      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
-
-    # Expose port 5433 externally to avoid conflict with sunny-stack-db (5432)
-    ports:
-      - "5433:5432"
-
-    networks:
-      - bwaincell-network
-
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bwaincell}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-    # Note: deploy.resources removed - requires cgroup support which Pi kernel lacks
-
-    # Logging configuration with rotation
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"   # Max 10MB per log file
-        max-file: "3"     # Keep 3 rotated files
-        compress: "true"
-
-    # Security options
-    security_opt:
-      - no-new-privileges:true
-
-    labels:
-      com.bwaincell.service: "postgres"
-      com.bwaincell.environment: "production"
-      com.bwaincell.platform: "raspberry-pi"
-
-  # ---------------------------------------------------------------------------
-  # Backend Service - Discord.js 14 + Express API + PostgreSQL (Monorepo)
+  # Backend Service - Discord.js 14 + Express API + Supabase (Monorepo)
   # ---------------------------------------------------------------------------
   backend:
     # Build from monorepo root context
@@ -87,6 +32,8 @@ services:
       - NODE_ENV=production
       - DEPLOYMENT_MODE=pi
       - TZ=America/Los_Angeles  # Set your timezone (important for reminders)
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
 
     # Health check configuration (matches Dockerfile HEALTHCHECK)
     # start_period must be generous: bot loads DB, commands, scheduler, Discord login, THEN starts API
@@ -127,25 +74,11 @@ services:
     networks:
       - bwaincell-network
 
-    # Wait for PostgreSQL to be healthy before starting
-    depends_on:
-      postgres:
-        condition: service_healthy
-
     # Labels for management
     labels:
       com.bwaincell.service: "discord-bot"
       com.bwaincell.environment: "production"
       com.bwaincell.platform: "raspberry-pi"
-
-# -----------------------------------------------------------------------------
-# Volumes
-# -----------------------------------------------------------------------------
-volumes:
-  postgres-data:
-    driver: local
-    labels:
-      com.bwaincell.description: "PostgreSQL production database storage"
 
 # -----------------------------------------------------------------------------
 # Networks
@@ -161,15 +94,14 @@ networks:
 # =============================================================================
 #
 # Architecture:
-#   - Backend (Discord Bot + Express API) + PostgreSQL → Raspberry Pi (sunny-pi)
+#   - Backend (Discord Bot + Express API) → Raspberry Pi (sunny-pi)
+#   - Database: Supabase (hosted PostgreSQL, no local container)
 #   - Frontend (Next.js PWA) → Vercel (separate deployment, not in Docker)
-#   - PostgreSQL runs in separate container (port 5433 externally)
-#   - Backend connects to PostgreSQL via Docker network
 #   - Logs stored in ./logs volume
 #
 # Prerequisites:
 #   1. Create .env with production credentials (see .env.example)
-#   2. Ensure BOT_TOKEN, CLIENT_ID, GUILD_ID, DATABASE_URL, POSTGRES_PASSWORD are set
+#   2. Ensure BOT_TOKEN, CLIENT_ID, GUILD_ID, DATABASE_URL, SUPABASE_URL are set
 #   3. Monorepo structure: backend/, frontend/, shared/, package.json at root
 #
 # Build Backend Image:
@@ -183,7 +115,6 @@ networks:
 # View Logs:
 #   docker compose logs -f
 #   docker compose logs -f backend
-#   docker compose logs -f postgres
 #
 # Check Health:
 #   docker compose ps
@@ -198,13 +129,11 @@ networks:
 #   docker compose up -d
 #
 # View Resource Usage:
-#   docker stats bwaincell-backend bwaincell-db
+#   docker stats bwaincell-backend
 #
-# Database Backup:
-#   docker compose exec postgres pg_dump -U bwaincell bwaincell > backup.sql
-#
-# Database Restore:
-#   cat backup.sql | docker compose exec -T postgres psql -U bwaincell bwaincell
+# Database (Supabase):
+#   Database is hosted on Supabase - manage via Supabase Dashboard
+#   https://supabase.com/dashboard
 #
 # Frontend Deployment (Vercel):
 #   The frontend/ directory is deployed separately to Vercel

@@ -30,13 +30,13 @@
       "@commands/*": ["src/commands/*"],
       "@handlers/*": ["src/handlers/*"],
       "@services/*": ["src/services/*"],
-      "@database/*": ["database/*"]
+      "@database/*": ["../supabase/*"]
     }
   },
   "include": [
     "src/**/*",
     "commands/**/*",
-    "database/**/*",
+    "../supabase/**/*",
     "utils/**/*",
     "shared/**/*",
     "config/**/*"

@@ -15,7 +15,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import SunsetConfig from '../../../database/models/SunsetConfig';
+import SunsetConfig from '../../../../supabase/models/SunsetConfig';
 
 describe('SunsetConfig Model', () => {
   let mockConfig: any;

@@ -1,143 +1,142 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Optional, Sequelize, Op } from 'sequelize';
-import schemas from '../schema';
+import supabase from '../supabase';
+import type { NoteRow, NoteInsert, NoteUpdate } from '../types';
 
-// Define attributes interface matching the schema
-interface NoteAttributes {
-  id: number;
-  title: string;
-  content: string;
-  tags: string[];
-  created_at: Date;
-  updated_at: Date;
-  user_id: string;
-  guild_id: string;
-}
-
-// Creation attributes (id and timestamps are optional during creation)
-interface NoteCreationAttributes
-  extends Optional<NoteAttributes, 'id' | 'created_at' | 'updated_at' | 'tags'> {}
-
-// Update attributes interface
+// Update attributes interface (preserved for caller compatibility)
 interface NoteUpdateAttributes {
   title?: string;
   content?: string;
   tags?: string[];
 }
 
-const NoteBase = Model as any;
-class Note extends NoteBase<NoteAttributes, NoteCreationAttributes> implements NoteAttributes {
-  // Sequelize automatically provides getters/setters for these fields
-  // Commenting out to prevent shadowing warnings
-  // public id!: number;
-  // public title!: string;
-  // public content!: string;
-  // public tags!: string[];
-  // public created_at!: Date;
-  // public updated_at!: Date;
-  // public user_id!: string;
-  // public guild_id!: string;
-
-  static init(sequelize: Sequelize) {
-    return Model.init.call(this as any, schemas.note, {
-      sequelize,
-      modelName: 'Note',
-      tableName: 'notes',
-      timestamps: false,
-    });
-  }
-
+class Note {
   static async createNote(
     guildId: string,
     title: string,
     content: string,
     tags: string[] = [],
     userId?: string
-  ): Promise<Note> {
-    return await (this as any).create({
+  ): Promise<NoteRow> {
+    const insert: NoteInsert = {
       user_id: userId || 'system', // Keep for audit trail (WO-015)
       guild_id: guildId,
       title,
       content,
       tags,
-    });
+    };
+
+    const { data, error } = await supabase
+      .from('notes')
+      .insert(insert)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   // NOTE: Filters by guild_id only for shared household access (WO-015)
-  static async getNotes(guildId: string): Promise<Note[]> {
-    return await (this as any).findAll({
-      where: { guild_id: guildId },
-      order: [['created_at', 'DESC']],
-    });
+  static async getNotes(guildId: string): Promise<NoteRow[]> {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('guild_id', guildId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
   }
 
-  static async getNote(noteId: number, guildId: string): Promise<Note | null> {
-    return await (this as any).findOne({
-      where: { id: noteId, guild_id: guildId },
-    });
+  static async getNote(noteId: number, guildId: string): Promise<NoteRow | null> {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('id', noteId)
+      .eq('guild_id', guildId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
   }
 
   static async deleteNote(noteId: number, guildId: string): Promise<boolean> {
-    const result = await (this as any).destroy({
-      where: { id: noteId, guild_id: guildId },
-    });
+    const { data, error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', noteId)
+      .eq('guild_id', guildId)
+      .select();
 
-    return result > 0;
+    if (error) throw error;
+    return data.length > 0;
   }
 
-  static async searchNotes(guildId: string, keyword: string): Promise<Note[]> {
-    return await (this as any).findAll({
-      where: {
-        guild_id: guildId,
-        [Op.or]: [
-          { title: { [Op.like]: `%${keyword}%` } },
-          { content: { [Op.like]: `%${keyword}%` } },
-        ],
-      },
-      order: [['created_at', 'DESC']],
-    });
+  static async searchNotes(guildId: string, keyword: string): Promise<NoteRow[]> {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('guild_id', guildId)
+      .or(`title.ilike.%${keyword}%,content.ilike.%${keyword}%`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
   }
 
   static async updateNote(
     noteId: number,
     guildId: string,
     updates: NoteUpdateAttributes
-  ): Promise<Note | null> {
-    const note = await (this as any).findOne({
-      where: { id: noteId, guild_id: guildId },
-    });
+  ): Promise<NoteRow | null> {
+    const updatePayload: NoteUpdate = {
+      updated_at: new Date().toISOString(),
+    };
 
-    if (!note) return null;
+    if (updates.title) updatePayload.title = updates.title;
+    if (updates.content) updatePayload.content = updates.content;
+    if (updates.tags) updatePayload.tags = updates.tags;
 
-    if (updates.title) note.title = updates.title;
-    if (updates.content) note.content = updates.content;
-    if (updates.tags) note.tags = updates.tags;
+    const { data, error } = await supabase
+      .from('notes')
+      .update(updatePayload)
+      .eq('id', noteId)
+      .eq('guild_id', guildId)
+      .select()
+      .single();
 
-    note.updated_at = new Date();
-    await note.save();
-
-    return note;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
   }
 
-  static async getNotesByTag(guildId: string, tag: string): Promise<Note[]> {
-    const notes = await (this as any).findAll({
-      where: { guild_id: guildId },
-    });
+  static async getNotesByTag(guildId: string, tag: string): Promise<NoteRow[]> {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('guild_id', guildId);
 
-    return notes.filter((note: InstanceType<typeof Note>) => {
+    if (error) throw error;
+
+    return data.filter((note: NoteRow) => {
       const tags = note.tags || [];
       return tags.some((t: string) => t.toLowerCase() === tag.toLowerCase());
     });
   }
 
   static async getAllTags(guildId: string): Promise<string[]> {
-    const notes = await (this as any).findAll({
-      where: { guild_id: guildId },
-      attributes: ['tags'],
-    });
+    const { data, error } = await supabase
+      .from('notes')
+      .select('tags')
+      .eq('guild_id', guildId);
+
+    if (error) throw error;
 
     const allTags = new Set<string>();
-    notes.forEach((note: InstanceType<typeof Note>) => {
+    data.forEach((note: Pick<NoteRow, 'tags'>) => {
       if (note.tags && Array.isArray(note.tags)) {
         note.tags.forEach((tag: string) => allTags.add(tag));
       }

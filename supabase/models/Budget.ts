@@ -1,25 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Optional, Sequelize, Op, fn, col } from 'sequelize';
-import schemas from '../schema';
+import supabase from '../supabase';
+import type { BudgetRow, BudgetInsert } from '../types';
 
 // Define budget type enum
 type BudgetType = 'expense' | 'income';
-
-// Define attributes interface matching the schema
-interface BudgetAttributes {
-  id: number;
-  type: BudgetType;
-  category?: string | null;
-  amount: number;
-  description?: string | null;
-  date: Date;
-  user_id: string;
-  guild_id: string;
-}
-
-// Creation attributes (id and date are optional during creation)
-interface BudgetCreationAttributes
-  extends Optional<BudgetAttributes, 'id' | 'date' | 'category' | 'description'> {}
 
 // Interface for budget summary
 interface BudgetSummary {
@@ -52,42 +35,31 @@ interface MonthlyTrend {
   balance: string;
 }
 
-const BudgetBase = Model as any;
-class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
-  // Commenting out public fields to prevent Sequelize warnings
-  // public id!: number;
-  // public type!: BudgetType;
-  // public category?: string | null;
-  // public amount!: number;
-  // public description?: string | null;
-  // public date!: Date;
-  // public user_id!: string;
-  // public guild_id!: string;
-
-  static init(sequelize: Sequelize) {
-    return Model.init.call(this as any, schemas.budget, {
-      sequelize,
-      modelName: 'Budget',
-      tableName: 'budgets',
-      timestamps: false,
-    });
-  }
-
+class Budget {
   static async addExpense(
     guildId: string,
     category: string,
     amount: number,
     description: string | null = null,
     userId?: string
-  ): Promise<Budget> {
-    return await (this as any).create({
+  ): Promise<BudgetRow> {
+    const insert: BudgetInsert = {
       user_id: userId || 'system', // Keep for audit trail (WO-015)
       guild_id: guildId,
-      type: 'expense',
+      type: 'expense' as BudgetType,
       category,
       amount,
       description,
-    });
+    };
+
+    const { data, error } = await supabase
+      .from('budgets')
+      .insert(insert)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   static async addIncome(
@@ -95,49 +67,63 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
     amount: number,
     description: string | null = null,
     userId?: string
-  ): Promise<Budget> {
-    return await (this as any).create({
+  ): Promise<BudgetRow> {
+    const insert: BudgetInsert = {
       user_id: userId || 'system', // Keep for audit trail (WO-015)
       guild_id: guildId,
-      type: 'income',
+      type: 'income' as BudgetType,
       category: 'Income',
       amount,
       description,
-    });
+    };
+
+    const { data, error } = await supabase
+      .from('budgets')
+      .insert(insert)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   // NOTE: Filters by guild_id only for shared household access (WO-015)
   static async getSummary(guildId: string, month: number | null = null): Promise<BudgetSummary> {
-    const where: Record<string, unknown> = { guild_id: guildId };
+    let startDate: Date;
+    let endDate: Date;
 
     if (month) {
       const year = new Date().getFullYear();
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
-
-      where.date = { [Op.between]: [startDate, endDate] };
+      startDate = new Date(year, month - 1, 1);
+      endDate = new Date(year, month, 0, 23, 59, 59);
     } else {
       const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
-      where.date = { [Op.between]: [startOfMonth, endOfMonth] };
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     }
 
-    const entries = await (this as any).findAll({ where });
+    const { data: entries, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('guild_id', guildId)
+      .gte('date', startDate.toISOString())
+      .lte('date', endDate.toISOString());
 
-    const income = entries
-      .filter((e: Budget) => e.type === 'income')
-      .reduce((sum: number, e: Budget) => sum + Number(e.amount), 0);
+    if (error) throw error;
+    const rows = entries || [];
 
-    const expenses = entries
-      .filter((e: Budget) => e.type === 'expense')
-      .reduce((sum: number, e: Budget) => sum + Number(e.amount), 0);
+    const income = rows
+      .filter((e: BudgetRow) => e.type === 'income')
+      .reduce((sum: number, e: BudgetRow) => sum + Number(e.amount), 0);
+
+    const expenses = rows
+      .filter((e: BudgetRow) => e.type === 'expense')
+      .reduce((sum: number, e: BudgetRow) => sum + Number(e.amount), 0);
 
     const categories: Record<string, number> = {};
-    entries
-      .filter((e: Budget) => e.type === 'expense')
-      .forEach((e: Budget) => {
+    rows
+      .filter((e: BudgetRow) => e.type === 'expense')
+      .forEach((e: BudgetRow) => {
         if (e.category) {
           if (!categories[e.category]) {
             categories[e.category] = 0;
@@ -157,37 +143,50 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
           percentage: ((amount / expenses) * 100).toFixed(1),
         }))
         .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount)),
-      entryCount: entries.length,
+      entryCount: rows.length,
     };
   }
 
   static async getCategories(guildId: string): Promise<CategoryResult[]> {
-    const result = (await (this as any).findAll({
-      where: { guild_id: guildId, type: 'expense' },
-      attributes: [
-        'category',
-        [fn('SUM', col('amount')), 'total'],
-        [fn('COUNT', col('id')), 'count'],
-      ],
-      group: ['category'],
-      raw: true,
-    })) as Array<{ category: string; total: string; count: number }>;
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('guild_id', guildId)
+      .eq('type', 'expense');
 
-    return result
-      .map((r) => ({
-        category: r.category,
-        total: parseFloat(r.total).toFixed(2),
-        count: r.count,
+    if (error) throw error;
+    const rows = data || [];
+
+    // Group and sum in JS (replaces Sequelize fn('SUM')/GROUP BY)
+    const grouped: Record<string, { total: number; count: number }> = {};
+    for (const row of rows) {
+      const cat = row.category || 'Uncategorized';
+      if (!grouped[cat]) {
+        grouped[cat] = { total: 0, count: 0 };
+      }
+      grouped[cat].total += Number(row.amount);
+      grouped[cat].count += 1;
+    }
+
+    return Object.entries(grouped)
+      .map(([category, { total, count }]) => ({
+        category,
+        total: total.toFixed(2),
+        count,
       }))
       .sort((a, b) => parseFloat(b.total) - parseFloat(a.total));
   }
 
-  static async getRecentEntries(guildId: string, limit: number = 10): Promise<Budget[]> {
-    return await (this as any).findAll({
-      where: { guild_id: guildId },
-      order: [['date', 'DESC']],
-      limit,
-    });
+  static async getRecentEntries(guildId: string, limit: number = 10): Promise<BudgetRow[]> {
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('guild_id', guildId)
+      .order('date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
   }
 
   static async getMonthlyTrend(guildId: string, months: number = 6): Promise<MonthlyTrend[]> {
@@ -195,26 +194,29 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
     const now = new Date();
 
     for (let i = months - 1; i >= 0; i--) {
-      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
 
-      const entries = await (this as any).findAll({
-        where: {
-          guild_id: guildId,
-          date: { [Op.between]: [month, monthEnd] },
-        },
-      });
+      const { data: entries, error } = await supabase
+        .from('budgets')
+        .select('*')
+        .eq('guild_id', guildId)
+        .gte('date', monthStart.toISOString())
+        .lte('date', monthEnd.toISOString());
 
-      const income = entries
-        .filter((e: Budget) => e.type === 'income')
-        .reduce((sum: number, e: Budget) => sum + Number(e.amount), 0);
+      if (error) throw error;
+      const rows = entries || [];
 
-      const expenses = entries
-        .filter((e: Budget) => e.type === 'expense')
-        .reduce((sum: number, e: Budget) => sum + Number(e.amount), 0);
+      const income = rows
+        .filter((e: BudgetRow) => e.type === 'income')
+        .reduce((sum: number, e: BudgetRow) => sum + Number(e.amount), 0);
+
+      const expenses = rows
+        .filter((e: BudgetRow) => e.type === 'expense')
+        .reduce((sum: number, e: BudgetRow) => sum + Number(e.amount), 0);
 
       results.push({
-        month: month.toLocaleString('default', { month: 'short', year: 'numeric' }),
+        month: monthStart.toLocaleString('default', { month: 'short', year: 'numeric' }),
         income: income.toFixed(2),
         expenses: expenses.toFixed(2),
         balance: (income - expenses).toFixed(2),
@@ -225,12 +227,16 @@ class Budget extends BudgetBase<BudgetAttributes, BudgetCreationAttributes> {
   }
 
   static async deleteEntry(entryId: number, guildId: string): Promise<boolean> {
-    const result = await (this as any).destroy({
-      where: { id: entryId, guild_id: guildId },
-    });
+    const { error, count } = await supabase
+      .from('budgets')
+      .delete({ count: 'exact' })
+      .eq('id', entryId)
+      .eq('guild_id', guildId);
 
-    return result > 0;
+    if (error) throw error;
+    return (count ?? 0) > 0;
   }
 }
 
 export default Budget;
+export type { BudgetSummary, CategorySummary, CategoryResult, MonthlyTrend };

@@ -54,83 +54,6 @@ jobs:
               echo "ℹ️  No previous image to backup (first deployment)"
             fi
 
-      - name: Backup PostgreSQL database
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USERNAME }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
-          port: ${{ secrets.PI_SSH_PORT || 22 }}
-          timeout: 5m
-          command_timeout: 3m
-          script: |
-            set -e
-
-            echo "💾 Backing up PostgreSQL database..."
-            cd ~/bwaincell
-
-            # Load env vars for DB credentials
-            source .env 2>/dev/null || true
-
-            # Create backup directory if it doesn't exist
-            mkdir -p ~/bwaincell-backups
-
-            # Generate timestamped filename
-            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-            BACKUP_FILE="bwaincell_backup_${TIMESTAMP}.sql"
-            BACKUP_PATH=~/bwaincell-backups/${BACKUP_FILE}
-
-            # Check if postgres container is running
-            if ! docker compose ps postgres | grep -q "running"; then
-              echo "⚠️  PostgreSQL not running - skipping backup (may be first deployment)"
-              exit 0
-            fi
-
-            # Run pg_dump inside the postgres container
-            docker compose exec -T postgres pg_dump \
-              -U ${POSTGRES_USER:-bwaincell} \
-              ${POSTGRES_DB:-bwaincell} > "${BACKUP_PATH}"
-
-            # Verify backup file is not empty
-            if [ ! -s "${BACKUP_PATH}" ]; then
-              echo "⚠️  Backup file is empty - database may be empty"
-              rm -f "${BACKUP_PATH}"
-              exit 0
-            fi
-
-            BACKUP_SIZE=$(du -h "${BACKUP_PATH}" | cut -f1)
-            echo "✅ Database backed up: ${BACKUP_FILE} (${BACKUP_SIZE})"
-
-            # Keep only last 5 backups to manage disk space
-            ls -t ~/bwaincell-backups/bwaincell_backup_*.sql | tail -n +6 | xargs rm -f 2>/dev/null || true
-            echo "📁 Backups retained: $(ls ~/bwaincell-backups/bwaincell_backup_*.sql | wc -l)"
-
-            # Email backup if BACKUP_EMAIL is configured and msmtp is available
-            if [ -n "${BACKUP_EMAIL}" ] && command -v msmtp &> /dev/null; then
-              echo "📧 Emailing backup to ${BACKUP_EMAIL}..."
-              {
-                echo "Subject: [Bwaincell] Database Backup - ${TIMESTAMP}"
-                echo "To: ${BACKUP_EMAIL}"
-                echo "Content-Type: text/plain"
-                echo ""
-                echo "Bwaincell PostgreSQL backup created before deployment."
-                echo "Timestamp: ${TIMESTAMP}"
-                echo "Size: ${BACKUP_SIZE}"
-                echo "File: ${BACKUP_FILE}"
-                echo ""
-                echo "--- SQL Dump Below ---"
-                echo ""
-                cat "${BACKUP_PATH}"
-              } | msmtp "${BACKUP_EMAIL}" && echo "✅ Backup emailed" || echo "⚠️  Email failed (non-critical)"
-            elif [ -n "${BACKUP_EMAIL}" ]; then
-              echo "⚠️  BACKUP_EMAIL set but msmtp not installed"
-              echo "    Install with: sudo apt install msmtp msmtp-mta"
-              echo "    Backup saved locally at: ${BACKUP_PATH}"
-            else
-              echo "ℹ️  BACKUP_EMAIL not set - backup saved locally only"
-            fi
-
       - name: Deploy to Raspberry Pi
         id: deploy-main
         uses: appleboy/ssh-action@v1.0.0
@@ -177,7 +100,7 @@ jobs:
             docker compose down --remove-orphans || true
 
             # Force remove any lingering containers
-            docker rm -f bwaincell-backend bwaincell-db 2>/dev/null || true
+            docker rm -f bwaincell-backend 2>/dev/null || true
 
             # Clean up old images and free disk space (preserve backup for rollback)
             echo "🧹 Cleaning up old images and freeing disk space..."
@@ -238,27 +161,6 @@ jobs:
             echo "🔍 Checking service status..."
             docker compose ps
 
-            # Verify PostgreSQL is healthy
-            echo "🔍 Checking PostgreSQL health..."
-            for i in {1..10}; do
-              if docker compose exec -T postgres pg_isready -U ${POSTGRES_USER:-bwaincell} > /dev/null 2>&1; then
-                echo "✅ PostgreSQL is healthy"
-                break
-              fi
-              echo "Attempt $i/10 - PostgreSQL not ready, waiting..."
-              sleep 3
-            done
-
-            # Verify PostgreSQL container health status
-            POSTGRES_STATUS=$(docker inspect -f '{{.State.Health.Status}}' bwaincell-db 2>/dev/null || echo "unknown")
-            if [ "$POSTGRES_STATUS" != "healthy" ]; then
-              echo "❌ PostgreSQL health check failed: $POSTGRES_STATUS"
-              echo "PostgreSQL logs:"
-              docker compose logs --tail=50 postgres
-              exit 1
-            fi
-            echo "✅ PostgreSQL container is healthy"
-
             # Verify bot health
             echo "🔍 Checking bot health..."
             for i in {1..15}; do
@@ -295,7 +197,36 @@ jobs:
             echo "✅ Deployment Complete"
             echo "================================================"
             echo "Backend: $(docker inspect -f '{{.State.Health.Status}}' bwaincell-backend 2>/dev/null || echo 'running')"
+            echo "Database: Supabase (hosted)"
             echo "================================================"
+
+      - name: Verify Supabase connection
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USERNAME }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          timeout: 5m
+          command_timeout: 2m
+          script: |
+            set -e
+
+            echo "🔍 Verifying Supabase database connection..."
+            cd ~/bwaincell
+
+            # Source env to get DATABASE_URL
+            source .env 2>/dev/null || true
+
+            # Check that backend can reach Supabase by querying the health endpoint
+            # The /health endpoint validates DB connectivity
+            HEALTH=$(curl -sf http://localhost:3000/health || echo "failed")
+            if echo "$HEALTH" | grep -q "healthy\|ok\|running"; then
+              echo "✅ Backend connected to Supabase successfully"
+            else
+              echo "⚠️  Supabase connection not yet confirmed (backend may still be starting)"
+            fi
 
       - name: Verify deployment health
         uses: appleboy/ssh-action@v1.0.0
@@ -428,17 +359,6 @@ jobs:
             # Wait for service to start (bot needs time: DB connect + command load + Discord login + API start)
             echo "⏳ Waiting for services to start (60s for Pi cold boot)..."
             sleep 60
-
-            # Verify PostgreSQL is healthy
-            echo "🔍 Checking PostgreSQL health..."
-            for i in {1..10}; do
-              if docker compose exec -T postgres pg_isready -U ${POSTGRES_USER:-bwaincell} > /dev/null 2>&1; then
-                echo "✅ PostgreSQL is healthy"
-                break
-              fi
-              echo "Attempt $i/10 - PostgreSQL not ready, waiting..."
-              sleep 3
-            done
 
             # Verify bot health
             echo "🔍 Verifying bot health..."

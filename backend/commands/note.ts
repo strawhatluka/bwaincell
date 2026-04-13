@@ -5,7 +5,7 @@ import {
   AutocompleteInteraction,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
-import Note from '../database/models/Note';
+import Note from '../../supabase/models/Note';
 
 interface NoteUpdateData {
   title?: string;

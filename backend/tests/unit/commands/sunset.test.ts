@@ -28,7 +28,7 @@ jest.mock('../../../config/config', () => ({
 }));
 
 // 3. Mock database model
-jest.mock('../../../database/models/SunsetConfig', () => ({
+jest.mock('../../../../supabase/models/SunsetConfig', () => ({
   __esModule: true,
   default: {
     upsertConfig: jest.fn(),
@@ -71,7 +71,7 @@ jest.mock('discord.js', () => {
 
 // 7. Import AFTER all mocks
 import sunsetCommand from '../../../commands/sunset';
-import SunsetConfig from '../../../database/models/SunsetConfig';
+import SunsetConfig from '../../../../supabase/models/SunsetConfig';
 import { getScheduler } from '../../../utils/scheduler';
 import { getCoordinatesFromZip, getSunsetTime } from '../../../utils/sunsetService';
 import { SlashCommandBuilder } from 'discord.js';

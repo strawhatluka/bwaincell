@@ -10,8 +10,8 @@ import taskCommand from '../../../commands/task';
 mockEssentials();
 
 // Mock the Task model
-jest.mock('../../../database/models/Task');
-import Task from '../../../database/models/Task';
+jest.mock('../../../supabase/models/Task');
+import Task from '../../../supabase/models/Task';
 
 describe('Task Command', () => {
     beforeEach(() => {

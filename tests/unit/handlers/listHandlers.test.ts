@@ -7,13 +7,13 @@ jest.mock('../../../utils/interactions/helpers/databaseHelper', () => ({
 }));
 
 // Mock the List model
-jest.mock('../../../database/models/List');
+jest.mock('../../../supabase/models/List');
 
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { listFixtures } from '../../utils/fixtures/database-fixtures';
 import { createMockButtonInteraction } from '../../mocks/discord';
 import { handleListButton } from '../../../utils/interactions/handlers/listHandlers';
-import List from '../../../database/models/List';
+import List from '../../../supabase/models/List';
 import { ButtonInteraction, CacheType } from 'discord.js';
 import { getModels } from '../../../utils/interactions/helpers/databaseHelper';
 

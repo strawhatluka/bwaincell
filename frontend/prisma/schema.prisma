@@ -1,6 +1,6 @@
 // Prisma Schema for Bwaincell Frontend
-// Connects directly to PostgreSQL database
-// Matches backend Sequelize models
+// Connects to Supabase PostgreSQL database
+// Matches backend Supabase models
 
 generator client {
   provider = "prisma-client-js"

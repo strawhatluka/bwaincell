@@ -15,7 +15,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import Budget from '../../../database/models/Budget';
+import Budget from '../../../../supabase/models/Budget';
 
 describe('Budget Model', () => {
   const testGuildId = 'guild-123';

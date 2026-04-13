@@ -87,7 +87,7 @@ jest.mock('../../utils/interactions', () => ({
 }));
 
 // Mock database
-jest.mock('../../database', () => ({
+jest.mock('../../supabase', () => ({
   sequelize: mockSequelize,
 }));
 

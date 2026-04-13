@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Optional, Sequelize } from 'sequelize';
-import schemas from '../schema';
+import supabase from '../supabase';
+import type { UserRow, UserInsert, UserUpdate } from '../types';
 
 /**
  * User attributes interface
@@ -14,45 +13,61 @@ export interface UserAttributes {
   discordId: string;
   guildId: string;
   refreshToken: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
- * User creation attributes (optional fields)
- */
-interface UserCreationAttributes
-  extends Optional<UserAttributes, 'id' | 'picture' | 'refreshToken' | 'createdAt' | 'updatedAt'> {}
-
-/**
  * User model class
+ * Note: User table uses camelCase columns (googleId, discordId, guildId) unlike other tables.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const UserBase = Model as any;
-export class User
-  extends UserBase<UserAttributes, UserCreationAttributes>
-  implements UserAttributes
-{
-  public id!: number;
-  public googleId!: string;
-  public email!: string;
-  public name!: string;
-  public picture!: string | null;
-  public discordId!: string;
-  public guildId!: string;
-  public refreshToken!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+export class User {
+  static async findByGoogleId(googleId: string): Promise<UserRow | null> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('googleId', googleId)
+      .single();
 
-  static init(sequelize: Sequelize) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return Model.init.call(this as any, schemas.user, {
-      sequelize,
-      modelName: 'User',
-      tableName: 'users',
-      timestamps: true,
-      underscored: true,
-    });
+    if (error && error.code === 'PGRST116') return null; // No rows found
+    if (error) throw error;
+    return data;
+  }
+
+  static async findByEmail(email: string): Promise<UserRow | null> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error && error.code === 'PGRST116') return null; // No rows found
+    if (error) throw error;
+    return data;
+  }
+
+  static async create(userData: UserInsert): Promise<UserRow> {
+    const { data, error } = await supabase
+      .from('users')
+      .insert(userData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async update(id: number, userData: UserUpdate): Promise<UserRow | null> {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ ...userData, updatedAt: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error && error.code === 'PGRST116') return null; // No rows found
+    if (error) throw error;
+    return data;
   }
 }
 

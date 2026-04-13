@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { DateTime } from 'luxon';
 import { logger } from '../shared/utils/logger';
-import Reminder from '../database/models/Reminder';
+import Reminder from '../../supabase/models/Reminder';
 import { getScheduler } from '../utils/scheduler';
 import config from '../config/config';
 

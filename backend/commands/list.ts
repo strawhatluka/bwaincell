@@ -9,7 +9,7 @@ import {
   AutocompleteInteraction,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
-import List, { ListItem } from '../database/models/List';
+import List, { ListItem } from '../../supabase/models/List';
 
 export default {
   data: new SlashCommandBuilder()

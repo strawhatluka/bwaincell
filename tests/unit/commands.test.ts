@@ -23,11 +23,11 @@ const mockInteraction = {
 };
 
 // Mock database models - using relative paths from commands directory
-jest.mock('../../database/models/Task', () => ({ default: mockTask }));
-jest.mock('../../database/models/List', () => ({ default: mockList }));
-jest.mock('../../database/models/Note', () => ({ default: mockNote }));
-jest.mock('../../database/models/Reminder', () => ({ default: mockReminder }));
-jest.mock('../../database/models/Budget', () => ({ default: mockBudget }));
+jest.mock('../../supabase/models/Task', () => ({ default: mockTask }));
+jest.mock('../../supabase/models/List', () => ({ default: mockList }));
+jest.mock('../../supabase/models/Note', () => ({ default: mockNote }));
+jest.mock('../../supabase/models/Reminder', () => ({ default: mockReminder }));
+jest.mock('../../supabase/models/Budget', () => ({ default: mockBudget }));
 
 // Mock logger
 jest.mock('@shared/utils/logger', () => ({

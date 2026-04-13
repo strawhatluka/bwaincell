@@ -7,15 +7,15 @@ jest.mock('../../../utils/interactions/helpers/databaseHelper', () => ({
 }));
 
 // Mock the database models
-jest.mock('../../../database/models/Task');
-jest.mock('../../../database/models/List');
+jest.mock('../../../supabase/models/Task');
+jest.mock('../../../supabase/models/List');
 
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { taskFixtures } from '../../utils/fixtures/database-fixtures';
 import { createMockModalSubmitInteraction } from '../../mocks/discord';
 import { handleModalSubmit } from '../../../utils/interactions/modals/modalHandlers';
-import Task from '../../../database/models/Task';
-import List from '../../../database/models/List';
+import Task from '../../../supabase/models/Task';
+import List from '../../../supabase/models/List';
 import { ModalSubmitInteraction, CacheType } from 'discord.js';
 import { getModels } from '../../../utils/interactions/helpers/databaseHelper';
 

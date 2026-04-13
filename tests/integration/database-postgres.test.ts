@@ -12,14 +12,14 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
-import sequelize from '../../database';
-import Task from '../../database/models/Task';
-import List from '../../database/models/List';
-import Note from '../../database/models/Note';
-import Reminder from '../../database/models/Reminder';
-import Budget from '../../database/models/Budget';
-import Schedule from '../../database/models/Schedule';
-import { User } from '../../database/models/User';
+import sequelize from '../../supabase';
+import Task from '../../supabase/models/Task';
+import List from '../../supabase/models/List';
+import Note from '../../supabase/models/Note';
+import Reminder from '../../supabase/models/Reminder';
+import Budget from '../../supabase/models/Budget';
+import Schedule from '../../supabase/models/Schedule';
+import { User } from '../../supabase/models/User';
 
 describe('PostgreSQL Database Integration Tests', () => {
   beforeAll(async () => {

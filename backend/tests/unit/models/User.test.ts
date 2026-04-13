@@ -2,7 +2,6 @@
  * Unit Tests: User Model
  *
  * Tests database model for user management using mocks
- * NOTE: User model has NO custom static methods - tests standard Sequelize CRUD
  * Coverage target: 80%
  */
 
@@ -16,7 +15,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import User from '../../../database/models/User';
+import User from '../../../../supabase/models/User';
 
 describe('User Model', () => {
   let mockUser: any;
@@ -33,24 +32,21 @@ describe('User Model', () => {
       discordId: 'discord-456',
       guildId: 'guild-789',
       refreshToken: 'refresh-token-abc',
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-      update: jest.fn().mockImplementation(function (this: any, values: any) {
-        Object.assign(this, values);
-        this.updatedAt = new Date();
-        return Promise.resolve(this);
-      }),
-      save: jest.fn().mockResolvedValue(mockUser),
+      createdAt: '2024-01-15T00:00:00.000Z',
+      updatedAt: '2024-01-15T00:00:00.000Z',
     };
 
-    // Mock findOne
-    jest.spyOn(User, 'findOne').mockImplementation(async (options: any) => {
-      const where = options?.where || {};
-
-      if (where.googleId === 'google-123') {
+    // Mock findByGoogleId
+    jest.spyOn(User, 'findByGoogleId').mockImplementation(async (googleId: string) => {
+      if (googleId === 'google-123') {
         return { ...mockUser } as any;
       }
-      if (where.email === 'test@gmail.com') {
+      return null;
+    });
+
+    // Mock findByEmail
+    jest.spyOn(User, 'findByEmail').mockImplementation(async (email: string) => {
+      if (email === 'test@gmail.com') {
         return { ...mockUser } as any;
       }
       return null;
@@ -71,20 +67,23 @@ describe('User Model', () => {
         discordId: values.discordId,
         guildId: values.guildId,
         refreshToken: values.refreshToken || null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        update: mockUser.update,
-        save: mockUser.save,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       } as any;
     });
 
-    // Mock findAll
-    jest.spyOn(User, 'findAll').mockResolvedValue([mockUser] as any);
+    // Mock update
+    jest.spyOn(User, 'update').mockImplementation(async (id: number, values: any) => {
+      if (id === 1) {
+        return { ...mockUser, ...values, updatedAt: new Date().toISOString() } as any;
+      }
+      return null;
+    });
   });
 
   describe('Model Attributes', () => {
     test('should have correct attributes defined', async () => {
-      const user = await User.findOne({ where: { googleId: 'google-123' } });
+      const user = await User.findByGoogleId('google-123');
 
       expect(user).toBeDefined();
       expect(user).toHaveProperty('googleId');
@@ -99,7 +98,7 @@ describe('User Model', () => {
     });
 
     test('should have correct attribute values', async () => {
-      const user = await User.findOne({ where: { googleId: 'google-123' } });
+      const user = await User.findByGoogleId('google-123');
 
       expect(user!.googleId).toBe('google-123');
       expect(user!.email).toBe('test@gmail.com');
@@ -111,25 +110,33 @@ describe('User Model', () => {
     });
   });
 
-  describe('findOne', () => {
+  describe('findByGoogleId', () => {
     test('should find user by googleId', async () => {
-      const user = await User.findOne({ where: { googleId: 'google-123' } });
+      const user = await User.findByGoogleId('google-123');
 
       expect(user).toBeDefined();
       expect(user!.googleId).toBe('google-123');
-      expect(User.findOne).toHaveBeenCalledWith({ where: { googleId: 'google-123' } });
-    });
-
-    test('should find user by email', async () => {
-      const user = await User.findOne({ where: { email: 'test@gmail.com' } });
-
-      expect(user).toBeDefined();
-      expect(user!.email).toBe('test@gmail.com');
-      expect(User.findOne).toHaveBeenCalledWith({ where: { email: 'test@gmail.com' } });
+      expect(User.findByGoogleId).toHaveBeenCalledWith('google-123');
     });
 
     test('should return null when user is not found', async () => {
-      const user = await User.findOne({ where: { googleId: 'nonexistent' } });
+      const user = await User.findByGoogleId('nonexistent');
+
+      expect(user).toBeNull();
+    });
+  });
+
+  describe('findByEmail', () => {
+    test('should find user by email', async () => {
+      const user = await User.findByEmail('test@gmail.com');
+
+      expect(user).toBeDefined();
+      expect(user!.email).toBe('test@gmail.com');
+      expect(User.findByEmail).toHaveBeenCalledWith('test@gmail.com');
+    });
+
+    test('should return null when email is not found', async () => {
+      const user = await User.findByEmail('notfound@gmail.com');
 
       expect(user).toBeNull();
     });
@@ -144,8 +151,7 @@ describe('User Model', () => {
         picture: 'https://example.com/new.jpg',
         discordId: 'discord-new',
         guildId: 'guild-new',
-        refreshToken: 'token-new',
-      } as any);
+      });
 
       expect(user).toBeDefined();
       expect(user.googleId).toBe('google-new');
@@ -162,7 +168,7 @@ describe('User Model', () => {
         name: 'New User',
         discordId: 'discord-new',
         guildId: 'guild-new',
-      } as any);
+      });
 
       expect(user).toBeDefined();
       expect(user.picture).toBeNull();
@@ -175,7 +181,7 @@ describe('User Model', () => {
         name: 'New User',
         discordId: 'discord-new',
         guildId: 'guild-new',
-      } as any);
+      });
 
       expect(user).toBeDefined();
       expect(user.refreshToken).toBeNull();
@@ -184,16 +190,23 @@ describe('User Model', () => {
 
   describe('update', () => {
     test('should update user fields', async () => {
-      const user = await User.findOne({ where: { googleId: 'google-123' } });
-
-      await user!.update({ name: 'Updated Name', picture: 'https://example.com/updated.jpg' });
-
-      expect(user!.name).toBe('Updated Name');
-      expect(user!.picture).toBe('https://example.com/updated.jpg');
-      expect(user!.update).toHaveBeenCalledWith({
+      const updated = await User.update(1, {
         name: 'Updated Name',
         picture: 'https://example.com/updated.jpg',
       });
+
+      expect(updated).toBeDefined();
+      expect(updated!.name).toBe('Updated Name');
+      expect(updated!.picture).toBe('https://example.com/updated.jpg');
+      expect(User.update).toHaveBeenCalledWith(1, {
+        name: 'Updated Name',
+        picture: 'https://example.com/updated.jpg',
+      });
+    });
+
+    test('should return null when user not found', async () => {
+      const updated = await User.update(999, { name: 'Nobody' });
+      expect(updated).toBeNull();
     });
   });
 
@@ -206,7 +219,7 @@ describe('User Model', () => {
         name: 'User',
         discordId: 'discord-1',
         guildId: 'guild-1',
-      } as any);
+      });
 
       // Mock create to reject duplicate googleId
       (User.create as jest.Mock).mockRejectedValueOnce(
@@ -220,7 +233,7 @@ describe('User Model', () => {
           name: 'Other User',
           discordId: 'discord-2',
           guildId: 'guild-2',
-        } as any)
+        })
       ).rejects.toThrow('Unique constraint violation: googleId must be unique');
     });
 
@@ -232,7 +245,7 @@ describe('User Model', () => {
         name: 'User',
         discordId: 'discord-1',
         guildId: 'guild-1',
-      } as any);
+      });
 
       // Mock create to reject duplicate email
       (User.create as jest.Mock).mockRejectedValueOnce(
@@ -246,7 +259,7 @@ describe('User Model', () => {
           name: 'Other User',
           discordId: 'discord-2',
           guildId: 'guild-2',
-        } as any)
+        })
       ).rejects.toThrow('Unique constraint violation: email must be unique');
     });
   });

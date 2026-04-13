@@ -23,7 +23,7 @@ jest.mock('../../../config/config', () => ({
   },
 }));
 
-jest.mock('../../../database/models/Task', () => ({
+jest.mock('../../../../supabase/models/Task', () => ({
   __esModule: true,
   default: {
     createTask: jest.fn(),
@@ -40,7 +40,7 @@ import {
   AutocompleteInteraction,
 } from 'discord.js';
 import taskCommand from '../../../commands/task';
-import Task from '../../../database/models/Task';
+import Task from '../../../../supabase/models/Task';
 import { logger } from '../../../shared/utils/logger';
 
 describe('/task Slash Command', () => {

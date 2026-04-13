@@ -15,7 +15,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import EventConfig from '../../../database/models/EventConfig';
+import EventConfig from '../../../../supabase/models/EventConfig';
 import { DateTime } from 'luxon';
 
 describe('EventConfig Model', () => {

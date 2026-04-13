@@ -16,7 +16,7 @@ jest.mock('../../../../shared/utils/logger', () => ({
 }));
 
 // Mock database - prevent actual DB connection
-jest.mock('../../../../database/index', () => ({
+jest.mock('../../../../../supabase/index', () => ({
   Task: {
     getUserTasks: jest.fn(),
     createTask: jest.fn(),
@@ -27,7 +27,7 @@ jest.mock('../../../../database/index', () => ({
   },
 }));
 
-import { Task } from '../../../../database/index';
+import { Task } from '../../../../../supabase/index';
 
 // We need to extract the route handlers from the router.
 // Since Express Router encapsulates handlers, we import the module and

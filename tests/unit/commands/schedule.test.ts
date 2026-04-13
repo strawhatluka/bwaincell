@@ -4,7 +4,7 @@
 import { createMockInteraction } from '../../utils/helpers/test-interaction';
 import { mockEssentials } from '../../utils/mocks/external-only';
 import scheduleCommand from '../../../commands/schedule';
-import Schedule from '../../../database/models/Schedule';
+import Schedule from '../../../supabase/models/Schedule';
 
 // ✅ NEW ARCHITECTURE: Mock only external dependencies
 mockEssentials();

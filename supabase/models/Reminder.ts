@@ -1,58 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Optional, Sequelize, Op } from 'sequelize';
 import { DateTime } from 'luxon';
-import schemas from '../schema';
-import config from '../../config/config';
+import supabase from '../supabase';
+import type { ReminderRow, ReminderFrequency } from '../types';
+import config from '../../backend/config/config';
 
-// Define frequency enum type
-type ReminderFrequency = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-// Define attributes interface matching the schema
-interface ReminderAttributes {
-  id: number;
-  message: string;
-  time: string;
-  frequency: ReminderFrequency;
-  day_of_week?: number | null; // 0-6 for weekly (Sun-Sat)
-  day_of_month?: number | null; // 1-31 for monthly/yearly
-  month?: number | null; // 1-12 for yearly only
-  channel_id: string;
-  user_id: string;
-  guild_id: string;
-  active: boolean;
-  next_trigger?: Date | null;
-}
-
-// Creation attributes (id is optional during creation)
-interface ReminderCreationAttributes
-  extends Optional<ReminderAttributes, 'id' | 'active' | 'next_trigger'> {}
-
-const ReminderBase = Model as any;
-class Reminder
-  extends ReminderBase<ReminderAttributes, ReminderCreationAttributes>
-  implements ReminderAttributes
-{
-  // Commenting out public fields to prevent Sequelize warnings
-  // public id!: number;
-  // public message!: string;
-  // public time!: string;
-  // public frequency!: ReminderFrequency;
-  // public day_of_week?: number | null;
-  // public channel_id!: string;
-  // public user_id!: string;
-  // public guild_id!: string;
-  // public active!: boolean;
-  // public next_trigger?: Date | null;
-
-  static init(sequelize: Sequelize) {
-    return Model.init.call(this as any, schemas.reminder, {
-      sequelize,
-      modelName: 'Reminder',
-      tableName: 'reminders',
-      timestamps: false,
-    });
-  }
-
+class Reminder {
   static async createReminder(
     guildId: string,
     channelId: string,
@@ -64,7 +15,7 @@ class Reminder
     targetDate?: Date | null,
     dayOfMonth?: number | null,
     month?: number | null
-  ): Promise<Reminder> {
+  ): Promise<ReminderRow> {
     const nextTrigger = this.calculateNextTrigger(
       time,
       frequency,
@@ -74,19 +25,26 @@ class Reminder
       month
     );
 
-    return await (this as any).create({
-      user_id: userId || 'system', // Keep for audit trail (WO-015)
-      guild_id: guildId,
-      channel_id: channelId,
-      message,
-      time,
-      frequency,
-      day_of_week: dayOfWeek,
-      day_of_month: dayOfMonth,
-      month: month,
-      next_trigger: nextTrigger,
-      active: true,
-    });
+    const { data, error } = await supabase
+      .from('reminders')
+      .insert({
+        user_id: userId || 'system', // Keep for audit trail (WO-015)
+        guild_id: guildId,
+        channel_id: channelId,
+        message,
+        time,
+        frequency,
+        day_of_week: dayOfWeek,
+        day_of_month: dayOfMonth,
+        month: month,
+        next_trigger: nextTrigger.toISOString(),
+        active: true,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data!;
   }
 
   /**
@@ -251,64 +209,91 @@ class Reminder
       return nextTrigger.toJSDate();
     }
 
-    // Convert to JavaScript Date for Sequelize compatibility
+    // Convert to JavaScript Date
     return nextTrigger.toJSDate();
   }
 
-  static async getActiveReminders(): Promise<Reminder[]> {
-    return await (this as any).findAll({
-      where: { active: true },
-      order: [['next_trigger', 'ASC']],
-    });
+  static async getActiveReminders(): Promise<ReminderRow[]> {
+    const { data } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('active', true)
+      .order('next_trigger', { ascending: true });
+
+    return data || [];
   }
 
   // NOTE: Filters by guild_id only for shared household access (WO-015)
-  static async getUserReminders(guildId: string): Promise<Reminder[]> {
-    return await (this as any).findAll({
-      where: { guild_id: guildId, active: true },
-      order: [['next_trigger', 'ASC']],
-    });
+  static async getUserReminders(guildId: string): Promise<ReminderRow[]> {
+    const { data } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('guild_id', guildId)
+      .eq('active', true)
+      .order('next_trigger', { ascending: true });
+
+    return data || [];
   }
 
   static async deleteReminder(reminderId: number, guildId: string): Promise<boolean> {
-    const result = await (this as any).update(
-      { active: false },
-      { where: { id: reminderId, guild_id: guildId } }
-    );
+    const { data } = await supabase
+      .from('reminders')
+      .update({ active: false })
+      .eq('id', reminderId)
+      .eq('guild_id', guildId)
+      .select()
+      .single();
 
-    return result[0] > 0;
+    return !!data;
   }
 
-  static async updateNextTrigger(reminderId: number): Promise<Reminder | null> {
-    const reminder = await (this as any).findByPk(reminderId);
+  static async updateNextTrigger(reminderId: number): Promise<ReminderRow | null> {
+    const { data: reminder } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('id', reminderId)
+      .single();
 
     if (!reminder || !reminder.active) return null;
 
     if (reminder.frequency === 'once') {
-      reminder.active = false;
+      const { data } = await supabase
+        .from('reminders')
+        .update({ active: false })
+        .eq('id', reminderId)
+        .select()
+        .single();
+
+      return data;
     } else {
-      reminder.next_trigger = this.calculateNextTrigger(
+      const nextTrigger = this.calculateNextTrigger(
         reminder.time,
-        reminder.frequency,
+        reminder.frequency as ReminderFrequency,
         reminder.day_of_week ?? null,
         null,
         reminder.day_of_month ?? null,
         reminder.month ?? null
       );
-    }
 
-    await reminder.save();
-    return reminder;
+      const { data } = await supabase
+        .from('reminders')
+        .update({ next_trigger: nextTrigger.toISOString() })
+        .eq('id', reminderId)
+        .select()
+        .single();
+
+      return data;
+    }
   }
 
-  static async getTriggeredReminders(): Promise<Reminder[]> {
-    const now = new Date();
-    return await (this as any).findAll({
-      where: {
-        active: true,
-        next_trigger: { [Op.lte]: now },
-      },
-    });
+  static async getTriggeredReminders(): Promise<ReminderRow[]> {
+    const { data } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('active', true)
+      .lte('next_trigger', new Date().toISOString());
+
+    return data || [];
   }
 }
 

@@ -160,9 +160,7 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
       const { List } = await getModels();
 
       // Try to find or create a "Meal Ideas" list
-      let list = await List.findOne({
-        where: { user_id: userId, guild_id: guildId, name: 'Meal Ideas' },
-      });
+      let list = await List.getList(guildId, 'Meal Ideas');
 
       if (!list) {
         list = await List.createList(guildId, 'Meal Ideas', userId);

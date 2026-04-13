@@ -81,8 +81,8 @@ const mockBudget = {
   sum: jest.fn()
 };
 
-jest.mock('../../database/models/Task', () => ({ __esModule: true, default: mockTask }));
-jest.mock('../../database/models/Budget', () => ({ __esModule: true, default: mockBudget }));
+jest.mock('../../supabase/models/Task', () => ({ __esModule: true, default: mockTask }));
+jest.mock('../../supabase/models/Budget', () => ({ __esModule: true, default: mockBudget }));
 
 // Create mock interaction helper
 const createMockInteraction = () => ({

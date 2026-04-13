@@ -19,7 +19,7 @@ import {
   handleModalSubmit,
 } from '../utils/interactions';
 // Import the properly configured database with all models
-import { sequelize, syncSequences } from '../database';
+import { verifyConnection } from '../../supabase';
 // Import API server
 import { createApiServer } from './api/server';
 import { announceRelease } from '../utils/releaseAnnouncer';
@@ -67,26 +67,16 @@ if (!isTestEnvironment) {
 }
 
 async function loadModels() {
-  // Models are already initialized in database/index.ts
-  // Test database connection first
+  // Verify Supabase connection is working
   try {
-    await sequelize.authenticate();
-    logger.info('Database connection authenticated successfully');
+    await verifyConnection();
+    logger.info('Database connection verified successfully');
   } catch (error) {
-    logger.error('Failed to authenticate database connection', {
+    logger.error('Failed to verify database connection', {
       error: error instanceof Error ? error.message : String(error),
     });
     throw error;
   }
-
-  // Sync the database to create tables
-  await sequelize.sync();
-  logger.info('Database synced successfully', {
-    models: Object.keys(sequelize.models),
-  });
-
-  // Fix auto-increment sequences that may be out of sync
-  await syncSequences();
 }
 
 async function loadCommands() {

@@ -1,59 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Optional, Sequelize, Op } from 'sequelize';
 import { DateTime } from 'luxon';
-import schemas from '../schema';
-import config from '../../config/config';
+import supabase from '../supabase';
+import config from '../../backend/config/config';
+import type { ScheduleRow, ScheduleInsert } from '../types';
 
 // Define filter types
 type ScheduleFilter = 'upcoming' | 'past' | 'all';
 
-// Define attributes interface matching the schema
-interface ScheduleAttributes {
-  id: number;
-  event: string;
-  date: string; // DATEONLY type
-  time: string; // TIME type
-  description?: string | null;
-  user_id: string;
-  guild_id: string;
-  created_at: Date;
-}
-
-// Creation attributes (id and created_at are optional during creation)
-interface ScheduleCreationAttributes
-  extends Optional<ScheduleAttributes, 'id' | 'created_at' | 'description'> {}
-
 // Interface for countdown result
 interface CountdownResult {
-  event: Schedule;
+  event: ScheduleRow;
   timeLeft: string;
 }
 
-const ScheduleBase = Model as any;
-class Schedule
-  extends ScheduleBase<ScheduleAttributes, ScheduleCreationAttributes>
-  implements ScheduleAttributes
-{
-  // Sequelize automatically provides getters/setters for these fields
-  // Commenting out to prevent shadowing warnings
-  // public id!: number;
-  // public event!: string;
-  // public date!: string;
-  // public time!: string;
-  // public description?: string | null;
-  // public user_id!: string;
-  // public guild_id!: string;
-  // public created_at!: Date;
-
-  static init(sequelize: Sequelize) {
-    return Model.init.call(this as any, schemas.schedule, {
-      sequelize,
-      modelName: 'Schedule',
-      tableName: 'schedules',
-      timestamps: false,
-    });
-  }
-
+class Schedule {
   static async addEvent(
     guildId: string,
     event: string,
@@ -61,61 +20,79 @@ class Schedule
     time: string,
     description: string | null = null,
     userId?: string
-  ): Promise<Schedule> {
-    return await (this as any).create({
+  ): Promise<ScheduleRow> {
+    const insert: ScheduleInsert = {
       user_id: userId || 'system', // Keep for audit trail (WO-015)
       guild_id: guildId,
       event,
       date,
       time,
       description,
-    });
+    };
+
+    const { data, error } = await supabase
+      .from('schedules')
+      .insert(insert)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   // NOTE: Filters by guild_id only for shared household access (WO-015)
   static async getEvents(
     guildId: string,
     filter: ScheduleFilter = 'upcoming'
-  ): Promise<Schedule[]> {
-    const where: Record<string, unknown> = { guild_id: guildId };
+  ): Promise<ScheduleRow[]> {
     // Get today's date in the configured timezone (not UTC)
     const today = DateTime.now().setZone(config.settings.timezone).toFormat('yyyy-MM-dd');
 
+    let query = supabase
+      .from('schedules')
+      .select('*')
+      .eq('guild_id', guildId);
+
     if (filter === 'upcoming') {
-      where.date = { [Op.gte]: today };
+      query = query.gte('date', today);
     } else if (filter === 'past') {
-      where.date = { [Op.lt]: today };
+      query = query.lt('date', today);
     }
 
-    return await (this as any).findAll({
-      where,
-      order: [
-        ['date', filter === 'past' ? 'DESC' : 'ASC'],
-        ['time', 'ASC'],
-      ],
-    });
+    query = query
+      .order('date', { ascending: filter !== 'past' })
+      .order('time', { ascending: true });
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
   }
 
   static async deleteEvent(eventId: number, guildId: string): Promise<boolean> {
-    const result = await (this as any).destroy({
-      where: { id: eventId, guild_id: guildId },
-    });
+    const { error, count } = await supabase
+      .from('schedules')
+      .delete({ count: 'exact' })
+      .eq('id', eventId)
+      .eq('guild_id', guildId);
 
-    return result > 0;
+    if (error) throw error;
+    return (count ?? 0) > 0;
   }
 
   static async getCountdown(guildId: string, eventName: string): Promise<CountdownResult | null> {
-    const event = await (this as any).findOne({
-      where: {
-        guild_id: guildId,
-        event: { [Op.like]: `%${eventName}%` },
-      },
-      order: [
-        ['date', 'ASC'],
-        ['time', 'ASC'],
-      ],
-    });
+    const { data: events, error } = await supabase
+      .from('schedules')
+      .select('*')
+      .eq('guild_id', guildId)
+      .ilike('event', `%${eventName}%`)
+      .order('date', { ascending: true })
+      .order('time', { ascending: true })
+      .limit(1);
 
+    if (error) throw error;
+
+    const event = events?.[0];
     if (!event) return null;
 
     const eventDateTime = new Date(`${event.date} ${event.time}`);
@@ -139,37 +116,39 @@ class Schedule
     };
   }
 
-  static async getTodaysEvents(guildId: string): Promise<Schedule[]> {
+  static async getTodaysEvents(guildId: string): Promise<ScheduleRow[]> {
     // Get today's date in the configured timezone (not UTC)
     const today = DateTime.now().setZone(config.settings.timezone).toFormat('yyyy-MM-dd');
 
-    return await (this as any).findAll({
-      where: {
-        guild_id: guildId,
-        date: today,
-      },
-      order: [['time', 'ASC']],
-    });
+    const { data, error } = await supabase
+      .from('schedules')
+      .select('*')
+      .eq('guild_id', guildId)
+      .eq('date', today)
+      .order('time', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
   }
 
-  static async getUpcomingEvents(guildId: string, days: number = 7): Promise<Schedule[]> {
+  static async getUpcomingEvents(guildId: string, days: number = 7): Promise<ScheduleRow[]> {
     // Get date range in the configured timezone (not UTC)
     const now = DateTime.now().setZone(config.settings.timezone);
     const future = now.plus({ days });
 
-    return await (this as any).findAll({
-      where: {
-        guild_id: guildId,
-        date: {
-          [Op.between]: [now.toFormat('yyyy-MM-dd'), future.toFormat('yyyy-MM-dd')],
-        },
-      },
-      order: [
-        ['date', 'ASC'],
-        ['time', 'ASC'],
-      ],
-    });
+    const { data, error } = await supabase
+      .from('schedules')
+      .select('*')
+      .eq('guild_id', guildId)
+      .gte('date', now.toFormat('yyyy-MM-dd'))
+      .lte('date', future.toFormat('yyyy-MM-dd'))
+      .order('date', { ascending: true })
+      .order('time', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
   }
 }
 
 export default Schedule;
+export type { ScheduleFilter, CountdownResult };

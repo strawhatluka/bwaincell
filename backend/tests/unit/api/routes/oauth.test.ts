@@ -41,7 +41,7 @@ jest.mock('../../../../src/api/middleware/oauth', () => ({
 const mockUserFindOne = jest.fn();
 const mockUserCreate = jest.fn();
 
-jest.mock('../../../../database/models/User', () => ({
+jest.mock('../../../../../supabase/models/User', () => ({
   User: {
     findOne: mockUserFindOne,
     create: mockUserCreate,

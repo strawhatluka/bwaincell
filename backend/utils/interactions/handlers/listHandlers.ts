@@ -60,10 +60,7 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
     // View list
     if (customId.startsWith('list_view_')) {
       const listName = customId.replace('list_view_', '');
-      const lists = await List.findAll({
-        where: { user_id: userId, guild_id: guildId },
-      });
-      const list = lists.find((l) => l.name.toLowerCase() === listName.toLowerCase());
+      const list = await List.getList(guildId, listName);
 
       if (!list) {
         // Check if already acknowledged before responding
@@ -134,9 +131,7 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
     // Mark item complete - show select menu
     if (customId.startsWith('list_mark_complete_')) {
       const listName = customId.replace('list_mark_complete_', '');
-      const list = await List.findOne({
-        where: { user_id: userId, guild_id: guildId, name: listName },
-      });
+      const list = await List.getList(guildId, listName);
 
       if (!list) {
         if (!interaction.deferred && !interaction.replied) {
@@ -206,9 +201,7 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
       const itemIndex = parseInt(parts[parts.length - 1], 10);
       const listName = parts.slice(0, -1).join('_');
 
-      const list = await List.findOne({
-        where: { user_id: userId, guild_id: guildId, name: listName },
-      });
+      const list = await List.getList(guildId, listName);
 
       if (!list || !list.items || !list.items[itemIndex]) {
         if (interaction.deferred) {
@@ -233,9 +226,7 @@ export async function handleListButton(interaction: ButtonInteraction<CacheType>
       await List.toggleItem(guildId, listName, itemText);
 
       // Refresh the list display
-      const updatedList = await List.findOne({
-        where: { user_id: userId, guild_id: guildId, name: listName },
-      });
+      const updatedList = await List.getList(guildId, listName);
 
       if (!updatedList) {
         if (interaction.deferred) {

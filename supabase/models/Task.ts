@@ -1,95 +1,84 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Optional, Sequelize } from 'sequelize';
-import schemas from '../schema';
+import supabase from '../supabase';
+import type { TaskRow, TaskInsert, TaskUpdate } from '../types';
 
-// Define attributes interface matching the schema
-interface TaskAttributes {
-  id: number;
-  description: string;
-  due_date?: Date | null;
-  completed: boolean;
-  created_at: Date;
-  completed_at?: Date | null;
-  user_id: string;
-  guild_id: string;
-}
-
-// Creation attributes (id and timestamps are optional during creation)
-interface TaskCreationAttributes
-  extends Optional<TaskAttributes, 'id' | 'created_at' | 'completed' | 'completed_at'> {}
-
-const TaskBase = Model as any;
-class Task extends TaskBase<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
-  // Sequelize automatically provides getters/setters for these fields
-  // Commenting out to prevent shadowing warnings
-  // public id!: number;
-  // public description!: string;
-  // public due_date?: Date | null;
-  // public completed!: boolean;
-  // public created_at!: Date;
-  // public completed_at?: Date | null;
-  // public user_id!: string;
-  // public guild_id!: string;
-
-  static init(sequelize: Sequelize) {
-    return Model.init.call(this as any, schemas.task, {
-      sequelize,
-      modelName: 'Task',
-      tableName: 'tasks',
-      timestamps: false,
-    });
-  }
-
+class Task {
   static async createTask(
     guildId: string,
     description: string,
     dueDate: Date | null = null,
     userId?: string
-  ): Promise<Task> {
-    return await (this as any).create({
+  ): Promise<TaskRow> {
+    const insert: TaskInsert = {
       user_id: userId || 'system', // Keep for audit trail (WO-015)
       guild_id: guildId,
       description,
-      due_date: dueDate,
-    });
+      due_date: dueDate ? dueDate.toISOString() : null,
+    };
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert(insert)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   // NOTE: Filters by guild_id only for shared household access (WO-015)
   static async getUserTasks(
     guildId: string,
     filter: 'all' | 'pending' | 'completed' = 'all'
-  ): Promise<Task[]> {
-    const where: Record<string, unknown> = { guild_id: guildId };
+  ): Promise<TaskRow[]> {
+    let query = supabase
+      .from('tasks')
+      .select('*')
+      .eq('guild_id', guildId);
 
     if (filter === 'pending') {
-      where.completed = false;
+      query = query.eq('completed', false);
     } else if (filter === 'completed') {
-      where.completed = true;
+      query = query.eq('completed', true);
     }
 
-    return await (this as any).findAll({ where, order: [['created_at', 'DESC']] });
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
   }
 
-  static async completeTask(taskId: number, guildId: string): Promise<Task | null> {
-    const task = await (this as any).findOne({
-      where: { id: taskId, guild_id: guildId },
-    });
+  static async completeTask(taskId: number, guildId: string): Promise<TaskRow | null> {
+    const update: TaskUpdate = {
+      completed: true,
+      completed_at: new Date().toISOString(),
+    };
 
-    if (!task) return null;
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(update)
+      .eq('id', taskId)
+      .eq('guild_id', guildId)
+      .select()
+      .single();
 
-    task.completed = true;
-    task.completed_at = new Date();
-    await task.save();
-
-    return task;
+    if (error) {
+      // No matching row returns a PGRST116 error
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
   }
 
   static async deleteTask(taskId: number, guildId: string): Promise<boolean> {
-    const result = await (this as any).destroy({
-      where: { id: taskId, guild_id: guildId },
-    });
+    const { data, error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId)
+      .eq('guild_id', guildId)
+      .select();
 
-    return result > 0;
+    if (error) throw error;
+    return data.length > 0;
   }
 
   static async editTask(
@@ -97,22 +86,29 @@ class Task extends TaskBase<TaskAttributes, TaskCreationAttributes> implements T
     guildId: string,
     newDescription?: string | null,
     newDueDate?: Date | null
-  ): Promise<Task | null> {
-    const task = await (this as any).findOne({
-      where: { id: taskId, guild_id: guildId },
-    });
-
-    if (!task) return null;
+  ): Promise<TaskRow | null> {
+    const update: TaskUpdate = {};
 
     if (newDescription !== undefined && newDescription !== null) {
-      task.description = newDescription;
+      update.description = newDescription;
     }
     if (newDueDate !== undefined) {
-      task.due_date = newDueDate;
+      update.due_date = newDueDate ? newDueDate.toISOString() : null;
     }
-    await task.save();
 
-    return task;
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(update)
+      .eq('id', taskId)
+      .eq('guild_id', guildId)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
   }
 }
 

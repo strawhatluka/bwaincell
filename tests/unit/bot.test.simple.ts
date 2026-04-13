@@ -20,7 +20,7 @@ jest.mock('@shared/utils/logger', () => ({
   logBotEvent: jest.fn(),
   logError: jest.fn(),
 }));
-jest.mock('../../database', () => ({
+jest.mock('../../supabase', () => ({
   sequelize: {
     authenticate: jest.fn().mockResolvedValue(true),
     sync: jest.fn().mockResolvedValue(true),

@@ -5,7 +5,7 @@ import { createMockInteraction, InteractionScenarios } from '../../utils/helpers
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { taskFixtures } from '../../utils/fixtures/database-fixtures';
 import taskCommand from '../../../commands/task';
-import Task from '../../../database/models/Task';
+import Task from '../../../supabase/models/Task';
 
 // ✅ NEW ARCHITECTURE: Mock only external dependencies
 mockEssentials();

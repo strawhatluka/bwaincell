@@ -7,13 +7,13 @@ jest.mock('../../../utils/interactions/helpers/databaseHelper', () => ({
 }));
 
 // Mock the Task model
-jest.mock('../../../database/models/Task');
+jest.mock('../../../supabase/models/Task');
 
 import { mockEssentials } from '../../utils/mocks/external-only';
 import { taskFixtures } from '../../utils/fixtures/database-fixtures';
 import { createMockButtonInteraction } from '../../mocks/discord';
 import { handleTaskButton } from '../../../utils/interactions/handlers/taskHandlers';
-import Task from '../../../database/models/Task';
+import Task from '../../../supabase/models/Task';
 import { ButtonInteraction, CacheType } from 'discord.js';
 import { getModels } from '../../../utils/interactions/helpers/databaseHelper';
 

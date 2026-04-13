@@ -10,8 +10,8 @@ import budgetCommand from '../../../commands/budget';
 mockEssentials();
 
 // Mock the Budget model
-jest.mock('../../../database/models/Budget');
-import Budget from '../../../database/models/Budget';
+jest.mock('../../../supabase/models/Budget');
+import Budget from '../../../supabase/models/Budget';
 
 describe('Budget Command', () => {
   beforeEach(() => {

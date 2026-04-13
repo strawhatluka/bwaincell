@@ -23,7 +23,7 @@ jest.mock('../../../shared/utils/logger', () => ({
 
 // Mock EventConfig model
 const mockUpsertConfig = jest.fn();
-jest.mock('../../../database/models/EventConfig', () => ({
+jest.mock('../../../../supabase/models/EventConfig', () => ({
   __esModule: true,
   default: {
     upsertConfig: (...args: any[]) => mockUpsertConfig(...args),

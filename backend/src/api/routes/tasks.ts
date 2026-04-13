@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { Task } from '@database/index';
+import { Task, supabase } from '@database/index';
 import { AuthenticatedRequest } from '../middleware/oauth';
 import {
   successResponse,
@@ -234,21 +234,18 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
         return res.json(successResponse(task));
       } else {
         // Uncomplete the task by updating completed field to false
-        const task = await Task.findOne({
-          where: {
-            id: taskId,
-            user_id: req.user.discordId,
-            guild_id: req.user.guildId,
-          },
-        });
+        const { data: task, error } = await supabase
+          .from('tasks')
+          .update({ completed: false, completed_at: null })
+          .eq('id', taskId)
+          .eq('guild_id', req.user.guildId)
+          .select()
+          .single();
 
-        if (!task) {
+        if (error || !task) {
           const { response, statusCode } = notFoundError('Task');
           return res.status(statusCode).json(response);
         }
-
-        task.completed = false;
-        await task.save();
 
         logger.info('[API] Task marked as incomplete', {
           taskId: taskId,

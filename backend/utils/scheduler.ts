@@ -27,7 +27,7 @@ class Scheduler {
   async initialize(): Promise<void> {
     try {
       // Dynamically import models to avoid initialization issues
-      const { Reminder, EventConfig, SunsetConfig } = await import('../database');
+      const { Reminder, EventConfig, SunsetConfig } = await import('../../supabase');
 
       await this.loadReminders(Reminder);
       await this.loadEventConfigs(EventConfig);
@@ -143,8 +143,12 @@ class Scheduler {
   // Public method to add a new reminder to the scheduler
   async addReminder(reminderId: number): Promise<void> {
     try {
-      const { Reminder } = await import('../database');
-      const reminder = await Reminder.findOne({ where: { id: reminderId } });
+      const { Reminder, supabase } = await import('../../supabase');
+      const { data: reminder } = await supabase
+        .from('reminders')
+        .select('*')
+        .eq('id', reminderId)
+        .single() as { data: any };
 
       if (reminder) {
         this.scheduleReminder(reminder, Reminder);
@@ -301,7 +305,7 @@ class Scheduler {
   private async executeEventAnnouncement(guildId: string): Promise<void> {
     try {
       // Dynamically import to avoid circular dependencies
-      const { EventConfig } = await import('../database');
+      const { EventConfig } = await import('../../supabase');
       const eventsService = (await import('./eventsService')).default;
       const { getEventWindow } = await import('./dateHelpers');
 
@@ -357,7 +361,7 @@ class Scheduler {
   // Public method to add a new event config to the scheduler
   async addEventConfig(guildId: string): Promise<void> {
     try {
-      const { EventConfig } = await import('../database');
+      const { EventConfig } = await import('../../supabase');
       const config = await EventConfig.getGuildConfig(guildId);
 
       if (config && config.is_enabled) {
@@ -449,7 +453,7 @@ class Scheduler {
 
   private async executeDailyQuestion(guildId: string): Promise<void> {
     try {
-      const { EventConfig } = await import('../database');
+      const { EventConfig } = await import('../../supabase');
       const { GeminiService } = await import('./geminiService');
       const { EmbedBuilder } = await import('discord.js');
 
@@ -589,7 +593,7 @@ class Scheduler {
 
   private async executeSunsetCheck(guildId: string): Promise<void> {
     try {
-      const { SunsetConfig } = await import('../database');
+      const { SunsetConfig } = await import('../../supabase');
       const { getCoordinatesFromZip, getSunsetTime } = await import('./sunsetService');
 
       const config = await SunsetConfig.getGuildConfig(guildId);
@@ -655,7 +659,7 @@ class Scheduler {
 
   private async executeSunsetAnnouncement(guildId: string, sunsetTime: Date): Promise<void> {
     try {
-      const { SunsetConfig } = await import('../database');
+      const { SunsetConfig } = await import('../../supabase');
       const { formatSunsetEmbed } = await import('./sunsetService');
 
       logger.info('Executing sunset announcement', { guildId });
@@ -699,7 +703,7 @@ class Scheduler {
   // Public method to add a new sunset config to the scheduler
   async addSunsetConfig(guildId: string): Promise<void> {
     try {
-      const { SunsetConfig } = await import('../database');
+      const { SunsetConfig } = await import('../../supabase');
       const config = await SunsetConfig.getGuildConfig(guildId);
 
       if (config && config.is_enabled) {
