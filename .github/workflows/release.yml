@@ -86,6 +86,8 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Build shared package
         run: npm run build --workspace=shared
+      - name: Build supabase package (TS project reference for backend)
+        run: npx tsc --build supabase
       - name: Build backend
         run: npm run build --workspace=backend
       - name: Generate Prisma Client

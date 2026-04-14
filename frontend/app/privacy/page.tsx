@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-twilight-50 via-dusk-50 to-dawn-50 dark:from-twilight-950 dark:via-dusk-950 dark:to-dawn-950 py-12 px-4">
@@ -494,12 +496,12 @@ export default function PrivacyPolicyPage() {
 
         {/* Back to Home */}
         <div className="mt-12 text-center">
-          <a
+          <Link
             href="/"
             className="inline-block px-6 py-3 bg-gradient-to-r from-twilight-500 to-dusk-500 hover:from-twilight-600 hover:to-dusk-600 text-white rounded-lg font-medium transition-colors"
           >
             Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>
