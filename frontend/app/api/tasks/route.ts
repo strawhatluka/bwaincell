@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import Task from '@database/models/Task';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -10,7 +11,7 @@ export const runtime = 'nodejs';
  * GET /api/tasks
  * Returns all tasks for the authenticated user's guild
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -18,19 +19,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    const tasks = await prisma.task.findMany({
-      where: { guildId: user.guildId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const tasks = await Task.getUserTasks(user.guild_id, 'all');
 
     return NextResponse.json({
       success: true,
@@ -61,10 +56,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true, discordId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
@@ -80,15 +72,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const task = await prisma.task.create({
-      data: {
-        description: description.trim(),
-        dueDate: dueDate ? new Date(dueDate) : null,
-        userId: user.discordId,
-        guildId: user.guildId,
-        completed: false,
-      },
-    });
+    const task = await Task.createTask(
+      user.guild_id,
+      description.trim(),
+      dueDate ? new Date(dueDate) : null,
+      user.discord_id
+    );
 
     return NextResponse.json(
       {

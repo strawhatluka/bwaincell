@@ -7,18 +7,12 @@ jest.mock('next-auth', () => ({
   getServerSession: jest.fn(),
 }));
 jest.mock('next-auth/providers/google', () => ({ __esModule: true, default: jest.fn() }));
-jest.mock('@/lib/db/prisma', () => {
-  const mock = {
-    user: { findUnique: jest.fn() },
-    list: { findFirst: jest.fn(), update: jest.fn() },
-  };
-  return { __esModule: true, default: mock, prisma: mock };
-});
 
 import { POST } from '@/app/api/lists/[listName]/items/route';
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import List from '@database/models/List';
 
 const mockSession = getServerSession as jest.Mock;
 
@@ -32,12 +26,11 @@ describe('/api/lists/[listName]/items POST', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSession.mockResolvedValue({ user: { email: 'test@example.com' } });
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ guildId: 'guild-456' });
+    (User.findByEmail as jest.Mock).mockResolvedValue({ guild_id: 'guild-456' });
   });
 
   it('adds an item to the list', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue({ id: 1, items: [] });
-    (prisma.list.update as jest.Mock).mockResolvedValue({
+    (List.addItem as jest.Mock).mockResolvedValue({
       id: 1,
       items: [{ text: 'milk', completed: false, added_at: 'now' }],
     });
@@ -45,22 +38,17 @@ describe('/api/lists/[listName]/items POST', () => {
       params: Promise.resolve({ listName: 'Groceries' }),
     });
     const body = await res.json();
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(body.success).toBe(true);
-    const call = (prisma.list.update as jest.Mock).mock.calls[0][0];
-    expect(call.data.items).toHaveLength(1);
-    expect(call.data.items[0].text).toBe('milk');
+    expect(List.addItem).toHaveBeenCalledWith('guild-456', 'Groceries', 'milk');
   });
 
-  it('preserves existing items', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue({
-      id: 1,
-      items: [{ text: 'eggs', completed: false, added_at: 'x' }],
+  it('trims the item text', async () => {
+    (List.addItem as jest.Mock).mockResolvedValue({ id: 1 });
+    await POST(makeReq({ item: '  milk  ' }), {
+      params: Promise.resolve({ listName: 'Groceries' }),
     });
-    (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
-    await POST(makeReq({ item: 'milk' }), { params: Promise.resolve({ listName: 'Groceries' }) });
-    const call = (prisma.list.update as jest.Mock).mock.calls[0][0];
-    expect(call.data.items).toHaveLength(2);
+    expect(List.addItem).toHaveBeenCalledWith('guild-456', 'Groceries', 'milk');
   });
 
   it('returns 401 when no session', async () => {
@@ -70,7 +58,7 @@ describe('/api/lists/[listName]/items POST', () => {
   });
 
   it('returns 404 when user not found', async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    (User.findByEmail as jest.Mock).mockResolvedValue(null);
     const res = await POST(makeReq({ item: 'x' }), { params: Promise.resolve({ listName: 'g' }) });
     expect(res.status).toBe(404);
   });
@@ -88,13 +76,13 @@ describe('/api/lists/[listName]/items POST', () => {
   });
 
   it('returns 404 when list not found', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue(null);
+    (List.addItem as jest.Mock).mockResolvedValue(null);
     const res = await POST(makeReq({ item: 'x' }), { params: Promise.resolve({ listName: 'g' }) });
     expect(res.status).toBe(404);
   });
 
-  it('returns 500 on prisma error', async () => {
-    (prisma.list.findFirst as jest.Mock).mockRejectedValue(new Error('db'));
+  it('returns 500 on db error', async () => {
+    (List.addItem as jest.Mock).mockRejectedValue(new Error('db'));
     const res = await POST(makeReq({ item: 'x' }), { params: Promise.resolve({ listName: 'g' }) });
     expect(res.status).toBe(500);
   });

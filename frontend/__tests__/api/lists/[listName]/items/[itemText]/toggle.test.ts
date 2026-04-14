@@ -7,18 +7,12 @@ jest.mock('next-auth', () => ({
   getServerSession: jest.fn(),
 }));
 jest.mock('next-auth/providers/google', () => ({ __esModule: true, default: jest.fn() }));
-jest.mock('@/lib/db/prisma', () => {
-  const mock = {
-    user: { findUnique: jest.fn() },
-    list: { findFirst: jest.fn(), update: jest.fn() },
-  };
-  return { __esModule: true, default: mock, prisma: mock };
-});
 
 import { PATCH } from '@/app/api/lists/[listName]/items/[itemText]/toggle/route';
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import List from '@database/models/List';
 
 const mockSession = getServerSession as jest.Mock;
 
@@ -29,34 +23,19 @@ describe('/api/lists/[listName]/items/[itemText]/toggle PATCH', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSession.mockResolvedValue({ user: { email: 'test@example.com' } });
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ guildId: 'guild-456' });
+    (User.findByEmail as jest.Mock).mockResolvedValue({ guild_id: 'guild-456' });
   });
 
   it('toggles the item completion', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue({
+    (List.toggleItem as jest.Mock).mockResolvedValue({
       id: 1,
-      items: [{ text: 'milk', completed: false, added_at: 'x' }],
+      items: [{ text: 'milk', completed: true, added_at: 'x' }],
     });
-    (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
     const res = await PATCH(makeReq(), {
       params: Promise.resolve({ listName: 'Groceries', itemText: 'milk' }),
     });
     expect(res.status).toBe(200);
-    const call = (prisma.list.update as jest.Mock).mock.calls[0][0];
-    expect(call.data.items[0].completed).toBe(true);
-  });
-
-  it('toggles from completed to incomplete', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue({
-      id: 1,
-      items: [{ text: 'milk', completed: true, added_at: 'x' }],
-    });
-    (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
-    await PATCH(makeReq(), {
-      params: Promise.resolve({ listName: 'Groceries', itemText: 'milk' }),
-    });
-    const call = (prisma.list.update as jest.Mock).mock.calls[0][0];
-    expect(call.data.items[0].completed).toBe(false);
+    expect(List.toggleItem).toHaveBeenCalledWith('guild-456', 'Groceries', 'milk');
   });
 
   it('returns 401 when no session', async () => {
@@ -68,34 +47,23 @@ describe('/api/lists/[listName]/items/[itemText]/toggle PATCH', () => {
   });
 
   it('returns 404 when user not found', async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    (User.findByEmail as jest.Mock).mockResolvedValue(null);
     const res = await PATCH(makeReq(), {
       params: Promise.resolve({ listName: 'g', itemText: 'x' }),
     });
     expect(res.status).toBe(404);
   });
 
-  it('returns 404 when list not found', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue(null);
-    const res = await PATCH(makeReq(), {
-      params: Promise.resolve({ listName: 'g', itemText: 'x' }),
-    });
-    expect(res.status).toBe(404);
-  });
-
-  it('returns 404 when item not found', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue({
-      id: 1,
-      items: [{ text: 'other', completed: false, added_at: 'x' }],
-    });
+  it('returns 404 when list or item not found', async () => {
+    (List.toggleItem as jest.Mock).mockResolvedValue(null);
     const res = await PATCH(makeReq(), {
       params: Promise.resolve({ listName: 'g', itemText: 'missing' }),
     });
     expect(res.status).toBe(404);
   });
 
-  it('returns 500 on prisma error', async () => {
-    (prisma.list.findFirst as jest.Mock).mockRejectedValue(new Error('db'));
+  it('returns 500 on db error', async () => {
+    (List.toggleItem as jest.Mock).mockRejectedValue(new Error('db'));
     const res = await PATCH(makeReq(), {
       params: Promise.resolve({ listName: 'g', itemText: 'x' }),
     });

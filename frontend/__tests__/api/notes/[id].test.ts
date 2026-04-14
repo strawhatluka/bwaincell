@@ -7,22 +7,12 @@ jest.mock('next-auth', () => ({
   getServerSession: jest.fn(),
 }));
 jest.mock('next-auth/providers/google', () => ({ __esModule: true, default: jest.fn() }));
-jest.mock('@/lib/db/prisma', () => {
-  const mock = {
-    user: { findUnique: jest.fn() },
-    note: {
-      findUnique: jest.fn(),
-      updateMany: jest.fn(),
-      deleteMany: jest.fn(),
-    },
-  };
-  return { __esModule: true, default: mock, prisma: mock };
-});
 
 import { PATCH, DELETE } from '@/app/api/notes/[id]/route';
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import Note from '@database/models/Note';
 
 const mockSession = getServerSession as jest.Mock;
 
@@ -36,13 +26,12 @@ describe('/api/notes/[id]', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSession.mockResolvedValue({ user: { email: 'test@example.com' } });
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ guildId: 'guild-456' });
+    (User.findByEmail as jest.Mock).mockResolvedValue({ guild_id: 'guild-456' });
   });
 
   describe('PATCH', () => {
     it('updates note', async () => {
-      (prisma.note.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
-      (prisma.note.findUnique as jest.Mock).mockResolvedValue({ id: 1, title: 'Updated' });
+      (Note.updateNote as jest.Mock).mockResolvedValue({ id: 1, title: 'Updated' });
       const res = await PATCH(makeReq({ title: 'Updated' }), {
         params: Promise.resolve({ id: '1' }),
       });
@@ -52,19 +41,17 @@ describe('/api/notes/[id]', () => {
     });
 
     it('updates tags when array provided', async () => {
-      (prisma.note.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
-      (prisma.note.findUnique as jest.Mock).mockResolvedValue({ id: 1 });
+      (Note.updateNote as jest.Mock).mockResolvedValue({ id: 1 });
       await PATCH(makeReq({ tags: ['x', 'y'] }), { params: Promise.resolve({ id: '1' }) });
-      const call = (prisma.note.updateMany as jest.Mock).mock.calls[0][0];
-      expect(call.data.tags).toEqual(['x', 'y']);
+      const call = (Note.updateNote as jest.Mock).mock.calls[0];
+      expect(call[2].tags).toEqual(['x', 'y']);
     });
 
     it('ignores tags when not an array', async () => {
-      (prisma.note.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
-      (prisma.note.findUnique as jest.Mock).mockResolvedValue({ id: 1 });
+      (Note.updateNote as jest.Mock).mockResolvedValue({ id: 1 });
       await PATCH(makeReq({ tags: 'notarray' }), { params: Promise.resolve({ id: '1' }) });
-      const call = (prisma.note.updateMany as jest.Mock).mock.calls[0][0];
-      expect(call.data.tags).toBeUndefined();
+      const call = (Note.updateNote as jest.Mock).mock.calls[0];
+      expect(call[2].tags).toBeUndefined();
     });
 
     it('returns 401 when no session', async () => {
@@ -74,7 +61,7 @@ describe('/api/notes/[id]', () => {
     });
 
     it('returns 404 when user not found', async () => {
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (User.findByEmail as jest.Mock).mockResolvedValue(null);
       const res = await PATCH(makeReq({}), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
@@ -85,13 +72,13 @@ describe('/api/notes/[id]', () => {
     });
 
     it('returns 404 when note not found', async () => {
-      (prisma.note.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (Note.updateNote as jest.Mock).mockResolvedValue(null);
       const res = await PATCH(makeReq({ title: 'x' }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
-    it('returns 500 on prisma error', async () => {
-      (prisma.note.updateMany as jest.Mock).mockRejectedValue(new Error('db'));
+    it('returns 500 on db error', async () => {
+      (Note.updateNote as jest.Mock).mockRejectedValue(new Error('db'));
       const res = await PATCH(makeReq({}), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(500);
     });
@@ -101,7 +88,7 @@ describe('/api/notes/[id]', () => {
     const delReq = () => new NextRequest('http://localhost/api/notes/1', { method: 'DELETE' });
 
     it('deletes note', async () => {
-      (prisma.note.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
+      (Note.deleteNote as jest.Mock).mockResolvedValue(true);
       const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(200);
     });
@@ -118,13 +105,13 @@ describe('/api/notes/[id]', () => {
     });
 
     it('returns 404 when note not found', async () => {
-      (prisma.note.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (Note.deleteNote as jest.Mock).mockResolvedValue(false);
       const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
-    it('returns 500 on prisma error', async () => {
-      (prisma.note.deleteMany as jest.Mock).mockRejectedValue(new Error('db'));
+    it('returns 500 on db error', async () => {
+      (Note.deleteNote as jest.Mock).mockRejectedValue(new Error('db'));
       const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(500);
     });

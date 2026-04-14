@@ -7,18 +7,12 @@ jest.mock('next-auth', () => ({
   getServerSession: jest.fn(),
 }));
 jest.mock('next-auth/providers/google', () => ({ __esModule: true, default: jest.fn() }));
-jest.mock('@/lib/db/prisma', () => {
-  const mock = {
-    user: { findUnique: jest.fn() },
-    list: { findFirst: jest.fn(), update: jest.fn() },
-  };
-  return { __esModule: true, default: mock, prisma: mock };
-});
 
 import { DELETE } from '@/app/api/lists/[listName]/items/[itemText]/route';
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import List from '@database/models/List';
 
 const mockSession = getServerSession as jest.Mock;
 
@@ -29,37 +23,24 @@ describe('/api/lists/[listName]/items/[itemText] DELETE', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSession.mockResolvedValue({ user: { email: 'test@example.com' } });
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ guildId: 'guild-456' });
+    (User.findByEmail as jest.Mock).mockResolvedValue({ guild_id: 'guild-456' });
   });
 
   it('removes the item', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue({
-      id: 1,
-      items: [
-        { text: 'milk', completed: false, added_at: 'x' },
-        { text: 'eggs', completed: false, added_at: 'y' },
-      ],
-    });
-    (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
+    (List.removeItem as jest.Mock).mockResolvedValue({ id: 1, items: [] });
     const res = await DELETE(makeReq(), {
       params: Promise.resolve({ listName: 'Groceries', itemText: 'milk' }),
     });
     expect(res.status).toBe(200);
-    const call = (prisma.list.update as jest.Mock).mock.calls[0][0];
-    expect(call.data.items).toHaveLength(1);
-    expect(call.data.items[0].text).toBe('eggs');
+    expect(List.removeItem).toHaveBeenCalledWith('guild-456', 'Groceries', 'milk');
   });
 
-  it('matches item case-insensitively', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue({
-      id: 1,
-      items: [{ text: 'Milk', completed: false, added_at: 'x' }],
+  it('decodes encoded item text', async () => {
+    (List.removeItem as jest.Mock).mockResolvedValue({ id: 1, items: [] });
+    await DELETE(makeReq(), {
+      params: Promise.resolve({ listName: 'Groceries', itemText: 'my%20milk' }),
     });
-    (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
-    const res = await DELETE(makeReq(), {
-      params: Promise.resolve({ listName: 'Groceries', itemText: 'MILK' }),
-    });
-    expect(res.status).toBe(200);
+    expect(List.removeItem).toHaveBeenCalledWith('guild-456', 'Groceries', 'my milk');
   });
 
   it('returns 401 when no session', async () => {
@@ -71,34 +52,23 @@ describe('/api/lists/[listName]/items/[itemText] DELETE', () => {
   });
 
   it('returns 404 when user not found', async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    (User.findByEmail as jest.Mock).mockResolvedValue(null);
     const res = await DELETE(makeReq(), {
       params: Promise.resolve({ listName: 'g', itemText: 'x' }),
     });
     expect(res.status).toBe(404);
   });
 
-  it('returns 404 when list not found', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue(null);
-    const res = await DELETE(makeReq(), {
-      params: Promise.resolve({ listName: 'g', itemText: 'x' }),
-    });
-    expect(res.status).toBe(404);
-  });
-
-  it('returns 404 when item not found', async () => {
-    (prisma.list.findFirst as jest.Mock).mockResolvedValue({
-      id: 1,
-      items: [{ text: 'other', completed: false, added_at: 'x' }],
-    });
+  it('returns 404 when list or item not found', async () => {
+    (List.removeItem as jest.Mock).mockResolvedValue(null);
     const res = await DELETE(makeReq(), {
       params: Promise.resolve({ listName: 'g', itemText: 'missing' }),
     });
     expect(res.status).toBe(404);
   });
 
-  it('returns 500 on prisma error', async () => {
-    (prisma.list.findFirst as jest.Mock).mockRejectedValue(new Error('db'));
+  it('returns 500 on db error', async () => {
+    (List.removeItem as jest.Mock).mockRejectedValue(new Error('db'));
     const res = await DELETE(makeReq(), {
       params: Promise.resolve({ listName: 'g', itemText: 'x' }),
     });

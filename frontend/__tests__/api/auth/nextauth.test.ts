@@ -9,19 +9,9 @@ jest.mock('next-auth/providers/google', () => ({
   __esModule: true,
   default: jest.fn((opts: unknown) => ({ id: 'google', options: opts })),
 }));
-jest.mock('@/lib/db/prisma', () => {
-  const mock = {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-    },
-  };
-  return { __esModule: true, default: mock, prisma: mock };
-});
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
 
 describe('NextAuth authOptions', () => {
   beforeEach(() => {
@@ -61,54 +51,55 @@ describe('NextAuth authOptions', () => {
     });
 
     it('creates new user mapped via env email', async () => {
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.user.create as jest.Mock).mockResolvedValue({ id: 1 });
+      (User.findByEmail as jest.Mock).mockResolvedValue(null);
+      (User.create as jest.Mock).mockResolvedValue({ id: 1 });
       const result = await cb({
         user: { id: 'g-123', email: 'luka@example.com', name: 'Luka', image: 'img' },
         account: { refresh_token: 'r-tok' },
       });
       expect(result).toBe(true);
-      expect(prisma.user.create).toHaveBeenCalled();
-      const createArg = (prisma.user.create as jest.Mock).mock.calls[0][0].data;
+      expect(User.create).toHaveBeenCalled();
+      const createArg = (User.create as jest.Mock).mock.calls[0][0];
       expect(createArg.email).toBe('luka@example.com');
-      expect(createArg.discordId).toBe('discord-luka');
-      expect(createArg.guildId).toBe('guild-test');
-      expect(createArg.refreshToken).toBe('r-tok');
+      expect(createArg.discord_id).toBe('discord-luka');
+      expect(createArg.guild_id).toBe('guild-test');
+      expect(createArg.refresh_token).toBe('r-tok');
     });
 
     it('falls back to default discord id when email not in map', async () => {
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.user.create as jest.Mock).mockResolvedValue({ id: 2 });
+      (User.findByEmail as jest.Mock).mockResolvedValue(null);
+      (User.create as jest.Mock).mockResolvedValue({ id: 2 });
       await cb({
         user: { id: 'g-xyz', email: 'stranger@example.com', name: 'S', image: null },
         account: {},
       });
-      const createArg = (prisma.user.create as jest.Mock).mock.calls[0][0].data;
-      expect(createArg.discordId).toBe('discord-luka');
+      const createArg = (User.create as jest.Mock).mock.calls[0][0];
+      expect(createArg.discord_id).toBe('discord-luka');
     });
 
     it('updates existing user', async () => {
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      (User.findByEmail as jest.Mock).mockResolvedValue({
         id: 1,
         email: 'luka@example.com',
         name: 'Old',
         picture: 'oldimg',
-        refreshToken: 'old-tok',
+        refresh_token: 'old-tok',
       });
-      (prisma.user.update as jest.Mock).mockResolvedValue({});
+      (User.update as jest.Mock).mockResolvedValue({});
       const result = await cb({
         user: { id: 'g-1', email: 'luka@example.com', name: 'NewName', image: 'newimg' },
         account: { refresh_token: 'new-tok' },
       });
       expect(result).toBe(true);
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { email: 'luka@example.com' },
-        data: { name: 'NewName', picture: 'newimg', refreshToken: 'new-tok' },
+      expect(User.update).toHaveBeenCalledWith(1, {
+        name: 'NewName',
+        picture: 'newimg',
+        refresh_token: 'new-tok',
       });
     });
 
-    it('returns false on prisma error', async () => {
-      (prisma.user.findUnique as jest.Mock).mockRejectedValue(new Error('db'));
+    it('returns false on db error', async () => {
+      (User.findByEmail as jest.Mock).mockRejectedValue(new Error('db'));
       const result = await cb({
         user: { id: 'g-1', email: 'a@b.com', name: 'x', image: null },
         account: {},

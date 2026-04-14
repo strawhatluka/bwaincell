@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` environment variables to `frontend/.env.example` for Supabase configuration
+- Add `@supabase/supabase-js` dependency to `backend/package.json`
+- Add build step for `supabase` package to `.github/workflows/ci.yml`
+- Add tests for `Budget.addIncome` and `Budget.addExpense` to `frontend/__tests__/api/budget/transactions/route.test.ts`
+- Add test for decoding encoded item text to `frontend/__tests__/api/lists/[listName]/items/[itemText]/route.test.ts`
+- Add test for trimming item text to `frontend/__tests__/api/lists/[listName]/items/route.test.ts`
+- Add `supabase` project reference to `backend/tsconfig.json`
+- Add `supabase` project reference to `frontend/tsconfig.json`
+- Add `supabase` project reference to `tsconfig.json`
 - Add `@supabase/supabase-js` dependency to `backend/package.json`
 - Add Supabase CLI current branch tracking file `supabase/.branches/_current_branch`
 - Add Supabase CLI temporary data file `supabase/.temp/cli-latest`
@@ -19,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update `.env.example` with rephrased comments and updated example URLs for `NEXTAUTH_URL` and `NEXT_PUBLIC_API_URL`
+- Update backend configuration definition in `backend/config/config.d.ts`
+- Update backend configuration in `backend/config/config.js`
 - Update `.env.example` to reflect Supabase database configuration and variables
 - Replace PostgreSQL backup with Supabase connection verification in `deploy-bot.yml` workflow
 - Update `docker rm` command for `bwaincell-backend` in `deploy-bot.yml`

@@ -24,18 +24,17 @@ CREATE TYPE budget_type AS ENUM ('expense', 'income');
 -- =============================================================================
 
 -- Users (Google OAuth + Discord mapping)
--- NOTE: Uses camelCase columns (legacy from Sequelize timestamps: true)
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
-  "googleId" VARCHAR(255) NOT NULL UNIQUE,
+  google_id VARCHAR(255) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
   picture VARCHAR(255),
-  "discordId" VARCHAR(255) NOT NULL,
-  "guildId" VARCHAR(255) NOT NULL,
-  "refreshToken" TEXT,
-  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  discord_id VARCHAR(255) NOT NULL,
+  guild_id VARCHAR(255) NOT NULL,
+  refresh_token TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Tasks
@@ -179,6 +178,6 @@ CREATE INDEX IF NOT EXISTS idx_event_configs_is_enabled ON event_configs (is_ena
 -- Sunset Configs: enabled configs
 CREATE INDEX IF NOT EXISTS idx_sunset_configs_is_enabled ON sunset_configs (is_enabled);
 
--- Users: lookup by email, googleId
+-- Users: lookup by email, google_id
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
-CREATE INDEX IF NOT EXISTS idx_users_google_id ON users ("googleId");
+CREATE INDEX IF NOT EXISTS idx_users_google_id ON users (google_id);

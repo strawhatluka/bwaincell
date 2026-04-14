@@ -185,32 +185,32 @@ export interface ScheduleInsert {
 
 export interface UserRow {
   id: number;
-  googleId: string;
+  google_id: string;
   email: string;
   name: string;
   picture: string | null;
-  discordId: string;
-  guildId: string;
-  refreshToken: string | null;
-  createdAt: string;
-  updatedAt: string;
+  discord_id: string;
+  guild_id: string;
+  refresh_token: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserInsert {
-  googleId: string;
+  google_id: string;
   email: string;
   name: string;
   picture?: string | null;
-  discordId: string;
-  guildId: string;
-  refreshToken?: string | null;
+  discord_id: string;
+  guild_id: string;
+  refresh_token?: string | null;
 }
 
 export interface UserUpdate {
   name?: string;
   picture?: string | null;
-  refreshToken?: string | null;
-  updatedAt?: string;
+  refresh_token?: string | null;
+  updated_at?: string;
 }
 
 export interface EventConfigRow {

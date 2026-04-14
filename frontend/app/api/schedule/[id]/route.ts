@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import Schedule from '@database/models/Schedule';
+import supabase from '@database/supabase';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -19,10 +21,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
@@ -70,27 +69,21 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       }
     }
 
-    // Update event
-    const updatedEvent = await prisma.schedule.updateMany({
-      where: {
-        id: eventId,
-        guildId: user.guildId,
-      },
-      data: updateData,
-    });
+    const { data: updated, error } = await supabase
+      .from('schedules')
+      .update(updateData)
+      .eq('id', eventId)
+      .eq('guild_id', user.guild_id)
+      .select()
+      .single();
 
-    if (updatedEvent.count === 0) {
+    if (error || !updated) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 });
     }
 
-    // Fetch and return updated event
-    const scheduleEvent = await prisma.schedule.findUnique({
-      where: { id: eventId },
-    });
-
     return NextResponse.json({
       success: true,
-      data: scheduleEvent,
+      data: updated,
       message: 'Event updated successfully',
     });
   } catch (error) {
@@ -119,10 +112,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
@@ -134,15 +124,9 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       return NextResponse.json({ success: false, error: 'Invalid event ID' }, { status: 400 });
     }
 
-    // Delete event
-    const deletedEvent = await prisma.schedule.deleteMany({
-      where: {
-        id: eventId,
-        guildId: user.guildId,
-      },
-    });
+    const deleted = await Schedule.deleteEvent(eventId, user.guild_id);
 
-    if (deletedEvent.count === 0) {
+    if (!deleted) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 });
     }
 
