@@ -7,6 +7,9 @@
     "dev": "next dev -p 3010",
     "build": "next build",
     "start": "next start -p 3010",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
@@ -52,8 +55,15 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.35",
-    "sharp": "^0.34.4"
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "sharp": "^0.34.4",
+    "ts-jest": "^29.4.9"
   }
 }
