@@ -20,6 +20,9 @@ import List from './models/List';
 import { User } from './models/User';
 import EventConfig from './models/EventConfig';
 import SunsetConfig from './models/SunsetConfig';
+import Recipe from './models/Recipe';
+import MealPlan from './models/MealPlan';
+import RecipePreferences from './models/RecipePreferences';
 
 logger.info('Database module loaded', {
   nodeEnv: process.env.NODE_ENV,
@@ -38,6 +41,9 @@ export {
   User,
   EventConfig,
   SunsetConfig,
+  Recipe,
+  MealPlan,
+  RecipePreferences,
 };
 
 export default supabase;

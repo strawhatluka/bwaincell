@@ -11,6 +11,7 @@ import { handleInteractionError } from '../responses/errorResponses';
 import { logger } from '@shared/utils/logger';
 import supabase from '../../../../supabase/supabase';
 import type { TaskRow, ListRow } from '../../../../supabase/types';
+import { handleRecipeSelect } from './recipeHandlers';
 
 export async function handleSelectMenuInteraction(
   interaction: StringSelectMenuInteraction<CacheType>
@@ -30,6 +31,16 @@ export async function handleSelectMenuInteraction(
       });
     }
     return;
+  }
+
+  try {
+    // Recipe plan flow (pick + swap select menus)
+    if (customId.startsWith('recipe_plan_')) {
+      await handleRecipeSelect(interaction);
+      return;
+    }
+  } catch (error) {
+    return handleInteractionError(interaction, error, 'recipe select menu');
   }
 
   const { Task, List, Reminder } = await getModels();

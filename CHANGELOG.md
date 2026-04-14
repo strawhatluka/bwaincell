@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `recipe` command for managing recipes and meal plans (issue #44)
+- Add `recipeHandlers.ts` to handle recipe-related button, select menu, and modal interactions (issue #44)
+- Add `shoppingList.ts` utility for managing shopping list functionality (issue #44)
+- Add `Recipe`, `MealPlan`, and `RecipePreferences` database models (issue #44)
+- Add new database migration `20260414000000_recipes_schema.sql` to implement the recipe schema (issue #44)
+- Add `ParsedRecipe` interface, `INGREDIENT_CATEGORIES` constant, and rules-based ingredient category lookup to `backend/utils/geminiService.ts` for AI-parsed recipes (issue #44)
+- Add support for `recipe_plan_servings_` custom IDs in `backend/src/bot.ts` (issue #44)
+- Add routing for `recipe_plan_` prefixed select menu interactions to `recipeHandlers.ts` in `backend/utils/interactions/handlers/selectMenuHandlers.ts` (issue #44)
+- Add routing for `recipe_plan_` prefixed button interactions to `recipeHandlers.ts` in `backend/utils/interactions/index.ts` (issue #44)
+- Add routing for `recipe_plan_` prefixed modal interactions to `recipeHandlers.ts` in `backend/utils/interactions/modals/modalHandlers.ts` (issue #44)
+- Add export of `Recipe`, `MealPlan`, and `RecipePreferences` models from `supabase/index.ts` (issue #44)
+- Add `RecipeDifficulty`, `RecipeSourceType`, `RecipeIngredient`, `RecipeNutrition`, and `RecipeRow` types to `supabase/types.ts` (issue #44)
+- Add unit tests for the `recipe` command in `backend/tests/unit/commands/recipe.test.ts` (issue #44)
+- Add unit tests for `MealPlan` model in `backend/tests/unit/models/MealPlan.test.ts` (issue #44)
+- Add unit tests for `Recipe` model in `backend/tests/unit/models/Recipe.test.ts` (issue #44)
+- Add unit tests for `RecipePreferences` model in `backend/tests/unit/models/RecipePreferences.test.ts` (issue #44)
+- Add unit tests for `shoppingList` utility in `backend/tests/unit/utils/shoppingList.test.ts` (issue #44)
 - Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ANON_KEY` environment variables to `frontend/.env.example` for Supabase configuration
 - Add `@supabase/supabase-js` dependency to `backend/package.json`
 - Add build step for `supabase` package to `.github/workflows/ci.yml`

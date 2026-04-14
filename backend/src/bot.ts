@@ -195,6 +195,7 @@ function setupEventHandlers() {
                 'task_add_new',
                 'reminder_edit_',
                 'reminder_create_',
+                'recipe_plan_servings_',
               ];
               const opensModal = modalButtons.some(
                 (prefix) =>
