@@ -108,8 +108,8 @@ export async function handleModalSubmit(
 
   // Note: Interaction already deferred by bot.js - no need to defer here
 
-  // Route recipe plan modals to dedicated handler
-  if (customId.startsWith('recipe_plan_')) {
+  // Route all recipe modals to dedicated handler
+  if (customId.startsWith('recipe_')) {
     try {
       await handleRecipeModal(interaction);
     } catch (error) {

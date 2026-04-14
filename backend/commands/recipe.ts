@@ -154,7 +154,7 @@ function roundQty(value: number, unit: string): number {
   return Math.round(value * 100) / 100;
 }
 
-function scaleIngredient(ingredient: RecipeIngredient, scale: number): string {
+export function scaleIngredient(ingredient: RecipeIngredient, scale: number): string {
   const unit = ingredient.unit ?? '';
   const name = ingredient.name;
   const parsed = parseQuantity(ingredient.quantity);
@@ -181,7 +181,7 @@ function scaleIngredient(ingredient: RecipeIngredient, scale: number): string {
   return `- ${qtyPart}${name}${note}`.trim();
 }
 
-function sanitizeFilename(name: string): string {
+export function sanitizeFilename(name: string): string {
   const lower = name.toLowerCase();
   const hyphenated = lower.replace(/\s+/g, '-');
   const cleaned = hyphenated.replace(/[^a-z0-9-]/g, '');

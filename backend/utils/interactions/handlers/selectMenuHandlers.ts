@@ -34,8 +34,8 @@ export async function handleSelectMenuInteraction(
   }
 
   try {
-    // Recipe plan flow (pick + swap select menus)
-    if (customId.startsWith('recipe_plan_')) {
+    // All recipe select menus (plan flow + edit/swap/week/history)
+    if (customId.startsWith('recipe_')) {
       await handleRecipeSelect(interaction);
       return;
     }

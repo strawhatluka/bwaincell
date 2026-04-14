@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `renderFullRecipeMarkdown` function to `backend/utils/interactions/handlers/recipeHandlers.ts` for displaying comprehensive recipe details (issue #44)
+- Add new unit tests for `recipeHandlers.ts` in `backend/tests/unit/interactions/handlers/recipeHandlers.test.ts` (issue #44)
 - Add `recipe` command for managing recipes and meal plans (issue #44)
 - Add `recipeHandlers.ts` to handle recipe-related button, select menu, and modal interactions (issue #44)
 - Add `shoppingList.ts` utility for managing shopping list functionality (issue #44)
@@ -45,6 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Make `scaleIngredient` and `sanitizeFilename` functions exportable in `backend/commands/recipe.ts` (issue #44)
+- Modify select menu interaction deferral logic in `backend/src/bot.ts` to prevent deferring select menus that open modals, aligning with Discord API requirements (issue #44)
+- Import `scaleIngredient`, `sanitizeFilename`, `RecipeUpdate`, and `RecipeIngredient` types into `backend/utils/interactions/handlers/recipeHandlers.ts` to support new recipe functionalities (issue #44)
+- Expand conditional routing for select menu interactions in `backend/utils/interactions/handlers/selectMenuHandlers.ts` to handle all recipe-related custom IDs starting with `recipe_`, enabling new recipe flows (issue #44)
+- Expand conditional routing for interactions in `backend/utils/interactions/index.ts` to handle all recipe-related custom IDs starting with `recipe_`, supporting new recipe functionalities (issue #44)
+- Expand conditional routing for modal interactions in `backend/utils/interactions/modals/modalHandlers.ts` to handle all recipe-related custom IDs starting with `recipe_`, enabling new recipe modals (issue #44)
 - Remove PostgreSQL service definition from `.github/workflows/ci.yml`
 - Remove `DATABASE_URL` and `NEXT_PUBLIC_API_URL` environment variables from `.github/workflows/ci.yml`
 - Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` environment variables to `.github/workflows/ci.yml` for Supabase test configuration

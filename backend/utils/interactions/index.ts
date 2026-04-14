@@ -108,7 +108,7 @@ async function handleButtonInteractionInternal(
       await handleReminderButton(interaction);
     } else if (customId.startsWith('random_') || customId.startsWith('save_dinner_')) {
       await handleRandomButton(interaction);
-    } else if (customId.startsWith('recipe_plan_')) {
+    } else if (customId.startsWith('recipe_')) {
       await handleRecipeButton(interaction);
     } else if (
       customId === 'schedule_add_new' ||

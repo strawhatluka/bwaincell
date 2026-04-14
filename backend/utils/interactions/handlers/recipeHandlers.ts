@@ -34,8 +34,11 @@ import {
   planSessionKey,
   getPlanSession,
   getWeekStart,
+  scaleIngredient,
+  sanitizeFilename,
   PlanSession,
 } from '../../../commands/recipe';
+import type { RecipeUpdate, RecipeIngredient } from '../../../../supabase/types';
 
 const RECIPES_PER_PAGE = 25;
 
@@ -672,6 +675,488 @@ async function handleServingsModal(interaction: ModalSubmitInteraction<CacheType
 }
 
 // ---------------------------------------------------------------------------
+// Non-plan recipe flows: view, delete, edit, swap, week, history
+// ---------------------------------------------------------------------------
+
+function renderFullRecipeMarkdown(recipe: {
+  name: string;
+  servings: number | null;
+  cuisine: string | null;
+  difficulty: string | null;
+  prep_time_minutes: number | null;
+  cook_time_minutes: number | null;
+  dietary_tags: string[] | null;
+  ingredients: RecipeIngredient[];
+  instructions: string[];
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    fiber?: number;
+    sugar?: number;
+    sodium?: number;
+  } | null;
+  notes?: string | null;
+  source_url?: string | null;
+}, targetServings: number): string {
+  const baseline = recipe.servings ?? 1;
+  const scale = targetServings / baseline;
+  const lines: string[] = [];
+  lines.push(`# ${recipe.name}`);
+  lines.push('');
+  lines.push(`**Serves:** ${targetServings}  `);
+  lines.push(`**Cuisine:** ${recipe.cuisine ?? 'Not specified'}  `);
+  lines.push(`**Difficulty:** ${recipe.difficulty ?? 'Not specified'}  `);
+  lines.push(`**Prep Time:** ${recipe.prep_time_minutes ?? '?'} min  `);
+  lines.push(`**Cook Time:** ${recipe.cook_time_minutes ?? '?'} min  `);
+  if (recipe.dietary_tags && recipe.dietary_tags.length > 0) {
+    lines.push(`**Dietary:** ${recipe.dietary_tags.join(' • ')}`);
+  }
+  lines.push('');
+  if (recipe.servings !== null && targetServings !== recipe.servings) {
+    lines.push(`_Scaled from ${recipe.servings} to ${targetServings} servings (factor: ${scale.toFixed(2)}x)._`);
+    lines.push('');
+  }
+  lines.push('## Ingredients');
+  lines.push('');
+  for (const ing of recipe.ingredients) lines.push(scaleIngredient(ing, scale));
+  lines.push('');
+  lines.push('## Instructions');
+  lines.push('');
+  recipe.instructions.forEach((step, idx) => lines.push(`${idx + 1}. ${step}`));
+  lines.push('');
+  if (recipe.nutrition) {
+    lines.push('## Nutrition (per original serving)');
+    lines.push('');
+    const n = recipe.nutrition;
+    if (n.calories !== undefined) lines.push(`- Calories: ${n.calories}`);
+    if (n.protein !== undefined) lines.push(`- Protein: ${n.protein}g`);
+    if (n.carbs !== undefined) lines.push(`- Carbs: ${n.carbs}g`);
+    if (n.fat !== undefined) lines.push(`- Fat: ${n.fat}g`);
+    if (n.fiber !== undefined) lines.push(`- Fiber: ${n.fiber}g`);
+    if (n.sugar !== undefined) lines.push(`- Sugar: ${n.sugar}g`);
+    if (n.sodium !== undefined) lines.push(`- Sodium: ${n.sodium}mg`);
+    lines.push('');
+  }
+  if (recipe.notes) {
+    lines.push('## Notes');
+    lines.push('');
+    lines.push(recipe.notes);
+    lines.push('');
+  }
+  if (recipe.source_url) {
+    lines.push('---');
+    lines.push(`Source: ${recipe.source_url}`);
+  }
+  return lines.join('\n');
+}
+
+async function handleViewFull(interaction: ButtonInteraction<CacheType>): Promise<void> {
+  const guildId = interaction.guild?.id;
+  if (!guildId) {
+    await interaction.editReply({ content: '❌ This command can only be used in a server.' });
+    return;
+  }
+  const recipeId = parseInt(interaction.customId.replace('recipe_view_full_', ''), 10);
+  if (Number.isNaN(recipeId)) {
+    await interaction.editReply({ content: '❌ Invalid recipe.' });
+    return;
+  }
+  const recipe = await Recipe.getRecipe(recipeId, guildId);
+  if (!recipe) {
+    await interaction.editReply({ content: '❌ Recipe not found.' });
+    return;
+  }
+  const targetServings = recipe.servings ?? 1;
+  const markdown = renderFullRecipeMarkdown(recipe, targetServings);
+  const attachment = new AttachmentBuilder(Buffer.from(markdown, 'utf8')).setName(
+    `${sanitizeFilename(recipe.name)}.md`
+  );
+  const embed = new EmbedBuilder()
+    .setTitle(`📄 ${recipe.name}`)
+    .setColor(0x00ff00);
+  if (recipe.image_url) embed.setThumbnail(recipe.image_url);
+  await interaction.editReply({ embeds: [embed], files: [attachment], components: [] });
+}
+
+async function handleDeleteConfirm(interaction: ButtonInteraction<CacheType>): Promise<void> {
+  const guildId = interaction.guild?.id;
+  if (!guildId) {
+    await interaction.editReply({ content: '❌ This command can only be used in a server.' });
+    return;
+  }
+  const recipeId = parseInt(interaction.customId.replace('recipe_delete_confirm_', ''), 10);
+  if (Number.isNaN(recipeId)) {
+    await interaction.editReply({ content: '❌ Invalid recipe.' });
+    return;
+  }
+  const recipe = await Recipe.getRecipe(recipeId, guildId);
+  if (!recipe) {
+    await interaction.editReply({ content: '❌ Recipe not found.', components: [], embeds: [] });
+    return;
+  }
+  const deleted = await Recipe.deleteRecipe(recipeId, guildId);
+  if (!deleted) {
+    await interaction.editReply({ content: '❌ Failed to delete recipe.', components: [], embeds: [] });
+    return;
+  }
+  const embed = new EmbedBuilder()
+    .setTitle('🗑️ Recipe Deleted')
+    .setDescription(`**${recipe.name}** has been deleted.`)
+    .setColor(0xff0000)
+    .setTimestamp();
+  await interaction.editReply({ embeds: [embed], components: [] });
+}
+
+async function handleDeleteCancel(interaction: ButtonInteraction<CacheType>): Promise<void> {
+  await interaction.editReply({
+    content: '✅ Cancelled — recipe not deleted.',
+    embeds: [],
+    components: [],
+  });
+}
+
+async function handleEditFieldSelect(
+  interaction: StringSelectMenuInteraction<CacheType>
+): Promise<void> {
+  const guildId = interaction.guild?.id;
+  if (!guildId) {
+    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+    return;
+  }
+  const recipeId = parseInt(interaction.customId.replace('recipe_edit_field_', ''), 10);
+  const field = interaction.values[0];
+  if (Number.isNaN(recipeId) || !field) {
+    await interaction.reply({ content: '❌ Invalid edit target.', ephemeral: true });
+    return;
+  }
+  const recipe = await Recipe.getRecipe(recipeId, guildId);
+  if (!recipe) {
+    await interaction.reply({ content: '❌ Recipe not found.', ephemeral: true });
+    return;
+  }
+
+  const fieldLabels: Record<string, string> = {
+    name: 'Name',
+    ingredients: 'Ingredients (JSON)',
+    instructions: 'Instructions (one per line)',
+    servings: 'Servings',
+    prep_time_minutes: 'Prep Time (minutes)',
+    cook_time_minutes: 'Cook Time (minutes)',
+    cuisine: 'Cuisine',
+    difficulty: 'Difficulty (easy/medium/hard)',
+    dietary_tags: 'Dietary Tags (comma-separated)',
+    notes: 'Notes',
+  };
+  const label = fieldLabels[field];
+  if (!label) {
+    await interaction.reply({ content: `❌ Unknown field: ${field}`, ephemeral: true });
+    return;
+  }
+
+  let currentValue = '';
+  switch (field) {
+    case 'name':
+      currentValue = recipe.name;
+      break;
+    case 'ingredients':
+      currentValue = JSON.stringify(recipe.ingredients);
+      break;
+    case 'instructions':
+      currentValue = recipe.instructions.join('\n');
+      break;
+    case 'servings':
+      currentValue = recipe.servings !== null ? String(recipe.servings) : '';
+      break;
+    case 'prep_time_minutes':
+      currentValue = recipe.prep_time_minutes !== null ? String(recipe.prep_time_minutes) : '';
+      break;
+    case 'cook_time_minutes':
+      currentValue = recipe.cook_time_minutes !== null ? String(recipe.cook_time_minutes) : '';
+      break;
+    case 'cuisine':
+      currentValue = recipe.cuisine ?? '';
+      break;
+    case 'difficulty':
+      currentValue = recipe.difficulty ?? '';
+      break;
+    case 'dietary_tags':
+      currentValue = (recipe.dietary_tags ?? []).join(', ');
+      break;
+    case 'notes':
+      currentValue = recipe.notes ?? '';
+      break;
+  }
+
+  const multiLineFields = new Set(['ingredients', 'instructions', 'notes']);
+  const style = multiLineFields.has(field) ? TextInputStyle.Paragraph : TextInputStyle.Short;
+  const maxLen = multiLineFields.has(field) ? 4000 : 200;
+
+  const modal = new ModalBuilder()
+    .setCustomId(`recipe_edit_modal_${recipeId}_${field}`)
+    .setTitle(truncateLabel(`Edit ${label}`, 45));
+  const input = new TextInputBuilder()
+    .setCustomId('recipe_edit_value')
+    .setLabel(truncateLabel(label, 45))
+    .setStyle(style)
+    .setRequired(field === 'name')
+    .setMaxLength(maxLen)
+    .setValue(currentValue.substring(0, maxLen));
+  modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
+  await interaction.showModal(modal);
+}
+
+async function handleEditModal(interaction: ModalSubmitInteraction<CacheType>): Promise<void> {
+  const guildId = interaction.guild?.id;
+  if (!guildId) {
+    await interaction.editReply({ content: '❌ This command can only be used in a server.' });
+    return;
+  }
+  const rest = interaction.customId.replace('recipe_edit_modal_', '');
+  const firstSep = rest.indexOf('_');
+  if (firstSep === -1) {
+    await interaction.editReply({ content: '❌ Invalid edit target.' });
+    return;
+  }
+  const recipeId = parseInt(rest.substring(0, firstSep), 10);
+  const field = rest.substring(firstSep + 1);
+  if (Number.isNaN(recipeId) || !field) {
+    await interaction.editReply({ content: '❌ Invalid edit target.' });
+    return;
+  }
+
+  const raw = interaction.fields.getTextInputValue('recipe_edit_value');
+  const update: RecipeUpdate = {};
+
+  try {
+    switch (field) {
+      case 'name': {
+        const v = raw.trim();
+        if (!v) throw new Error('Name cannot be empty.');
+        update.name = v;
+        break;
+      }
+      case 'ingredients': {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) throw new Error('Ingredients must be a JSON array.');
+        for (const ing of parsed) {
+          if (!ing || typeof ing.name !== 'string') {
+            throw new Error('Each ingredient must have a string `name`.');
+          }
+        }
+        update.ingredients = parsed as RecipeIngredient[];
+        break;
+      }
+      case 'instructions': {
+        const lines = raw.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+        if (lines.length === 0) throw new Error('Instructions cannot be empty.');
+        update.instructions = lines;
+        break;
+      }
+      case 'servings':
+      case 'prep_time_minutes':
+      case 'cook_time_minutes': {
+        const v = raw.trim();
+        if (v === '') {
+          update[field] = null;
+        } else {
+          const n = parseInt(v, 10);
+          if (Number.isNaN(n) || n < 0 || n > 10000) {
+            throw new Error(`${field} must be a non-negative integer ≤ 10000.`);
+          }
+          update[field] = n;
+        }
+        break;
+      }
+      case 'cuisine':
+      case 'notes': {
+        const v = raw.trim();
+        update[field] = v === '' ? null : v;
+        break;
+      }
+      case 'difficulty': {
+        const v = raw.trim().toLowerCase();
+        if (v === '') {
+          update.difficulty = null;
+        } else if (v !== 'easy' && v !== 'medium' && v !== 'hard') {
+          throw new Error('Difficulty must be easy, medium, or hard.');
+        } else {
+          update.difficulty = v;
+        }
+        break;
+      }
+      case 'dietary_tags': {
+        const tags = raw
+          .split(',')
+          .map((t) => t.trim().toLowerCase())
+          .filter((t) => t.length > 0);
+        update.dietary_tags = tags;
+        break;
+      }
+      default:
+        throw new Error(`Unknown field: ${field}`);
+    }
+  } catch (err) {
+    await interaction.editReply({
+      content: `❌ Validation failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+    });
+    return;
+  }
+
+  const updated = await Recipe.updateRecipe(recipeId, guildId, update);
+  if (!updated) {
+    await interaction.editReply({ content: '❌ Recipe not found.' });
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle(`✏️ Updated ${updated.name}`)
+    .setDescription(`Field **${field}** was updated.`)
+    .setColor(0x00ff00)
+    .setTimestamp();
+  await interaction.editReply({ embeds: [embed], components: [] });
+}
+
+async function handleSwapMealSelect(
+  interaction: StringSelectMenuInteraction<CacheType>
+): Promise<void> {
+  const guildId = interaction.guild?.id;
+  if (!guildId) {
+    await interaction.editReply({ content: '❌ This command can only be used in a server.' });
+    return;
+  }
+  const slotIndex = parseInt(interaction.customId.replace('recipe_swap_select_', ''), 10);
+  if (Number.isNaN(slotIndex)) {
+    await interaction.editReply({ content: '❌ Invalid slot.' });
+    return;
+  }
+  const newRecipeId = parseInt(interaction.values[0], 10);
+  if (Number.isNaN(newRecipeId)) {
+    await interaction.editReply({ content: '❌ Invalid recipe.' });
+    return;
+  }
+
+  const activePlan = await MealPlan.getActivePlan(guildId);
+  if (!activePlan) {
+    await interaction.editReply({ content: '❌ No active meal plan.' });
+    return;
+  }
+  const currentServings = activePlan.servings_per_recipe[slotIndex];
+  const newRecipe = await Recipe.getRecipe(newRecipeId, guildId);
+  if (!newRecipe) {
+    await interaction.editReply({ content: '❌ Replacement recipe not found.' });
+    return;
+  }
+
+  const updated = await MealPlan.swapMeal(guildId, slotIndex, newRecipeId, currentServings);
+  if (!updated) {
+    await interaction.editReply({ content: '❌ Failed to swap meal.' });
+    return;
+  }
+
+  // Regenerate shopping list
+  const allRecipes = await Recipe.getRecipes(guildId);
+  const meals: RecipeWithServings[] = updated.recipe_ids.map((id, idx) => {
+    const r = allRecipes.find((rx) => rx.id === id);
+    if (!r) throw new Error(`Recipe #${id} no longer exists.`);
+    return { recipe: r, targetServings: updated.servings_per_recipe[idx] };
+  });
+  const { markdown } = generateShoppingList(meals);
+  const attachment = new AttachmentBuilder(Buffer.from(markdown, 'utf-8'), {
+    name: 'Shopping-List.md',
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🔄 Swapped meal ${slotIndex + 1}`)
+    .setDescription(`New meal: **${newRecipe.name}** (${currentServings} servings)`)
+    .setColor(0x3498db)
+    .setTimestamp();
+  await interaction.editReply({ embeds: [embed], components: [], files: [attachment] });
+}
+
+async function handleWeekSelect(
+  interaction: StringSelectMenuInteraction<CacheType>
+): Promise<void> {
+  const guildId = interaction.guild?.id;
+  if (!guildId) {
+    await interaction.editReply({ content: '❌ This command can only be used in a server.' });
+    return;
+  }
+  // Value format: `${slotIndex}_${recipeId}`
+  const value = interaction.values[0];
+  const parts = value.split('_');
+  if (parts.length !== 2) {
+    await interaction.editReply({ content: '❌ Invalid selection.' });
+    return;
+  }
+  const slotIndex = parseInt(parts[0], 10);
+  const recipeId = parseInt(parts[1], 10);
+  if (Number.isNaN(slotIndex) || Number.isNaN(recipeId)) {
+    await interaction.editReply({ content: '❌ Invalid selection.' });
+    return;
+  }
+
+  const activePlan = await MealPlan.getActivePlan(guildId);
+  if (!activePlan) {
+    await interaction.editReply({ content: '❌ No active meal plan.' });
+    return;
+  }
+  const targetServings = activePlan.servings_per_recipe[slotIndex] ?? 1;
+  const recipe = await Recipe.getRecipe(recipeId, guildId);
+  if (!recipe) {
+    await interaction.editReply({ content: '❌ Recipe not found.' });
+    return;
+  }
+
+  const markdown = renderFullRecipeMarkdown(recipe, targetServings);
+  const attachment = new AttachmentBuilder(Buffer.from(markdown, 'utf8')).setName(
+    `${sanitizeFilename(recipe.name)}.md`
+  );
+  const embed = new EmbedBuilder()
+    .setTitle(`📄 ${recipe.name} — scaled for ${targetServings}`)
+    .setColor(0x00ff00);
+  if (recipe.image_url) embed.setThumbnail(recipe.image_url);
+  await interaction.editReply({ embeds: [embed], files: [attachment] });
+}
+
+async function handleHistorySelect(
+  interaction: StringSelectMenuInteraction<CacheType>
+): Promise<void> {
+  const guildId = interaction.guild?.id;
+  if (!guildId) {
+    await interaction.editReply({ content: '❌ This command can only be used in a server.' });
+    return;
+  }
+  const planId = parseInt(interaction.values[0], 10);
+  if (Number.isNaN(planId)) {
+    await interaction.editReply({ content: '❌ Invalid plan.' });
+    return;
+  }
+  const plan = await MealPlan.getPlanById(planId, guildId);
+  if (!plan) {
+    await interaction.editReply({ content: '❌ Plan not found.' });
+    return;
+  }
+
+  const recipes = await Promise.all(plan.recipe_ids.map((id) => Recipe.getRecipe(id, guildId)));
+  const embed = new EmbedBuilder()
+    .setTitle(`📚 Plan — Week of ${plan.week_start}`)
+    .setColor(0x9b59b6);
+  for (let i = 0; i < plan.recipe_ids.length; i++) {
+    const r = recipes[i];
+    const name = r?.name ?? '(deleted recipe)';
+    const servings = plan.servings_per_recipe[i];
+    embed.addFields({
+      name: `${i + 1}. ${name}`,
+      value: `${servings} servings${r?.cuisine ? ` • ${r.cuisine}` : ''}${r?.difficulty ? ` • ${r.difficulty}` : ''}`,
+      inline: false,
+    });
+  }
+  await interaction.editReply({ embeds: [embed], components: [] });
+}
+
+// ---------------------------------------------------------------------------
 // Dispatchers (public entry points)
 // ---------------------------------------------------------------------------
 
@@ -691,6 +1176,11 @@ export async function handleRecipeButton(interaction: ButtonInteraction<CacheTyp
   }
   if (customId.startsWith('recipe_plan_servings_')) return handleOpenServingsModal(interaction);
 
+  // Non-plan recipe buttons
+  if (customId.startsWith('recipe_view_full_')) return handleViewFull(interaction);
+  if (customId.startsWith('recipe_delete_confirm_')) return handleDeleteConfirm(interaction);
+  if (customId === 'recipe_delete_cancel') return handleDeleteCancel(interaction);
+
   logger.warn('[RECIPE] Unknown recipe button customId', { customId });
   try {
     await interaction.editReply({ content: '❌ Unknown recipe action.' });
@@ -706,6 +1196,12 @@ export async function handleRecipeSelect(
   if (customId.startsWith('recipe_plan_swap_select_')) return handleSwapSelect(interaction);
   if (customId.startsWith('recipe_plan_pick_')) return handlePickSelect(interaction);
 
+  // Non-plan recipe select menus
+  if (customId.startsWith('recipe_edit_field_')) return handleEditFieldSelect(interaction);
+  if (customId.startsWith('recipe_swap_select_')) return handleSwapMealSelect(interaction);
+  if (customId === 'recipe_week_select') return handleWeekSelect(interaction);
+  if (customId === 'recipe_history_select') return handleHistorySelect(interaction);
+
   logger.warn('[RECIPE] Unknown recipe select customId', { customId });
   try {
     await interaction.editReply({ content: '❌ Unknown recipe action.' });
@@ -719,6 +1215,7 @@ export async function handleRecipeModal(
 ): Promise<void> {
   const customId = interaction.customId;
   if (customId.startsWith('recipe_plan_servings_modal_')) return handleServingsModal(interaction);
+  if (customId.startsWith('recipe_edit_modal_')) return handleEditModal(interaction);
 
   logger.warn('[RECIPE] Unknown recipe modal customId', { customId });
   try {
