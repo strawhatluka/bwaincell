@@ -101,7 +101,7 @@ networks:
 #
 # Prerequisites:
 #   1. Create .env with production credentials (see .env.example)
-#   2. Ensure BOT_TOKEN, CLIENT_ID, GUILD_ID, DATABASE_URL, SUPABASE_URL are set
+#   2. Ensure BOT_TOKEN, CLIENT_ID, GUILD_ID, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY are set
 #   3. Monorepo structure: backend/, frontend/, shared/, package.json at root
 #
 # Build Backend Image:

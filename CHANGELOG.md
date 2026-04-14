@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Remove PostgreSQL service definition from `.github/workflows/ci.yml`
+- Remove `DATABASE_URL` and `NEXT_PUBLIC_API_URL` environment variables from `.github/workflows/ci.yml`
+- Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` environment variables to `.github/workflows/ci.yml` for Supabase test configuration
+- Update comment in `docker-compose.yml` to remove `DATABASE_URL` mention
+- Update comment in `docker-compose.yml` to include `SUPABASE_SERVICE_ROLE_KEY` mention
+- Remove `_moduleAliases` configuration from `package.json`
 - Update `.env.example` with rephrased comments and updated example URLs for `NEXTAUTH_URL` and `NEXT_PUBLIC_API_URL`
 - Update backend configuration definition in `backend/config/config.d.ts`
 - Update backend configuration in `backend/config/config.js`
@@ -114,6 +120,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Remove `docker-compose.dev.yml` file
+- Remove `scripts/migrate-sqlite-to-postgres.ts` script
+- Remove `tests/integration/database-postgres.test.ts`
+- Remove `tests/load/database-load.test.ts`
 - Remove `backend/database/associations.ts`
 - Remove `backend/database/migrations/20260210-create-event-config.js`
 - Remove `backend/database/schema.ts`
