@@ -309,15 +309,12 @@ jobs:
           echo "✅ supabase/config.toml present"
 
   # ---------------------------------------------------------------------------
-  # Docker Build Test (Backend only, dev branch only)
+  # Docker Build Test (Backend) - runs on all CI runs
   # ---------------------------------------------------------------------------
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    needs: [changes, test-backend]
-    if: |
-      github.ref == 'refs/heads/dev' &&
-      needs.changes.outputs.backend == 'true'
+    needs: test-backend
 
     steps:
       - name: Checkout code
@@ -349,7 +346,7 @@ jobs:
   ci-success:
     name: CI Worfklow
     runs-on: ubuntu-latest
-    needs: [test-shared, test-backend, test-frontend, validate-supabase]
+    needs: [test-shared, test-backend, test-frontend, validate-supabase, docker-build]
     if: always()
 
     steps:
@@ -360,10 +357,11 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           echo "Workspace Results:"
-          echo "  Shared:   ${{ needs.test-shared.result }}"
-          echo "  Backend:  ${{ needs.test-backend.result }}"
-          echo "  Frontend: ${{ needs.test-frontend.result }}"
-          echo "  Supabase: ${{ needs.validate-supabase.result }}"
+          echo "  Shared:       ${{ needs.test-shared.result }}"
+          echo "  Backend:      ${{ needs.test-backend.result }}"
+          echo "  Frontend:     ${{ needs.test-frontend.result }}"
+          echo "  Supabase:     ${{ needs.validate-supabase.result }}"
+          echo "  Docker Build: ${{ needs.docker-build.result }}"
           echo ""
           echo "  Status (Monorepo):"
           echo "  Phase 1: Linting           ✅"
@@ -379,7 +377,8 @@ jobs:
           if [ "${{ needs.test-shared.result }}" == "failure" ] || \
              [ "${{ needs.test-backend.result }}" == "failure" ] || \
              [ "${{ needs.test-frontend.result }}" == "failure" ] || \
-             [ "${{ needs.validate-supabase.result }}" == "failure" ]; then
+             [ "${{ needs.validate-supabase.result }}" == "failure" ] || \
+             [ "${{ needs.docker-build.result }}" == "failure" ]; then
             echo "❌ One or more test jobs failed"
             exit 1
           fi
