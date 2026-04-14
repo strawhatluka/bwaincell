@@ -35,6 +35,7 @@ jobs:
       shared: ${{ steps.filter.outputs.shared }}
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      supabase: ${{ steps.filter.outputs.supabase }}
 
     steps:
       - name: Checkout code
@@ -50,14 +51,16 @@ jobs:
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
+            supabase:
+              - 'supabase/**'
             backend:
               - 'backend/**'
               - 'shared/**'
+              - 'supabase/**'
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
               - 'docker-compose.yml'
-              - 'database/**'
             frontend:
               - 'frontend/**'
               - 'shared/**'
@@ -81,7 +84,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -105,21 +108,22 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
 
-    # PostgreSQL service for backend tests
+    # PostgreSQL service for backend tests (Supabase-compatible)
+    # Tests use mocked Supabase client, but DB is available for future integration tests
     services:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: bwaincell_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
+          - 5433:5432
 
     steps:
       - name: Checkout code
@@ -128,7 +132,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -147,53 +151,54 @@ jobs:
 
       - name: Lint backend
         run: npm run lint --workspace=backend
-        continue-on-error: true
 
-      - name: Run backend tests
-        if: hashFiles('backend/tests/**') != ''
+      - name: Run backend tests with coverage
         env:
           NODE_ENV: test
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/bwaincell_test
-        run: npm run test --workspace=backend
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/postgres
+          SUPABASE_URL: http://test-supabase.local
+          SUPABASE_SERVICE_ROLE_KEY: test-key
+        run: npm run test:coverage --workspace=backend
 
-      - name: Check backend coverage (≥80%)
-        if: hashFiles('backend/tests/**') != ''
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/bwaincell_test
+      - name: Enforce backend coverage threshold (≥80%)
         run: |
-          echo "📊 Checking backend test coverage..."
-          npm run test:coverage --workspace=backend
-
-          # Extract coverage percentage from Jest output
+          echo "📊 Verifying backend test coverage..."
           if [ -f "backend/coverage/coverage-summary.json" ]; then
-            coverage=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.lines.pct);")
+            lines=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.lines.pct);")
+            branches=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.branches.pct);")
+            functions=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.functions.pct);")
+            statements=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.statements.pct);")
             threshold=80
 
-            echo "Current coverage: ${coverage}%"
+            echo "Coverage: lines=${lines}%, branches=${branches}%, functions=${functions}%, statements=${statements}%"
             echo "Required threshold: ${threshold}%"
 
-            if (( $(echo "$coverage < $threshold" | bc -l) )); then
-              echo "❌ Coverage ${coverage}% is below threshold ${threshold}%"
-              echo "⚠️  WARNING: Coverage check disabled during gradual adoption"
-              echo "🎯 Target: Increase coverage from current 35% to 80%"
-              # exit 1  # Uncomment when ready to enforce
-            else
-              echo "✅ Coverage ${coverage}% meets threshold ${threshold}%"
+            fail=0
+            for metric_name in lines branches functions statements; do
+              value=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.${metric_name}.pct);")
+              if (( $(echo "$value < $threshold" | bc -l) )); then
+                echo "❌ ${metric_name} coverage ${value}% is below threshold ${threshold}%"
+                fail=1
+              fi
+            done
+
+            if [ $fail -eq 1 ]; then
+              exit 1
             fi
+            echo "✅ All backend coverage metrics meet the ${threshold}% threshold"
           else
-            echo "⚠️  coverage-summary.json not found, skipping threshold check"
+            echo "❌ coverage-summary.json not found"
+            exit 1
           fi
 
       - name: Upload backend coverage
-        if: hashFiles('backend/tests/**') != ''
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
           path: backend/coverage/
 
   # ---------------------------------------------------------------------------
-  # Test Frontend (Next.js PWA)
+  # Test Frontend (Next.js 15 PWA)
   # ---------------------------------------------------------------------------
   test-frontend:
     name: Test Frontend
@@ -208,7 +213,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -222,19 +227,83 @@ jobs:
 
       - name: Lint frontend
         run: npm run lint --workspace=frontend
-        continue-on-error: true
 
       - name: Build frontend
         env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/bwaincell_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/postgres
           NEXT_PUBLIC_API_URL: http://localhost:3000
           NEXTAUTH_SECRET: test_secret_for_ci_build_only
-          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_URL: http://localhost:3010
         run: npm run build --workspace=frontend
 
-      - name: Run frontend tests
-        if: hashFiles('frontend/tests/**') != ''
-        run: npm run test --workspace=frontend
+      - name: Run frontend tests with coverage
+        run: npm run test:coverage --workspace=frontend
+
+      - name: Enforce frontend coverage threshold (≥80%)
+        run: |
+          echo "📊 Verifying frontend test coverage..."
+          if [ -f "frontend/coverage/coverage-summary.json" ]; then
+            threshold=80
+            fail=0
+            for metric_name in lines branches functions statements; do
+              value=$(node -e "const c = require('./frontend/coverage/coverage-summary.json'); console.log(c.total.${metric_name}.pct);")
+              echo "${metric_name}: ${value}%"
+              if (( $(echo "$value < $threshold" | bc -l) )); then
+                echo "❌ ${metric_name} coverage ${value}% is below threshold ${threshold}%"
+                fail=1
+              fi
+            done
+
+            if [ $fail -eq 1 ]; then
+              exit 1
+            fi
+            echo "✅ All frontend coverage metrics meet the ${threshold}% threshold"
+          else
+            echo "❌ coverage-summary.json not found"
+            exit 1
+          fi
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+
+  # ---------------------------------------------------------------------------
+  # Validate Supabase Migrations
+  # ---------------------------------------------------------------------------
+  validate-supabase:
+    name: Validate Supabase Migrations
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.supabase == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify migration files
+        run: |
+          echo "🔍 Checking Supabase migration files..."
+          if [ ! -d "supabase/migrations" ]; then
+            echo "❌ supabase/migrations directory not found"
+            exit 1
+          fi
+
+          count=$(ls -1 supabase/migrations/*.sql 2>/dev/null | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "❌ No migration files found"
+            exit 1
+          fi
+          echo "✅ Found $count migration file(s)"
+
+      - name: Verify config.toml
+        run: |
+          if [ ! -f "supabase/config.toml" ]; then
+            echo "❌ supabase/config.toml not found"
+            exit 1
+          fi
+          echo "✅ supabase/config.toml present"
 
   # ---------------------------------------------------------------------------
   # Docker Build Test (Backend only, dev branch only)
@@ -277,7 +346,7 @@ jobs:
   ci-success:
     name: CI Success - Trinity BAS Quality Gates
     runs-on: ubuntu-latest
-    needs: [test-shared, test-backend, test-frontend]
+    needs: [test-shared, test-backend, test-frontend, validate-supabase]
     if: always()
 
     steps:
@@ -291,24 +360,25 @@ jobs:
           echo "  Shared:   ${{ needs.test-shared.result }}"
           echo "  Backend:  ${{ needs.test-backend.result }}"
           echo "  Frontend: ${{ needs.test-frontend.result }}"
+          echo "  Supabase: ${{ needs.validate-supabase.result }}"
           echo ""
           echo "BAS 6-Phase Status (Monorepo):"
-          echo "  Phase 1: Linting           ✅ (continue-on-error)"
-          echo "  Phase 2: Structure         ✅ (shared package verification)"
-          echo "  Phase 3: Build             ${{ needs.test-backend.result == 'success' && '✅' || needs.test-backend.result == 'skipped' && '⏭️' || '❌' }}"
-          echo "  Phase 4: Testing           ${{ needs.test-backend.result == 'success' && '✅' || needs.test-backend.result == 'skipped' && '⏭️' || '❌' }}"
-          echo "  Phase 5: Coverage (≥80%)   ⚠️  (35% current, enforcement disabled)"
-          echo "  Phase 6: Best Practices    ✅ (Docker validation on dev)"
+          echo "  Phase 1: Linting           ✅"
+          echo "  Phase 2: Structure         ✅"
+          echo "  Phase 3: Build             ${{ (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') && '✅' || '❌' }}"
+          echo "  Phase 4: Testing           ${{ (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') && '✅' || '❌' }}"
+          echo "  Phase 5: Coverage (≥80%)   ✅ (enforced on all four metrics)"
+          echo "  Phase 6: Best Practices    ✅"
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          # If any job failed, fail the workflow
+          # Fail if any job failed
           if [ "${{ needs.test-shared.result }}" == "failure" ] || \
              [ "${{ needs.test-backend.result }}" == "failure" ] || \
-             [ "${{ needs.test-frontend.result }}" == "failure" ]; then
+             [ "${{ needs.test-frontend.result }}" == "failure" ] || \
+             [ "${{ needs.validate-supabase.result }}" == "failure" ]; then
             echo "❌ One or more test jobs failed"
             exit 1
           fi
 
-          # If any required job was skipped, that's OK (no changes)
           echo "✅ All test jobs passed or skipped (no changes)"
