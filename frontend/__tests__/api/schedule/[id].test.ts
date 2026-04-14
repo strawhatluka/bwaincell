@@ -43,7 +43,7 @@ describe('/api/schedule/[id]', () => {
     it('updates with title', async () => {
       (prisma.schedule.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (prisma.schedule.findUnique as jest.Mock).mockResolvedValue({ id: 1, event: 'Meeting' });
-      const res = await PATCH(req({ title: 'Meeting' }), { params: { id: '1' } });
+      const res = await PATCH(req({ title: 'Meeting' }), { params: Promise.resolve({ id: '1' }) });
       const body = await res.json();
       expect(res.status).toBe(200);
       expect(body.success).toBe(true);
@@ -54,7 +54,7 @@ describe('/api/schedule/[id]', () => {
     it('updates with event field (compat)', async () => {
       (prisma.schedule.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (prisma.schedule.findUnique as jest.Mock).mockResolvedValue({ id: 1 });
-      await PATCH(req({ event: 'Ev' }), { params: { id: '1' } });
+      await PATCH(req({ event: 'Ev' }), { params: Promise.resolve({ id: '1' }) });
       const updateArg = (prisma.schedule.updateMany as jest.Mock).mock.calls[0][0].data;
       expect(updateArg.event).toBe('Ev');
     });
@@ -62,7 +62,9 @@ describe('/api/schedule/[id]', () => {
     it('splits datetime into date + time', async () => {
       (prisma.schedule.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (prisma.schedule.findUnique as jest.Mock).mockResolvedValue({ id: 1 });
-      await PATCH(req({ datetime: '2026-05-01T10:00:00Z' }), { params: { id: '1' } });
+      await PATCH(req({ datetime: '2026-05-01T10:00:00Z' }), {
+        params: Promise.resolve({ id: '1' }),
+      });
       const updateArg = (prisma.schedule.updateMany as jest.Mock).mock.calls[0][0].data;
       expect(updateArg.date).toBe('2026-05-01');
       expect(typeof updateArg.time).toBe('string');
@@ -71,7 +73,9 @@ describe('/api/schedule/[id]', () => {
     it('updates with separate date and time', async () => {
       (prisma.schedule.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (prisma.schedule.findUnique as jest.Mock).mockResolvedValue({ id: 1 });
-      await PATCH(req({ date: '2026-05-01', time: '10:00:00' }), { params: { id: '1' } });
+      await PATCH(req({ date: '2026-05-01', time: '10:00:00' }), {
+        params: Promise.resolve({ id: '1' }),
+      });
       const updateArg = (prisma.schedule.updateMany as jest.Mock).mock.calls[0][0].data;
       expect(updateArg.date).toBe('2026-05-01');
       expect(updateArg.time).toBe('10:00:00');
@@ -79,30 +83,30 @@ describe('/api/schedule/[id]', () => {
 
     it('returns 401 when no session', async () => {
       mockSession.mockResolvedValue(null);
-      const res = await PATCH(req({ title: 'x' }), { params: { id: '1' } });
+      const res = await PATCH(req({ title: 'x' }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(401);
     });
 
     it('returns 404 when user not found', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-      const res = await PATCH(req({ title: 'x' }), { params: { id: '1' } });
+      const res = await PATCH(req({ title: 'x' }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
     it('returns 400 for invalid id', async () => {
-      const res = await PATCH(req({ title: 'x' }), { params: { id: 'abc' } });
+      const res = await PATCH(req({ title: 'x' }), { params: Promise.resolve({ id: 'abc' }) });
       expect(res.status).toBe(400);
     });
 
     it('returns 404 when event not found', async () => {
       (prisma.schedule.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      const res = await PATCH(req({ title: 'x' }), { params: { id: '1' } });
+      const res = await PATCH(req({ title: 'x' }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
     it('returns 500 on prisma error', async () => {
       (prisma.schedule.updateMany as jest.Mock).mockRejectedValue(new Error('db'));
-      const res = await PATCH(req({ title: 'x' }), { params: { id: '1' } });
+      const res = await PATCH(req({ title: 'x' }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(500);
     });
   });
@@ -112,36 +116,36 @@ describe('/api/schedule/[id]', () => {
 
     it('deletes an event', async () => {
       (prisma.schedule.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(200);
     });
 
     it('returns 401 when no session', async () => {
       mockSession.mockResolvedValue(null);
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(401);
     });
 
     it('returns 404 when user not found', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
     it('returns 400 for invalid id', async () => {
-      const res = await DELETE(delReq(), { params: { id: 'abc' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: 'abc' }) });
       expect(res.status).toBe(400);
     });
 
     it('returns 404 when event not found', async () => {
       (prisma.schedule.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
     it('returns 500 on prisma error', async () => {
       (prisma.schedule.deleteMany as jest.Mock).mockRejectedValue(new Error('db'));
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(500);
     });
   });

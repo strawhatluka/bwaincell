@@ -10,7 +10,11 @@ export const runtime = 'nodejs';
  * DELETE /api/lists/[listName]
  * Delete a list by name
  */
-export async function DELETE(request: NextRequest, { params }: { params: { listName: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  props: { params: Promise<{ listName: string }> }
+) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 

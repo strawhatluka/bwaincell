@@ -10,7 +10,8 @@ export const runtime = 'nodejs';
  * PATCH /api/schedule/[id]
  * Update a schedule event
  */
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -109,7 +110,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
  * DELETE /api/schedule/[id]
  * Delete a schedule event
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 

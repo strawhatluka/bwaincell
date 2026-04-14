@@ -42,7 +42,7 @@ describe('/api/lists/[listName]/clear-completed POST', () => {
       ],
     });
     (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
-    const res = await POST(makeReq(), { params: { listName: 'Groceries' } });
+    const res = await POST(makeReq(), { params: Promise.resolve({ listName: 'Groceries' }) });
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.message).toContain('2');
@@ -57,7 +57,7 @@ describe('/api/lists/[listName]/clear-completed POST', () => {
       items: [{ text: 'a', completed: false, added_at: 'x' }],
     });
     (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
-    const res = await POST(makeReq(), { params: { listName: 'Groceries' } });
+    const res = await POST(makeReq(), { params: Promise.resolve({ listName: 'Groceries' }) });
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.message).toContain('0');
@@ -65,25 +65,25 @@ describe('/api/lists/[listName]/clear-completed POST', () => {
 
   it('returns 401 when no session', async () => {
     mockSession.mockResolvedValue(null);
-    const res = await POST(makeReq(), { params: { listName: 'g' } });
+    const res = await POST(makeReq(), { params: Promise.resolve({ listName: 'g' }) });
     expect(res.status).toBe(401);
   });
 
   it('returns 404 when user not found', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-    const res = await POST(makeReq(), { params: { listName: 'g' } });
+    const res = await POST(makeReq(), { params: Promise.resolve({ listName: 'g' }) });
     expect(res.status).toBe(404);
   });
 
   it('returns 404 when list not found', async () => {
     (prisma.list.findFirst as jest.Mock).mockResolvedValue(null);
-    const res = await POST(makeReq(), { params: { listName: 'g' } });
+    const res = await POST(makeReq(), { params: Promise.resolve({ listName: 'g' }) });
     expect(res.status).toBe(404);
   });
 
   it('returns 500 on prisma error', async () => {
     (prisma.list.findFirst as jest.Mock).mockRejectedValue(new Error('db'));
-    const res = await POST(makeReq(), { params: { listName: 'g' } });
+    const res = await POST(makeReq(), { params: Promise.resolve({ listName: 'g' }) });
     expect(res.status).toBe(500);
   });
 });

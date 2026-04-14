@@ -11,7 +11,8 @@ export const runtime = 'nodejs';
  * PATCH /api/budget/transactions/[id]
  * Update a budget transaction
  */
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -127,7 +128,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
  * DELETE /api/budget/transactions/[id]
  * Delete a budget transaction
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 

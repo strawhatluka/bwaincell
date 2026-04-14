@@ -38,7 +38,9 @@ describe('/api/lists/[listName]/items/[itemText]/toggle PATCH', () => {
       items: [{ text: 'milk', completed: false, added_at: 'x' }],
     });
     (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
-    const res = await PATCH(makeReq(), { params: { listName: 'Groceries', itemText: 'milk' } });
+    const res = await PATCH(makeReq(), {
+      params: Promise.resolve({ listName: 'Groceries', itemText: 'milk' }),
+    });
     expect(res.status).toBe(200);
     const call = (prisma.list.update as jest.Mock).mock.calls[0][0];
     expect(call.data.items[0].completed).toBe(true);
@@ -50,26 +52,34 @@ describe('/api/lists/[listName]/items/[itemText]/toggle PATCH', () => {
       items: [{ text: 'milk', completed: true, added_at: 'x' }],
     });
     (prisma.list.update as jest.Mock).mockResolvedValue({ id: 1 });
-    await PATCH(makeReq(), { params: { listName: 'Groceries', itemText: 'milk' } });
+    await PATCH(makeReq(), {
+      params: Promise.resolve({ listName: 'Groceries', itemText: 'milk' }),
+    });
     const call = (prisma.list.update as jest.Mock).mock.calls[0][0];
     expect(call.data.items[0].completed).toBe(false);
   });
 
   it('returns 401 when no session', async () => {
     mockSession.mockResolvedValue(null);
-    const res = await PATCH(makeReq(), { params: { listName: 'g', itemText: 'x' } });
+    const res = await PATCH(makeReq(), {
+      params: Promise.resolve({ listName: 'g', itemText: 'x' }),
+    });
     expect(res.status).toBe(401);
   });
 
   it('returns 404 when user not found', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-    const res = await PATCH(makeReq(), { params: { listName: 'g', itemText: 'x' } });
+    const res = await PATCH(makeReq(), {
+      params: Promise.resolve({ listName: 'g', itemText: 'x' }),
+    });
     expect(res.status).toBe(404);
   });
 
   it('returns 404 when list not found', async () => {
     (prisma.list.findFirst as jest.Mock).mockResolvedValue(null);
-    const res = await PATCH(makeReq(), { params: { listName: 'g', itemText: 'x' } });
+    const res = await PATCH(makeReq(), {
+      params: Promise.resolve({ listName: 'g', itemText: 'x' }),
+    });
     expect(res.status).toBe(404);
   });
 
@@ -78,13 +88,17 @@ describe('/api/lists/[listName]/items/[itemText]/toggle PATCH', () => {
       id: 1,
       items: [{ text: 'other', completed: false, added_at: 'x' }],
     });
-    const res = await PATCH(makeReq(), { params: { listName: 'g', itemText: 'missing' } });
+    const res = await PATCH(makeReq(), {
+      params: Promise.resolve({ listName: 'g', itemText: 'missing' }),
+    });
     expect(res.status).toBe(404);
   });
 
   it('returns 500 on prisma error', async () => {
     (prisma.list.findFirst as jest.Mock).mockRejectedValue(new Error('db'));
-    const res = await PATCH(makeReq(), { params: { listName: 'g', itemText: 'x' } });
+    const res = await PATCH(makeReq(), {
+      params: Promise.resolve({ listName: 'g', itemText: 'x' }),
+    });
     expect(res.status).toBe(500);
   });
 });

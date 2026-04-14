@@ -16,7 +16,8 @@ interface ListItem {
  * POST /api/lists/[listName]/items
  * Add an item to a list
  */
-export async function POST(request: NextRequest, { params }: { params: { listName: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ listName: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 

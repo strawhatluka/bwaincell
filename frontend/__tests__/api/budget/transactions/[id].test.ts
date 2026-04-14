@@ -43,7 +43,7 @@ describe('/api/budget/transactions/[id]', () => {
     it('updates a transaction', async () => {
       (prisma.budget.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (prisma.budget.findUnique as jest.Mock).mockResolvedValue({ id: 1, amount: 99 });
-      const res = await PATCH(makeReq({ amount: 99 }), { params: { id: '1' } });
+      const res = await PATCH(makeReq({ amount: 99 }), { params: Promise.resolve({ id: '1' }) });
       const body = await res.json();
       expect(res.status).toBe(200);
       expect(body.success).toBe(true);
@@ -61,7 +61,7 @@ describe('/api/budget/transactions/[id]', () => {
           description: 'x',
           date: '2026-05-01',
         }),
-        { params: { id: '1' } }
+        { params: Promise.resolve({ id: '1' }) }
       );
       const updateArg = (prisma.budget.updateMany as jest.Mock).mock.calls[0][0].data;
       expect(updateArg.date).toBeInstanceOf(Date);
@@ -69,40 +69,40 @@ describe('/api/budget/transactions/[id]', () => {
 
     it('returns 401 when no session', async () => {
       mockSession.mockResolvedValue(null);
-      const res = await PATCH(makeReq({ amount: 1 }), { params: { id: '1' } });
+      const res = await PATCH(makeReq({ amount: 1 }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(401);
     });
 
     it('returns 404 when user not found', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-      const res = await PATCH(makeReq({ amount: 1 }), { params: { id: '1' } });
+      const res = await PATCH(makeReq({ amount: 1 }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
     it('returns 400 for invalid id', async () => {
-      const res = await PATCH(makeReq({ amount: 1 }), { params: { id: 'abc' } });
+      const res = await PATCH(makeReq({ amount: 1 }), { params: Promise.resolve({ id: 'abc' }) });
       expect(res.status).toBe(400);
     });
 
     it('returns 400 when amount is not a number', async () => {
-      const res = await PATCH(makeReq({ amount: 'bad' }), { params: { id: '1' } });
+      const res = await PATCH(makeReq({ amount: 'bad' }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(400);
     });
 
     it('returns 400 for invalid type', async () => {
-      const res = await PATCH(makeReq({ type: 'nope' }), { params: { id: '1' } });
+      const res = await PATCH(makeReq({ type: 'nope' }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(400);
     });
 
     it('returns 404 when transaction not found', async () => {
       (prisma.budget.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      const res = await PATCH(makeReq({ amount: 1 }), { params: { id: '1' } });
+      const res = await PATCH(makeReq({ amount: 1 }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
     it('returns 500 on prisma error', async () => {
       (prisma.budget.updateMany as jest.Mock).mockRejectedValue(new Error('db'));
-      const res = await PATCH(makeReq({ amount: 1 }), { params: { id: '1' } });
+      const res = await PATCH(makeReq({ amount: 1 }), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(500);
     });
   });
@@ -113,7 +113,7 @@ describe('/api/budget/transactions/[id]', () => {
 
     it('deletes a transaction', async () => {
       (prisma.budget.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.success).toBe(true);
@@ -121,30 +121,30 @@ describe('/api/budget/transactions/[id]', () => {
 
     it('returns 401 when no session', async () => {
       mockSession.mockResolvedValue(null);
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(401);
     });
 
     it('returns 404 when user not found', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
     it('returns 400 for invalid id', async () => {
-      const res = await DELETE(delReq(), { params: { id: 'abc' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: 'abc' }) });
       expect(res.status).toBe(400);
     });
 
     it('returns 404 when transaction not found', async () => {
       (prisma.budget.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(404);
     });
 
     it('returns 500 on prisma error', async () => {
       (prisma.budget.deleteMany as jest.Mock).mockRejectedValue(new Error('db'));
-      const res = await DELETE(delReq(), { params: { id: '1' } });
+      const res = await DELETE(delReq(), { params: Promise.resolve({ id: '1' }) });
       expect(res.status).toBe(500);
     });
   });

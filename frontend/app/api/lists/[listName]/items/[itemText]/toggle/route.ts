@@ -18,8 +18,9 @@ interface ListItem {
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { listName: string; itemText: string } }
+  props: { params: Promise<{ listName: string; itemText: string }> }
 ) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
