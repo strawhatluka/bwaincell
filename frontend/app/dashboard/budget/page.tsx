@@ -1,34 +1,25 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { useBudget } from "@/hooks/useBudget";
-import { TransactionForm } from "@/components/budget/TransactionForm";
-import { TransactionList } from "@/components/budget/TransactionList";
-import {
-  BudgetPageSkeleton,
-  BudgetChartSkeleton,
-} from "@/components/budget/BudgetSkeleton";
-import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import dynamic from 'next/dynamic';
+import { useBudget } from '@/hooks/useBudget';
+import { TransactionForm } from '@/components/budget/TransactionForm';
+import { TransactionList } from '@/components/budget/TransactionList';
+import { BudgetPageSkeleton, BudgetChartSkeleton } from '@/components/budget/BudgetSkeleton';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 const MonthlyChart = dynamic(
   () =>
-    import("@/components/budget/MonthlyChart").then((mod) => ({
+    import('@/components/budget/MonthlyChart').then((mod) => ({
       default: mod.MonthlyChart,
     })),
   {
     loading: () => <BudgetChartSkeleton />,
     ssr: false,
-  },
+  }
 );
 
 export default function BudgetPage() {
-  const {
-    transactions,
-    isLoading,
-    createTransaction,
-    deleteTransaction,
-    isCreating,
-  } = useBudget();
+  const { transactions, isLoading, createTransaction, deleteTransaction, isCreating } = useBudget();
 
   return (
     <ErrorBoundary>
@@ -40,10 +31,7 @@ export default function BudgetPage() {
               Track your expenses and manage your finances
             </p>
           </div>
-          <TransactionForm
-            onCreate={createTransaction}
-            isCreating={isCreating}
-          />
+          <TransactionForm onCreate={createTransaction} isCreating={isCreating} />
         </div>
 
         {isLoading ? (
@@ -51,10 +39,7 @@ export default function BudgetPage() {
         ) : (
           <div className="space-y-6">
             <MonthlyChart transactions={transactions} />
-            <TransactionList
-              transactions={transactions}
-              onDelete={deleteTransaction}
-            />
+            <TransactionList transactions={transactions} onDelete={deleteTransaction} />
           </div>
         )}
       </div>

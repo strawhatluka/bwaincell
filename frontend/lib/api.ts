@@ -1,4 +1,4 @@
-import { getSession } from "next-auth/react";
+import { getSession } from 'next-auth/react';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -33,7 +33,7 @@ class ApiClient {
       const session = await getSession();
 
       if (!session?.googleAccessToken) {
-        console.warn("[API-CLIENT] No Google access token in session");
+        console.warn('[API-CLIENT] No Google access token in session');
         return {};
       }
 
@@ -41,7 +41,7 @@ class ApiClient {
         Authorization: `Bearer ${session.googleAccessToken}`,
       };
     } catch (error) {
-      console.error("[API-CLIENT] Failed to get session:", error);
+      console.error('[API-CLIENT] Failed to get session:', error);
       return {};
     }
   }
@@ -50,16 +50,16 @@ class ApiClient {
     try {
       const authHeader = await this.getAuthHeader();
       const headers = {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...authHeader,
       };
 
       console.log(`[API] GET ${endpoint}`, {
-        hasAuth: !!(authHeader as Record<string, string>)["Authorization"],
+        hasAuth: !!(authHeader as Record<string, string>)['Authorization'],
       });
 
       const response = await globalThis.fetch(`${this.baseUrl}${endpoint}`, {
-        method: "GET",
+        method: 'GET',
         headers,
       });
 
@@ -86,9 +86,9 @@ class ApiClient {
     try {
       const authHeader = await this.getAuthHeader();
       const response = await globalThis.fetch(`${this.baseUrl}${endpoint}`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           ...authHeader,
         },
         body: JSON.stringify(body),
@@ -111,9 +111,9 @@ class ApiClient {
     try {
       const authHeader = await this.getAuthHeader();
       const response = await globalThis.fetch(`${this.baseUrl}${endpoint}`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           ...authHeader,
         },
         body: JSON.stringify(body),
@@ -136,9 +136,9 @@ class ApiClient {
     try {
       const authHeader = await this.getAuthHeader();
       const response = await globalThis.fetch(`${this.baseUrl}${endpoint}`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           ...authHeader,
         },
       });
@@ -160,4 +160,4 @@ class ApiClient {
 // API client for calling Next.js API routes
 // Uses relative URLs to call API routes on same domain (no CORS issues)
 // Architecture: Frontend + API routes both deployed on Vercel
-export const api = new ApiClient(process.env.NEXT_PUBLIC_API_URL || "/api");
+export const api = new ApiClient(process.env.NEXT_PUBLIC_API_URL || '/api');

@@ -200,9 +200,9 @@ export default async function Page() {
 ### Client Components
 
 ```tsx
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 export default function Component() {
   const [state, setState] = useState(0);
@@ -246,14 +246,14 @@ const queryClient = new QueryClient({
 **Usage Example:**
 
 ```tsx
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
 
 function TaskList() {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["tasks"],
-    queryFn: () => fetch("/api/tasks").then((r) => r.json()),
+    queryKey: ['tasks'],
+    queryFn: () => fetch('/api/tasks').then((r) => r.json()),
   });
 
   if (isLoading) return <div>Loading...</div>;
@@ -294,12 +294,12 @@ const { refetch } = useQuery({ queryKey: ["tasks"], ... });
 **Session Access (Server Components):**
 
 ```tsx
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export default async function Page() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session) redirect('/login');
   // Render protected content
 }
 ```
@@ -307,13 +307,13 @@ export default async function Page() {
 **Session Access (Client Components):**
 
 ```tsx
-"use client";
+'use client';
 
-import { useSession } from "next-auth/react";
+import { useSession } from 'next-auth/react';
 
 export default function Component() {
   const { data: session, status } = useSession();
-  if (status === "loading") return <div>Loading...</div>;
+  if (status === 'loading') return <div>Loading...</div>;
   if (!session) return <div>Not authenticated</div>;
   return <div>Welcome, {session.user.name}</div>;
 }
@@ -325,12 +325,12 @@ export default function Component() {
 
 ```tsx
 // app/dashboard/page.tsx
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {
   const session = await getServerSession();
-  if (!session) redirect("/login");
+  if (!session) redirect('/login');
 
   return <div>Dashboard content</div>;
 }
@@ -389,7 +389,7 @@ export default async function DashboardPage() {
 
 ```ts
 // app/api/tasks/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const tasks = await fetchTasks();
@@ -407,23 +407,17 @@ export async function POST(request: NextRequest) {
 
 ```ts
 // app/api/tasks/[id]/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const task = await fetchTask(params.id);
   if (!task) {
-    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   }
   return NextResponse.json({ task });
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   await deleteTask(params.id);
   return NextResponse.json({ success: true });
 }
@@ -433,27 +427,27 @@ export async function DELETE(
 
 ```tsx
 // app/dashboard/tasks/page.tsx
-"use client";
+'use client';
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function TasksPage() {
   const queryClient = useQueryClient();
 
   const { data: tasks } = useQuery({
-    queryKey: ["tasks"],
-    queryFn: () => fetch("/api/tasks").then((r) => r.json()),
+    queryKey: ['tasks'],
+    queryFn: () => fetch('/api/tasks').then((r) => r.json()),
   });
 
   const createTask = useMutation({
     mutationFn: (task) =>
-      fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(task),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 
@@ -496,32 +490,32 @@ npm run type-check
 ### Testing Dashboard Pages
 
 ```tsx
-import { render, screen } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import TasksPage from "./page";
+import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import TasksPage from './page';
 
-test("renders tasks page", () => {
+test('renders tasks page', () => {
   const queryClient = new QueryClient();
   render(
     <QueryClientProvider client={queryClient}>
       <TasksPage />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
-  expect(screen.getByText("Tasks")).toBeInTheDocument();
+  expect(screen.getByText('Tasks')).toBeInTheDocument();
 });
 ```
 
 ### Testing API Routes
 
 ```tsx
-import { GET, POST } from "./route";
-import { NextRequest } from "next/server";
+import { GET, POST } from './route';
+import { NextRequest } from 'next/server';
 
-test("GET /api/tasks returns tasks", async () => {
-  const request = new NextRequest("http://localhost:3010/api/tasks");
+test('GET /api/tasks returns tasks', async () => {
+  const request = new NextRequest('http://localhost:3010/api/tasks');
   const response = await GET(request);
   const data = await response.json();
-  expect(data).toHaveProperty("tasks");
+  expect(data).toHaveProperty('tasks');
 });
 ```
 

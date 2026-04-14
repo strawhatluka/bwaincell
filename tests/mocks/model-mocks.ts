@@ -20,19 +20,19 @@ export function createTaskMock() {
       completed: false,
       due_date: null,
       createdAt: new Date(),
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
     getUserTasks: jest.fn().mockResolvedValue([
       { id: 1, description: 'Task 1', completed: false, due_date: null },
-      { id: 2, description: 'Task 2', completed: true, due_date: null }
+      { id: 2, description: 'Task 2', completed: true, due_date: null },
     ]),
 
     completeTask: jest.fn().mockResolvedValue({
       id: 1,
       description: 'Test task',
       completed: true,
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
     deleteTask: jest.fn().mockResolvedValue(true),
@@ -41,10 +41,10 @@ export function createTaskMock() {
       id: 1,
       description: 'Updated task',
       completed: false,
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
-    init: jest.fn()
+    init: jest.fn(),
   };
 
   return mockModel;
@@ -67,9 +67,9 @@ export function createBudgetMock() {
       guild_id: 'guild-1',
       type: 'expense',
       category: 'food',
-      amount: 25.50,
+      amount: 25.5,
       description: 'Test expense',
-      date: new Date()
+      date: new Date(),
     }),
 
     addIncome: jest.fn().mockResolvedValue({
@@ -77,9 +77,9 @@ export function createBudgetMock() {
       user_id: 'user-1',
       guild_id: 'guild-1',
       type: 'income',
-      amount: 1000.00,
+      amount: 1000.0,
       description: 'Salary',
-      date: new Date()
+      date: new Date(),
     }),
 
     getSummary: jest.fn().mockResolvedValue({
@@ -90,29 +90,36 @@ export function createBudgetMock() {
         food: 200,
         transport: 100,
         utilities: 150,
-        other: 50
-      }
+        other: 50,
+      },
     }),
 
     getCategories: jest.fn().mockResolvedValue([
       { category: 'food', total: 200 },
       { category: 'transport', total: 100 },
-      { category: 'utilities', total: 150 }
+      { category: 'utilities', total: 150 },
     ]),
 
     getRecentEntries: jest.fn().mockResolvedValue([
-      { id: 1, type: 'expense', amount: 25.50, description: 'Groceries', category: 'food', date: new Date() },
-      { id: 2, type: 'income', amount: 1000, description: 'Salary', date: new Date() }
+      {
+        id: 1,
+        type: 'expense',
+        amount: 25.5,
+        description: 'Groceries',
+        category: 'food',
+        date: new Date(),
+      },
+      { id: 2, type: 'income', amount: 1000, description: 'Salary', date: new Date() },
     ]),
 
     getMonthlyTrend: jest.fn().mockResolvedValue([
       { month: 1, year: 2025, income: 1000, expenses: 500 },
-      { month: 2, year: 2025, income: 1200, expenses: 600 }
+      { month: 2, year: 2025, income: 1200, expenses: 600 },
     ]),
 
     deleteEntry: jest.fn().mockResolvedValue(true),
 
-    init: jest.fn()
+    init: jest.fn(),
   };
 
   return mockModel;
@@ -134,7 +141,7 @@ export function createListMock() {
       guild_id: 'guild-1',
       name: 'Shopping List',
       items: [],
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
     addItem: jest.fn().mockResolvedValue({
@@ -142,18 +149,16 @@ export function createListMock() {
       name: 'Shopping List',
       items: [
         { text: 'Milk', completed: false },
-        { text: 'Bread', completed: false }
+        { text: 'Bread', completed: false },
       ],
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
     removeItem: jest.fn().mockResolvedValue({
       id: 1,
       name: 'Shopping List',
-      items: [
-        { text: 'Milk', completed: false }
-      ],
-      save: jest.fn()
+      items: [{ text: 'Milk', completed: false }],
+      save: jest.fn(),
     }),
 
     getList: jest.fn().mockResolvedValue({
@@ -161,22 +166,20 @@ export function createListMock() {
       name: 'Shopping List',
       items: [
         { text: 'Milk', completed: false },
-        { text: 'Bread', completed: false }
-      ]
+        { text: 'Bread', completed: false },
+      ],
     }),
 
     getUserLists: jest.fn().mockResolvedValue([
       { id: 1, name: 'Shopping List', items: [] },
-      { id: 2, name: 'Todo List', items: [] }
+      { id: 2, name: 'Todo List', items: [] },
     ]),
 
     clearCompleted: jest.fn().mockResolvedValue({
       id: 1,
       name: 'Shopping List',
-      items: [
-        { text: 'Milk', completed: false }
-      ],
-      save: jest.fn()
+      items: [{ text: 'Milk', completed: false }],
+      save: jest.fn(),
     }),
 
     deleteList: jest.fn().mockResolvedValue(true),
@@ -186,12 +189,12 @@ export function createListMock() {
       name: 'Shopping List',
       items: [
         { text: 'Milk', completed: true },
-        { text: 'Bread', completed: false }
+        { text: 'Bread', completed: false },
       ],
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
-    init: jest.fn()
+    init: jest.fn(),
   };
 
   return mockModel;
@@ -216,47 +219,46 @@ export function createNoteMock() {
       content: 'Note content',
       tags: ['test', 'sample'],
       createdAt: new Date(),
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
     getNotes: jest.fn().mockResolvedValue([
       { id: 1, title: 'Note 1', content: 'Content 1', tags: [] },
-      { id: 2, title: 'Note 2', content: 'Content 2', tags: ['important'] }
+      { id: 2, title: 'Note 2', content: 'Content 2', tags: ['important'] },
     ]),
 
     getNote: jest.fn().mockResolvedValue({
       id: 1,
       title: 'Test Note',
       content: 'Note content',
-      tags: ['test']
+      tags: ['test'],
     }),
 
     deleteNote: jest.fn().mockResolvedValue(true),
 
-    searchNotes: jest.fn().mockResolvedValue([
-      { id: 1, title: 'Matching Note', content: 'Contains search term', tags: [] }
-    ]),
+    searchNotes: jest
+      .fn()
+      .mockResolvedValue([
+        { id: 1, title: 'Matching Note', content: 'Contains search term', tags: [] },
+      ]),
 
     updateNote: jest.fn().mockResolvedValue({
       id: 1,
       title: 'Updated Title',
       content: 'Updated content',
       tags: ['updated'],
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
-    getNotesByTag: jest.fn().mockResolvedValue([
-      { id: 1, title: 'Tagged Note', content: 'Has the tag', tags: ['important'] }
-    ]),
+    getNotesByTag: jest
+      .fn()
+      .mockResolvedValue([
+        { id: 1, title: 'Tagged Note', content: 'Has the tag', tags: ['important'] },
+      ]),
 
-    getAllTags: jest.fn().mockResolvedValue([
-      'important',
-      'personal',
-      'work',
-      'ideas'
-    ]),
+    getAllTags: jest.fn().mockResolvedValue(['important', 'personal', 'work', 'ideas']),
 
-    init: jest.fn()
+    init: jest.fn(),
   };
 
   return mockModel;
@@ -282,33 +284,33 @@ export function createReminderMock() {
       time: '10:00',
       frequency: 'once',
       next_trigger: new Date(),
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
     calculateNextTrigger: jest.fn().mockReturnValue(new Date()),
 
     getActiveReminders: jest.fn().mockResolvedValue([
       { id: 1, message: 'Active reminder 1', next_trigger: new Date() },
-      { id: 2, message: 'Active reminder 2', next_trigger: new Date() }
+      { id: 2, message: 'Active reminder 2', next_trigger: new Date() },
     ]),
 
-    getUserReminders: jest.fn().mockResolvedValue([
-      { id: 1, message: 'User reminder', time: '10:00', frequency: 'daily' }
-    ]),
+    getUserReminders: jest
+      .fn()
+      .mockResolvedValue([{ id: 1, message: 'User reminder', time: '10:00', frequency: 'daily' }]),
 
     deleteReminder: jest.fn().mockResolvedValue(true),
 
     updateNextTrigger: jest.fn().mockResolvedValue({
       id: 1,
       next_trigger: new Date(),
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
-    getTriggeredReminders: jest.fn().mockResolvedValue([
-      { id: 1, message: 'Triggered reminder', channel_id: 'channel-1' }
-    ]),
+    getTriggeredReminders: jest
+      .fn()
+      .mockResolvedValue([{ id: 1, message: 'Triggered reminder', channel_id: 'channel-1' }]),
 
-    init: jest.fn()
+    init: jest.fn(),
   };
 
   return mockModel;
@@ -330,12 +332,12 @@ export function createScheduleMock() {
       event_name: 'Meeting',
       event_date: new Date(),
       description: 'Team meeting',
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
     getEvents: jest.fn().mockResolvedValue([
       { id: 1, event_name: 'Meeting', event_date: new Date(), description: 'Team meeting' },
-      { id: 2, event_name: 'Deadline', event_date: new Date(), description: 'Project deadline' }
+      { id: 2, event_name: 'Deadline', event_date: new Date(), description: 'Project deadline' },
     ]),
 
     deleteEvent: jest.fn().mockResolvedValue(true),
@@ -344,18 +346,18 @@ export function createScheduleMock() {
       event: 'Meeting',
       daysLeft: 5,
       hoursLeft: 120,
-      minutesLeft: 7200
+      minutesLeft: 7200,
     }),
 
-    getTodaysEvents: jest.fn().mockResolvedValue([
-      { id: 1, event_name: "Today's Meeting", event_date: new Date() }
-    ]),
+    getTodaysEvents: jest
+      .fn()
+      .mockResolvedValue([{ id: 1, event_name: "Today's Meeting", event_date: new Date() }]),
 
-    getUpcomingEvents: jest.fn().mockResolvedValue([
-      { id: 1, event_name: 'Upcoming Event', event_date: new Date() }
-    ]),
+    getUpcomingEvents: jest
+      .fn()
+      .mockResolvedValue([{ id: 1, event_name: 'Upcoming Event', event_date: new Date() }]),
 
-    init: jest.fn()
+    init: jest.fn(),
   };
 
   return mockModel;
@@ -377,7 +379,7 @@ export function createTrackerMock() {
       metric: 'weight',
       value: 75.5,
       timestamp: new Date(),
-      save: jest.fn()
+      save: jest.fn(),
     }),
 
     getStats: jest.fn().mockResolvedValue({
@@ -387,24 +389,19 @@ export function createTrackerMock() {
       min: 74,
       max: 77,
       latest: 75.5,
-      trend: 'stable'
+      trend: 'stable',
     }),
 
-    getMetrics: jest.fn().mockResolvedValue([
-      'weight',
-      'steps',
-      'calories',
-      'sleep_hours'
-    ]),
+    getMetrics: jest.fn().mockResolvedValue(['weight', 'steps', 'calories', 'sleep_hours']),
 
     deleteMetric: jest.fn().mockResolvedValue(true),
 
     getRecentData: jest.fn().mockResolvedValue([
       { id: 1, metric: 'weight', value: 75.5, timestamp: new Date() },
-      { id: 2, metric: 'weight', value: 75.2, timestamp: new Date() }
+      { id: 2, metric: 'weight', value: 75.2, timestamp: new Date() },
     ]),
 
-    init: jest.fn()
+    init: jest.fn(),
   };
 
   return mockModel;
@@ -419,12 +416,12 @@ export function resetAllMocks() {
     createNoteMock,
     createReminderMock,
     createScheduleMock,
-    createTrackerMock
+    createTrackerMock,
   ];
 
-  factories.forEach(factory => {
+  factories.forEach((factory) => {
     const mock = factory();
-    Object.keys(mock).forEach(key => {
+    Object.keys(mock).forEach((key) => {
       if (typeof mock[key] === 'function' && mock[key].mockReset) {
         mock[key].mockReset();
       }

@@ -386,11 +386,7 @@ npm run test:coverage && npm run coverage:badge
 ```json
 {
   "root": true,
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "prettier"
-  ],
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 2022,
@@ -400,10 +396,7 @@ npm run test:coverage && npm run coverage:badge
   "plugins": ["@typescript-eslint", "prettier"],
   "rules": {
     "prettier/prettier": "warn",
-    "@typescript-eslint/no-unused-vars": [
-      "warn",
-      { "argsIgnorePattern": "^_" }
-    ],
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     "@typescript-eslint/no-explicit-any": "warn",
     "no-console": "off"
   }
@@ -583,7 +576,7 @@ on:
   workflow_dispatch: # Enable manual trigger
     inputs:
       environment:
-        description: "Deployment environment"
+        description: 'Deployment environment'
         required: true
         type: choice
         options:
@@ -604,7 +597,7 @@ on:
 on:
   push:
     tags:
-      - "v*.*.*" # Deploy on version tags (v2.0.0, v1.0.1, etc.)
+      - 'v*.*.*' # Deploy on version tags (v2.0.0, v1.0.1, etc.)
 ```
 
 **Create Release:**

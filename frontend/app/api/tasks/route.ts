@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]/route';
+import { prisma } from '@/lib/db/prisma';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * GET /api/tasks
@@ -15,10 +15,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -27,15 +24,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const tasks = await prisma.task.findMany({
       where: { guildId: user.guildId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json({
@@ -43,14 +37,14 @@ export async function GET(request: NextRequest) {
       data: tasks,
     });
   } catch (error) {
-    console.error("[API] GET /api/tasks error:", error);
+    console.error('[API] GET /api/tasks error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch tasks",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to fetch tasks',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -64,10 +58,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -76,23 +67,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
     const { description, dueDate } = body;
 
-    if (
-      !description ||
-      typeof description !== "string" ||
-      description.trim().length === 0
-    ) {
+    if (!description || typeof description !== 'string' || description.trim().length === 0) {
       return NextResponse.json(
-        { success: false, error: "Description is required" },
-        { status: 400 },
+        { success: false, error: 'Description is required' },
+        { status: 400 }
       );
     }
 
@@ -110,19 +94,19 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         data: task,
-        message: "Task created successfully",
+        message: 'Task created successfully',
       },
-      { status: 201 },
+      { status: 201 }
     );
   } catch (error) {
-    console.error("[API] POST /api/tasks error:", error);
+    console.error('[API] POST /api/tasks error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to create task",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to create task',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

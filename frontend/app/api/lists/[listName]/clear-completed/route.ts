@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../../auth/[...nextauth]/route';
+import { prisma } from '@/lib/db/prisma';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 interface ListItem {
   text: string;
@@ -16,18 +16,13 @@ interface ListItem {
  * POST /api/lists/[listName]/clear-completed
  * Remove all completed items from a list
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { listName: string } },
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ listName: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -36,10 +31,7 @@ export async function POST(
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const listName = decodeURIComponent(params.listName);
@@ -50,16 +42,13 @@ export async function POST(
         guildId: user.guildId,
         name: {
           equals: listName,
-          mode: "insensitive",
+          mode: 'insensitive',
         },
       },
     });
 
     if (!list) {
-      return NextResponse.json(
-        { success: false, error: "List not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'List not found' }, { status: 404 });
     }
 
     // Parse existing items
@@ -81,17 +70,17 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: updatedList,
-      message: `Removed ${removedCount} completed item${removedCount !== 1 ? "s" : ""}`,
+      message: `Removed ${removedCount} completed item${removedCount !== 1 ? 's' : ''}`,
     });
   } catch (error) {
-    console.error("[API] Error clearing completed items:", error);
+    console.error('[API] Error clearing completed items:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to clear completed items",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to clear completed items',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

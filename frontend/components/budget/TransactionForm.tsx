@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -19,13 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+} from '@/components/ui/dialog';
+import { Plus } from 'lucide-react';
 
 interface TransactionFormProps {
   onCreate: (data: {
     amount: number;
-    type: "income" | "expense";
+    type: 'income' | 'expense';
     category: string;
     description: string;
     date: string;
@@ -33,16 +33,13 @@ interface TransactionFormProps {
   isCreating: boolean;
 }
 
-export function TransactionForm({
-  onCreate,
-  isCreating,
-}: TransactionFormProps) {
+export function TransactionForm({ onCreate, isCreating }: TransactionFormProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState<"income" | "expense">("expense");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,10 +54,10 @@ export function TransactionForm({
     });
 
     // Reset form
-    setAmount("");
-    setCategory("");
-    setDescription("");
-    setDate(new Date().toISOString().split("T")[0]);
+    setAmount('');
+    setCategory('');
+    setDescription('');
+    setDate(new Date().toISOString().split('T')[0]);
     setIsOpen(false);
   };
 
@@ -76,18 +73,14 @@ export function TransactionForm({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add Transaction</DialogTitle>
-            <DialogDescription>
-              Record an income or expense transaction.
-            </DialogDescription>
+            <DialogDescription>Record an income or expense transaction.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="type">Type</Label>
               <Select
                 value={type}
-                onValueChange={(value) =>
-                  setType(value as "income" | "expense")
-                }
+                onValueChange={(value) => setType(value as 'income' | 'expense')}
                 disabled={isCreating}
               >
                 <SelectTrigger className="border-[#f59e0b]/30 focus:ring-[#f59e0b]">
@@ -161,12 +154,10 @@ export function TransactionForm({
             </Button>
             <Button
               type="submit"
-              disabled={
-                isCreating || !amount || !category.trim() || !description.trim()
-              }
+              disabled={isCreating || !amount || !category.trim() || !description.trim()}
               className="bg-[#f59e0b] hover:bg-[#e08c00]"
             >
-              {isCreating ? "Adding..." : "Add Transaction"}
+              {isCreating ? 'Adding...' : 'Add Transaction'}
             </Button>
           </DialogFooter>
         </form>

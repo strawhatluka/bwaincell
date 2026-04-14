@@ -7,7 +7,7 @@
  * @module lib/db/prisma
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
 
 // Extend NodeJS global type to include prisma
 declare global {
@@ -24,15 +24,12 @@ declare global {
 function createPrismaClient(): PrismaClient {
   // Validate DATABASE_URL exists
   if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL environment variable is not defined");
+    throw new Error('DATABASE_URL environment variable is not defined');
   }
 
   // Create Prisma Client with configuration
   return new PrismaClient({
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 }
 
@@ -45,7 +42,7 @@ function createPrismaClient(): PrismaClient {
 const prisma = global.prisma || createPrismaClient();
 
 // Attach to global in development to survive HMR
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === 'development') {
   global.prisma = prisma;
 }
 

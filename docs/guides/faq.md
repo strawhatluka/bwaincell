@@ -486,20 +486,18 @@ npm run deploy --workspace=backend
 Yes! Add a new file to `backend/commands/` following this template:
 
 ```typescript
-import { SlashCommandBuilder } from "@discordjs/builders";
-import { CommandInteraction } from "discord.js";
+import { SlashCommandBuilder } from '@discordjs/builders';
+import { CommandInteraction } from 'discord.js';
 
 export default {
-  data: new SlashCommandBuilder()
-    .setName("custom")
-    .setDescription("Your custom command"),
+  data: new SlashCommandBuilder().setName('custom').setDescription('Your custom command'),
 
   async execute(interaction: CommandInteraction) {
     await interaction.deferReply();
 
     // Your command logic here
 
-    await interaction.editReply("Command executed!");
+    await interaction.editReply('Command executed!');
   },
 };
 ```
@@ -574,7 +572,7 @@ Discord requires interaction acknowledgment within 3 seconds. All Bwaincell comm
 ```typescript
 await interaction.deferReply(); // Must be within 3 seconds
 // ... expensive operations ...
-await interaction.editReply("Result"); // Can take longer
+await interaction.editReply('Result'); // Can take longer
 ```
 
 **If commands timeout:**
@@ -717,13 +715,13 @@ Task.init(
   },
   {
     sequelize,
-    tableName: "tasks",
+    tableName: 'tasks',
     indexes: [
-      { fields: ["guild_id"] },
-      { fields: ["completed"] },
-      { fields: ["due_date"], where: { due_date: { [Op.ne]: null } } },
+      { fields: ['guild_id'] },
+      { fields: ['completed'] },
+      { fields: ['due_date'], where: { due_date: { [Op.ne]: null } } },
     ],
-  },
+  }
 );
 ```
 
@@ -748,13 +746,13 @@ CREATE INDEX idx_tasks_guild_id ON tasks(guild_id);
 **Example:**
 
 ```typescript
-import { SlashCommandBuilder } from "@discordjs/builders";
+import { SlashCommandBuilder } from '@discordjs/builders';
 
 export default {
-  data: new SlashCommandBuilder().setName("hello").setDescription("Says hello"),
+  data: new SlashCommandBuilder().setName('hello').setDescription('Says hello'),
 
   async execute(interaction) {
-    await interaction.reply("Hello!");
+    await interaction.reply('Hello!');
   },
 };
 ```

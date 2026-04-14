@@ -24,7 +24,7 @@ jest.mock('../../../config/config', () => ({
   },
 }));
 
-jest.mock('../../../database/models/Note', () => ({
+jest.mock('../../../../supabase/models/Note', () => ({
   __esModule: true,
   default: {
     createNote: jest.fn(),
@@ -39,7 +39,7 @@ jest.mock('../../../database/models/Note', () => ({
 
 import { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
 import noteCommand from '../../../commands/note';
-import Note from '../../../database/models/Note';
+import Note from '../../../../supabase/models/Note';
 import { logger } from '../../../shared/utils/logger';
 
 const mockNote = Note as jest.Mocked<typeof Note>;

@@ -24,13 +24,6 @@ export interface ListModel {
   items: Array<{ text: string; completed: boolean }>;
   user_id: string;
   guild_id: string;
-  save(): Promise<void>;
-}
-
-// Sequelize FindOptions type (minimal, for findOne)
-interface FindOptions {
-  where?: Record<string, unknown>;
-  [key: string]: unknown;
 }
 
 // Reminder interface
@@ -51,7 +44,6 @@ interface ReminderModel {
 export interface TaskOperations {
   getUserTasks(guildId: string, status?: string): Promise<TaskModel[]>;
   completeTask(taskId: number, guildId: string): Promise<TaskModel | null>;
-  findOne(options: FindOptions): Promise<TaskModel | null>;
   createTask(
     guildId: string,
     description: string,
@@ -68,8 +60,6 @@ export interface TaskOperations {
 }
 
 export interface ListOperations {
-  findOne(options: FindOptions): Promise<ListModel | null>;
-  findAll(options: FindOptions): Promise<ListModel[]>;
   createList(guildId: string, name: string, userId?: string): Promise<ListModel | null>;
   addItem(guildId: string, listName: string, item: string): Promise<ListModel | null>;
   removeItem(guildId: string, listName: string, itemText: string): Promise<ListModel | null>;

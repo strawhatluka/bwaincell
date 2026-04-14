@@ -7,6 +7,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `@supabase/supabase-js` dependency to `backend/package.json`
+- Add Supabase CLI current branch tracking file `supabase/.branches/_current_branch`
+- Add Supabase CLI temporary data file `supabase/.temp/cli-latest`
+- Add Supabase configuration file `supabase/config.toml`
+- Add initial Supabase schema migration `supabase/migrations/20260413000000_initial_schema.sql`
+- Add Supabase client initialization file `supabase/supabase.ts`
+- Add Supabase type definitions file `supabase/types.ts`
+
+### Changed
+
+- Update `.env.example` to reflect Supabase database configuration and variables
+- Replace PostgreSQL backup with Supabase connection verification in `deploy-bot.yml` workflow
+- Update `docker rm` command for `bwaincell-backend` in `deploy-bot.yml`
+- Update `backend/commands/budget.ts` to import `Budget` model from Supabase
+- Update `backend/commands/events.ts` to import `EventConfig` model from Supabase
+- Update `backend/commands/list.ts` to import `List` model from Supabase
+- Update `backend/commands/note.ts` to import `Note` model from Supabase
+- Update `backend/commands/remind.ts` to import `Reminder` model from Supabase
+- Update `backend/commands/schedule.ts` to import `Schedule` model from Supabase
+- Update `backend/commands/sunset.ts` to import `SunsetConfig` model from Supabase
+- Update `backend/commands/task.ts` to import `Task` model from Supabase
+- Update `backend/jest.config.js` to point to Supabase models instead of Sequelize database models
+- Refactor `backend/src/api/routes/oauth.ts` to use Supabase `User` model methods
+- Refactor `backend/src/api/routes/tasks.ts` to use Supabase client for task updates
+- Replace Sequelize database initialization with Supabase connection verification in `backend/src/bot.ts`
+- Update `backend/tests/setup.ts` to configure Supabase environment variables for testing
+- Update `backend/tests/unit/api/routes/budget.test.ts` to mock Supabase models
+- Update `backend/tests/unit/api/routes/lists.test.ts` to mock Supabase models
+- Update `backend/tests/unit/api/routes/notes.test.ts` to mock Supabase models
+- Update `backend/tests/unit/api/routes/oauth.test.ts` to mock Supabase models
+- Update `backend/tests/unit/api/routes/reminders.test.ts` to mock Supabase models
+- Update `backend/tests/unit/api/routes/schedule.test.ts` to mock Supabase models
+- Update `backend/tests/unit/api/routes/tasks.test.ts` to mock Supabase models
+- Update `backend/tests/unit/commands/budget.test.ts` to mock Supabase models
+- Update `backend/tests/unit/commands/events.test.ts` to mock Supabase models
+- Update `backend/tests/unit/commands/list.test.ts` to mock Supabase models
+- Update `backend/tests/unit/commands/note.test.ts` to mock Supabase models
+- Update `backend/tests/unit/commands/schedule.test.ts` to mock Supabase models
+- Update `backend/tests/unit/commands/sunset.test.ts` to mock Supabase models
+- Update `backend/tests/unit/commands/task.test.ts` to mock Supabase models
+- Remove Sequelize `syncSequences` unit tests from `backend/tests/unit/database/syncSequences.test.ts`
+- Update `backend/tests/unit/models/Budget.test.ts` to import Supabase model
+- Update `backend/tests/unit/models/EventConfig.test.ts` to import Supabase model
+- Update `backend/tests/unit/models/List.test.ts` to import Supabase model
+- Update `backend/tests/unit/models/Note.test.ts` to import Supabase model
+- Update `backend/tests/unit/models/Reminder.test.ts` to import Supabase model
+- Update `backend/tests/unit/models/Schedule.test.ts` to import Supabase model
+- Update `backend/tests/unit/models/SunsetConfig.test.ts` to import Supabase model
+- Update `backend/tests/unit/models/Task.test.ts` to import Supabase model
+- Refactor `backend/tests/unit/models/User.test.ts` to test Supabase `User` model methods
+- Update `backend/tests/unit/utils/scheduler-events.test.ts` to mock Supabase models
+- Update `backend/tsconfig.json` to configure path aliases for Supabase models
+- Refactor `backend/utils/interactions/handlers/listHandlers.ts` to use `List.getList` Supabase method
+- Refactor `backend/utils/interactions/handlers/randomHandlers.ts` to use `List.getList` Supabase method
+- Refactor `backend/utils/interactions/handlers/selectMenuHandlers.ts` to use Supabase client for data retrieval
+- Refactor `backend/utils/interactions/handlers/taskHandlers.ts` to use Supabase client for data retrieval
+- Update `backend/utils/interactions/helpers/databaseHelper.ts` to import Supabase models
+- Refactor `backend/utils/scheduler.ts` to use Supabase client for reminder retrieval and import Supabase models
+- Remove PostgreSQL `postgres` service definition from `docker-compose.yml`
+- Update `docker-compose.yml` backend service environment variables for Supabase integration
+- Update `frontend/.env.example` with Supabase PostgreSQL `DATABASE_URL` format and user mapping variables
+- Update `frontend/prisma/schema.prisma` comments to indicate Supabase connection
+- Update `package-lock.json` to reflect new `@supabase/supabase-js` dependency
+- Update `supabase/index.ts` to export Supabase client and models
+- Update `supabase/init.sql` for Supabase initial schema setup
+- Update `supabase/models/Budget.ts` for Supabase integration
+- Update `supabase/models/EventConfig.ts` for Supabase integration
+- Update `supabase/models/List.ts` for Supabase integration
+- Update `supabase/models/Note.ts` for Supabase integration
+- Update `supabase/models/Reminder.ts` for Supabase integration
+- Update `supabase/models/Schedule.ts` for Supabase integration
+- Update `supabase/models/SunsetConfig.ts` for Supabase integration
+- Update `supabase/models/Task.ts` for Supabase integration
+- Update `supabase/models/User.ts` for Supabase integration
+- Update `tests/api/tasks.test.ts` for Supabase API interactions
+- Update `tests/integration/command-execution.test.ts` for Supabase backend interactions
+- Update `tests/integration/database-postgres.test.ts` for Supabase database interactions
+- Update `tests/load/database-load.test.ts` for Supabase load testing
+- Update `tests/unit/bot.test.simple.ts` for Supabase integration
+- Update `tests/unit/bot.test.ts` for Supabase integration
+- Update `tests/unit/commands.test.new.test.ts` for Supabase command interactions
+- Update `tests/unit/commands.test.ts` for Supabase command interactions
+- Update `tests/unit/commands/budget.test.ts` for Supabase budget command interactions
+- Update `tests/unit/commands/schedule.test.ts` for Supabase schedule command interactions
+- Update `tests/unit/commands/task.test.new.ts` for Supabase task command interactions
+- Update `tests/unit/commands/task.test.ts` for Supabase task command interactions
+- Update `tests/unit/handlers/listHandlers.test.ts` for Supabase list handler interactions
+- Update `tests/unit/handlers/modalHandlers.test.ts` for Supabase modal handler interactions
+- Update `tests/unit/handlers/taskHandlers.test.ts` for Supabase task handler interactions
+- Update `tsconfig.json` to configure path aliases for Supabase models
+
+### Removed
+
+- Remove `backend/database/associations.ts`
+- Remove `backend/database/migrations/20260210-create-event-config.js`
+- Remove `backend/database/schema.ts`
+- Remove Sequelize-specific `save`, `findOne`, and `findAll` methods from `backend/utils/interactions/types/interactions.ts`
+
 ## [2.1.2] - 2026-02-17
 
 ### Added

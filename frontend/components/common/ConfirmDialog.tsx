@@ -7,7 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -25,8 +25,8 @@ export function ConfirmDialog({
   title,
   description,
   onConfirm,
-  confirmText = "Delete",
-  cancelText = "Cancel",
+  confirmText = 'Delete',
+  cancelText = 'Cancel',
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

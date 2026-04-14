@@ -20,7 +20,6 @@ jest.mock('../../../../shared/utils/logger', () => ({
 const mockTask = {
   getUserTasks: jest.fn(),
   completeTask: jest.fn(),
-  findOne: jest.fn(),
   createTask: jest.fn(),
   editTask: jest.fn(),
   deleteTask: jest.fn(),
@@ -29,6 +28,20 @@ const mockTask = {
 jest.mock('../../../../utils/interactions/helpers/databaseHelper', () => ({
   __esModule: true,
   getModels: jest.fn().mockResolvedValue({ Task: mockTask }),
+}));
+
+// Mock supabase for direct queries (task_edit_ flow)
+const mockSupabaseSingle = jest.fn();
+const mockSupabaseEq = jest.fn().mockReturnValue({ single: mockSupabaseSingle });
+const mockSupabaseEqFirst = jest.fn().mockReturnValue({ eq: mockSupabaseEq });
+const mockSupabaseSelect = jest.fn().mockReturnValue({ eq: mockSupabaseEqFirst });
+const mockSupabaseFrom = jest.fn().mockReturnValue({ select: mockSupabaseSelect });
+
+jest.mock('../../../../../supabase/supabase', () => ({
+  __esModule: true,
+  default: {
+    from: (...args: any[]) => mockSupabaseFrom(...args),
+  },
 }));
 
 // Mock error responses
@@ -287,33 +300,34 @@ describe('Task Button Handlers', () => {
 
   describe('task_edit_{id}', () => {
     it('should show edit modal when task exists', async () => {
-      mockTask.findOne.mockResolvedValue({
-        id: 5,
-        description: 'Existing task',
-        due_date: new Date('2026-03-15T14:30:00'),
-        user_id: 'user-456',
-        guild_id: 'guild-123',
+      mockSupabaseSingle.mockResolvedValue({
+        data: {
+          id: 5,
+          description: 'Existing task',
+          due_date: new Date('2026-03-15T14:30:00'),
+          guild_id: 'guild-123',
+        },
       });
 
       const interaction = createMockInteraction({ customId: 'task_edit_5' });
 
       await handleTaskButton(interaction);
 
-      expect(mockTask.findOne).toHaveBeenCalledWith({
-        where: { id: 5, user_id: 'user-456', guild_id: 'guild-123' },
-      });
+      expect(mockSupabaseFrom).toHaveBeenCalledWith('tasks');
+      expect(mockSupabaseSelect).toHaveBeenCalledWith('*');
       expect(interaction.showModal).toHaveBeenCalledTimes(1);
       const modal = interaction.showModal.mock.calls[0][0];
       expect(modal.data.custom_id).toBe('task_edit_modal_5');
     });
 
     it('should show edit modal with empty date values when no due date', async () => {
-      mockTask.findOne.mockResolvedValue({
-        id: 5,
-        description: 'Existing task',
-        due_date: null,
-        user_id: 'user-456',
-        guild_id: 'guild-123',
+      mockSupabaseSingle.mockResolvedValue({
+        data: {
+          id: 5,
+          description: 'Existing task',
+          due_date: null,
+          guild_id: 'guild-123',
+        },
       });
 
       const interaction = createMockInteraction({ customId: 'task_edit_5' });
@@ -324,7 +338,7 @@ describe('Task Button Handlers', () => {
     });
 
     it('should reply with not found when task does not exist', async () => {
-      mockTask.findOne.mockResolvedValue(null);
+      mockSupabaseSingle.mockResolvedValue({ data: null });
 
       const interaction = createMockInteraction({ customId: 'task_edit_999' });
 
@@ -339,7 +353,7 @@ describe('Task Button Handlers', () => {
     });
 
     it('should followUp when already deferred and task not found', async () => {
-      mockTask.findOne.mockResolvedValue(null);
+      mockSupabaseSingle.mockResolvedValue({ data: null });
 
       const interaction = createMockInteraction({
         customId: 'task_edit_999',

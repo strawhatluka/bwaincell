@@ -8,7 +8,7 @@ const mockTaskCompleteTask = jest.fn();
 const mockTaskDeleteTask = jest.fn();
 
 // Mock the database models before any command imports them
-jest.mock('../../database/models/Task', () => {
+jest.mock('../../supabase/models/Task', () => {
   return {
     __esModule: true,
     default: {

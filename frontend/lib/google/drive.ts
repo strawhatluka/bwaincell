@@ -5,7 +5,7 @@
  * Requires DRIVE scopes to be added to OAuth configuration
  */
 
-import { GoogleApiClient } from "./client";
+import { GoogleApiClient } from './client';
 
 export interface DriveFile {
   id: string;
@@ -22,7 +22,7 @@ export interface DriveFile {
 export interface DriveFolder {
   id: string;
   name: string;
-  mimeType: "application/vnd.google-apps.folder";
+  mimeType: 'application/vnd.google-apps.folder';
   createdTime?: string;
   modifiedTime?: string;
 }
@@ -38,7 +38,7 @@ export class GoogleDriveClient extends GoogleApiClient {
     orderBy?: string;
     fields?: string;
   }): Promise<DriveFile[]> {
-    throw new Error("Google Drive integration not yet implemented");
+    throw new Error('Google Drive integration not yet implemented');
     // Future implementation:
     // const response = await this.get<{ files: DriveFile[] }>(
     //   '/drive/v3/files'
@@ -51,7 +51,7 @@ export class GoogleDriveClient extends GoogleApiClient {
    * TODO: Implement when Drive scope is added
    */
   async getFile(_fileId: string, _fields?: string): Promise<DriveFile> {
-    throw new Error("Google Drive integration not yet implemented");
+    throw new Error('Google Drive integration not yet implemented');
     // Future implementation:
     // return this.get<DriveFile>(
     //   `/drive/v3/files/${fileId}?fields=${fields || '*'}`
@@ -63,7 +63,7 @@ export class GoogleDriveClient extends GoogleApiClient {
    * TODO: Implement when Drive scope is added
    */
   async downloadFile(_fileId: string): Promise<globalThis.Blob> {
-    throw new Error("Google Drive integration not yet implemented");
+    throw new Error('Google Drive integration not yet implemented');
     // Future implementation:
     // const accessToken = await this.getAccessToken();
     // const response = await fetch(
@@ -82,7 +82,7 @@ export class GoogleDriveClient extends GoogleApiClient {
    * TODO: Implement when Drive scope is added
    */
   async createFolder(_name: string, _parentId?: string): Promise<DriveFolder> {
-    throw new Error("Google Drive integration not yet implemented");
+    throw new Error('Google Drive integration not yet implemented');
     // Future implementation:
     // const metadata = {
     //   name,
@@ -102,7 +102,7 @@ export class GoogleDriveClient extends GoogleApiClient {
     mimeType: string;
     parentId?: string;
   }): Promise<DriveFile> {
-    throw new Error("Google Drive integration not yet implemented");
+    throw new Error('Google Drive integration not yet implemented');
     // Future implementation:
     // const metadata = {
     //   name: params.name,
@@ -131,7 +131,7 @@ export class GoogleDriveClient extends GoogleApiClient {
    * TODO: Implement when Drive scope is added
    */
   async deleteFile(_fileId: string): Promise<void> {
-    throw new Error("Google Drive integration not yet implemented");
+    throw new Error('Google Drive integration not yet implemented');
     // Future implementation:
     // return this.delete<void>(`/drive/v3/files/${fileId}`);
   }

@@ -91,11 +91,11 @@ DROP INDEX IF EXISTS idx_unused_index;
 
 ```typescript
 // backend/database/connection.ts
-import { Sequelize } from "sequelize";
+import { Sequelize } from 'sequelize';
 
 const sequelize = new Sequelize(process.env.DATABASE_URL!, {
-  dialect: "postgres",
-  logging: process.env.NODE_ENV === "development" ? console.log : false,
+  dialect: 'postgres',
+  logging: process.env.NODE_ENV === 'development' ? console.log : false,
 
   pool: {
     max: 20, // Maximum connections in pool
@@ -106,7 +106,7 @@ const sequelize = new Sequelize(process.env.DATABASE_URL!, {
 
   dialectOptions: {
     ssl:
-      process.env.NODE_ENV === "production"
+      process.env.NODE_ENV === 'production'
         ? {
             require: true,
             rejectUnauthorized: false, // Allow self-signed certificates
@@ -156,7 +156,7 @@ const { count, rows: tasks } = await Task.findAndCountAll({
   where: { discordUserId: req.user.discordId },
   limit: limit,
   offset: offset,
-  order: [["createdAt", "DESC"]],
+  order: [['createdAt', 'DESC']],
 });
 
 res.json({
@@ -183,7 +183,7 @@ const tasks = await Task.findAll({
     ...(cursor ? { id: { [Op.gt]: cursor } } : {}),
   },
   limit: 20,
-  order: [["id", "ASC"]],
+  order: [['id', 'ASC']],
 });
 
 const nextCursor = tasks.length > 0 ? tasks[tasks.length - 1].id : null;
@@ -221,7 +221,7 @@ ORDER BY t.due_date ASC NULLS LAST;
 ```typescript
 // ✅ Select only needed columns (not SELECT *)
 const tasks = await Task.findAll({
-  attributes: ["id", "title", "completed", "dueDate"], // Only fetch these
+  attributes: ['id', 'title', 'completed', 'dueDate'], // Only fetch these
   where: { discordUserId: req.user.discordId },
 });
 
@@ -232,9 +232,9 @@ const taskCount = await Task.count({
 
 // ✅ Batch operations (insert multiple records at once)
 await Task.bulkCreate([
-  { title: "Task 1", discordUserId: userId },
-  { title: "Task 2", discordUserId: userId },
-  { title: "Task 3", discordUserId: userId },
+  { title: 'Task 1', discordUserId: userId },
+  { title: 'Task 2', discordUserId: userId },
+  { title: 'Task 3', discordUserId: userId },
 ]);
 ```
 
@@ -279,7 +279,7 @@ autovacuum_naptime = 1min
 
 ```typescript
 // backend/src/api/server.ts
-import compression from "compression";
+import compression from 'compression';
 
 app.use(
   compression({
@@ -287,14 +287,14 @@ app.use(
     level: 6, // Compression level (0-9, 6 is balanced)
     filter: (req, res) => {
       // Don't compress if client doesn't support it
-      if (req.headers["x-no-compression"]) {
+      if (req.headers['x-no-compression']) {
         return false;
       }
 
       // Compress JSON, text, HTML, JavaScript, CSS
       return compression.filter(req, res);
     },
-  }),
+  })
 );
 ```
 
@@ -318,13 +318,13 @@ With gzip compression:
 // backend/src/api/middleware/cache.ts
 export function cacheControl(duration: number) {
   return (req: Request, res: Response, next: NextFunction) => {
-    res.set("Cache-Control", `public, max-age=${duration}`);
+    res.set('Cache-Control', `public, max-age=${duration}`);
     next();
   };
 }
 
 // Usage
-router.get("/tasks", cacheControl(60), async (req, res) => {
+router.get('/tasks', cacheControl(60), async (req, res) => {
   // Cache response for 60 seconds
   const tasks = await Task.findAll({
     where: { discordUserId: req.user.discordId },
@@ -338,7 +338,7 @@ router.get("/tasks", cacheControl(60), async (req, res) => {
 
 ```typescript
 // Express automatically generates ETags
-app.set("etag", "strong"); // Enable strong ETags
+app.set('etag', 'strong'); // Enable strong ETags
 
 // Client sends If-None-Match header:
 // If-None-Match: "abc123"
@@ -387,10 +387,10 @@ app.set("etag", "strong"); // Enable strong ETags
 
 ```typescript
 // Allow clients to request specific fields
-const fields = (req.query.fields as string)?.split(",") || undefined;
+const fields = (req.query.fields as string)?.split(',') || undefined;
 
 const tasks = await Task.findAll({
-  attributes: fields || ["id", "title", "completed", "dueDate"],
+  attributes: fields || ['id', 'title', 'completed', 'dueDate'],
   where: { discordUserId: req.user.discordId },
 });
 ```
@@ -517,10 +517,10 @@ ANALYZE=true npm run build
 
 ```typescript
 // ✅ GOOD: Import only what you need (tree-shakeable)
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 // ❌ BAD: Import entire library (bundles everything)
-import * as React from "react";
+import * as React from 'react';
 ```
 
 **Remove Unused Dependencies:**
@@ -545,32 +545,26 @@ npm uninstall lodash moment
 
 ```javascript
 // frontend/public/service-worker.js
-const CACHE_NAME = "bwaincell-v1";
+const CACHE_NAME = 'bwaincell-v1';
 
 // Cache static assets
-const urlsToCache = [
-  "/",
-  "/dashboard",
-  "/manifest.json",
-  "/icon-192.png",
-  "/icon-512.png",
-];
+const urlsToCache = ['/', '/dashboard', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
-self.addEventListener("install", (event) => {
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(urlsToCache);
-    }),
+    })
   );
 });
 
 // Serve from cache (if available)
-self.addEventListener("fetch", (event) => {
+self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
       // Return cached response or fetch from network
       return response || fetch(event.request);
-    }),
+    })
   );
 });
 ```
@@ -656,9 +650,7 @@ function TaskList({ tasks }) {
 ```typescript
 // backend/commands/task.ts
 export default {
-  data: new SlashCommandBuilder()
-    .setName("task")
-    .setDescription("Manage tasks"),
+  data: new SlashCommandBuilder().setName('task').setDescription('Manage tasks'),
 
   async execute(interaction) {
     // Defer reply for slow operations (>3 seconds)
@@ -677,7 +669,7 @@ export default {
       });
     } catch (error) {
       await interaction.editReply({
-        content: "Error fetching tasks",
+        content: 'Error fetching tasks',
       });
     }
   },
@@ -705,7 +697,7 @@ for (const task of tasks) {
 
 ```typescript
 // ✅ GOOD: Send 1 message with all tasks (1 second)
-const taskList = tasks.map((task) => `• ${task.title}`).join("\n");
+const taskList = tasks.map((task) => `• ${task.title}`).join('\n');
 await channel.send(`**Your Tasks:**\n${taskList}`);
 ```
 
@@ -716,20 +708,20 @@ await channel.send(`**Your Tasks:**\n${taskList}`);
 ```typescript
 // ✅ GOOD: Compact embed (500 bytes)
 const embed = new EmbedBuilder()
-  .setTitle("Your Tasks")
-  .setDescription(tasks.map((t) => `• ${t.title}`).join("\n"))
+  .setTitle('Your Tasks')
+  .setDescription(tasks.map((t) => `• ${t.title}`).join('\n'))
   .setColor(0xe84d8a);
 
 // ❌ BAD: Verbose embed (2000 bytes)
 const embed = new EmbedBuilder()
-  .setTitle("Your Tasks")
-  .setDescription("Here are all your tasks:")
+  .setTitle('Your Tasks')
+  .setDescription('Here are all your tasks:')
   .addFields(
-    { name: "Task 1", value: "Description 1", inline: false },
-    { name: "Task 2", value: "Description 2", inline: false },
+    { name: 'Task 1', value: 'Description 1', inline: false },
+    { name: 'Task 2', value: 'Description 2', inline: false }
     // ... 20 more fields
   )
-  .setFooter({ text: "Powered by Bwaincell" })
+  .setFooter({ text: 'Powered by Bwaincell' })
   .setTimestamp();
 ```
 
@@ -745,8 +737,8 @@ Discord enforces:
 
 ```typescript
 // discord.js automatically handles rate limits
-client.on("rateLimit", (rateLimitData) => {
-  logger.warn("[DISCORD] Rate limit hit", {
+client.on('rateLimit', (rateLimitData) => {
+  logger.warn('[DISCORD] Rate limit hit', {
     timeout: rateLimitData.timeout,
     limit: rateLimitData.limit,
     method: rateLimitData.method,
@@ -759,7 +751,7 @@ client.on("rateLimit", (rateLimitData) => {
 
 ```typescript
 // Use queue for bulk operations
-import { RateLimiter } from "limiter";
+import { RateLimiter } from 'limiter';
 
 const limiter = new RateLimiter({
   tokensPerInterval: 5,
@@ -852,16 +844,16 @@ export function invalidateTaskCache(discordUserId: string) {
 
 ```typescript
 // backend/src/api/routes/tasks.ts
-import { getCachedTasks, invalidateTaskCache } from "../../cache/memoryCache";
+import { getCachedTasks, invalidateTaskCache } from '../../cache/memoryCache';
 
 // GET /tasks (cached)
-router.get("/tasks", authenticateUser, async (req, res) => {
+router.get('/tasks', authenticateUser, async (req, res) => {
   const tasks = await getCachedTasks(req.user.discordId);
   res.json({ success: true, data: tasks });
 });
 
 // POST /tasks (invalidate cache)
-router.post("/tasks", authenticateUser, async (req, res) => {
+router.post('/tasks', authenticateUser, async (req, res) => {
   const task = await Task.create({
     ...req.body,
     discordUserId: req.user.discordId,
@@ -881,15 +873,15 @@ router.post("/tasks", authenticateUser, async (req, res) => {
 ```typescript
 // Cache static assets (1 year)
 app.use(
-  "/static",
-  express.static("public", {
+  '/static',
+  express.static('public', {
     maxAge: 31536000, // 1 year in seconds
     immutable: true, // Asset will never change
-  }),
+  })
 );
 
 // Cache API responses (5 minutes)
-router.get("/tasks", cacheControl(300), async (req, res) => {
+router.get('/tasks', cacheControl(300), async (req, res) => {
   const tasks = await Task.findAll({
     where: { discordUserId: req.user.discordId },
   });
@@ -910,13 +902,13 @@ npm install redis
 
 ```typescript
 // backend/src/cache/redisCache.ts
-import { createClient } from "redis";
+import { createClient } from 'redis';
 
 const client = createClient({
-  url: process.env.REDIS_URL || "redis://localhost:6379",
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
 });
 
-client.on("error", (err) => logger.error("[REDIS] Error", { error: err }));
+client.on('error', (err) => logger.error('[REDIS] Error', { error: err }));
 
 await client.connect();
 
@@ -927,12 +919,12 @@ export async function getCachedTasks(discordUserId: string) {
   // Check Redis cache
   const cached = await client.get(cacheKey);
   if (cached) {
-    logger.info("[REDIS] Cache hit", { key: cacheKey });
+    logger.info('[REDIS] Cache hit', { key: cacheKey });
     return JSON.parse(cached);
   }
 
   // Fetch from database
-  logger.info("[REDIS] Cache miss", { key: cacheKey });
+  logger.info('[REDIS] Cache miss', { key: cacheKey });
   const tasks = await Task.findAll({
     where: { discordUserId },
   });
@@ -947,7 +939,7 @@ export async function getCachedTasks(discordUserId: string) {
 export async function invalidateTaskCache(discordUserId: string) {
   const cacheKey = `tasks:${discordUserId}`;
   await client.del(cacheKey);
-  logger.info("[REDIS] Cache invalidated", { key: cacheKey });
+  logger.info('[REDIS] Cache invalidated', { key: cacheKey });
 }
 ```
 
@@ -990,7 +982,7 @@ const tasks = await Task.findAll({
   include: [
     {
       model: List,
-      as: "list",
+      as: 'list',
     },
   ],
 });
@@ -1018,7 +1010,7 @@ const tasks = await Task.findAll({
 
 // ✅ GOOD: Fetch only needed columns
 const tasks = await Task.findAll({
-  attributes: ["id", "title", "completed", "dueDate"],
+  attributes: ['id', 'title', 'completed', 'dueDate'],
   where: { discordUserId: req.user.discordId },
 });
 ```
@@ -1035,7 +1027,7 @@ const tasks = await Task.findAll({
 const tasks = await Task.findAll({
   where: { discordUserId: req.user.discordId },
   limit: 20,
-  order: [["createdAt", "DESC"]],
+  order: [['createdAt', 'DESC']],
 });
 ```
 
@@ -1043,20 +1035,20 @@ const tasks = await Task.findAll({
 
 ```typescript
 // Wrap multiple operations in transaction
-import { sequelize } from "../database/connection";
+import { sequelize } from '../database/connection';
 
 await sequelize.transaction(async (t) => {
   // Create task
   const task = await Task.create(
     {
-      title: "New task",
+      title: 'New task',
       discordUserId: userId,
     },
-    { transaction: t },
+    { transaction: t }
   );
 
   // Update list count
-  await List.increment("taskCount", {
+  await List.increment('taskCount', {
     where: { id: task.listId },
     transaction: t,
   });
@@ -1073,28 +1065,28 @@ await sequelize.transaction(async (t) => {
 
 ```typescript
 // shared/utils/logger.ts
-import winston from "winston";
+import winston from 'winston';
 
 export const logger = winston.createLogger({
-  level: process.env.NODE_ENV === "production" ? "info" : "debug",
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
-    winston.format.json(),
+    winston.format.json()
   ),
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: "logs/error.log", level: "error" }),
-    new winston.transports.File({ filename: "logs/combined.log" }),
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' }),
   ],
 });
 
 // Performance logging
 export function logPerformance(operation: string, duration: number) {
-  logger.info("[PERF] Operation completed", {
+  logger.info('[PERF] Operation completed', {
     operation: operation,
     duration: duration,
-    unit: "ms",
+    unit: 'ms',
   });
 }
 ```
@@ -1110,7 +1102,7 @@ const tasks = await Task.findAll({
 });
 
 const duration = Date.now() - startTime;
-logPerformance("fetchTasks", duration);
+logPerformance('fetchTasks', duration);
 
 // Log output:
 // {"level":"info","message":"[PERF] Operation completed","operation":"fetchTasks","duration":45,"unit":"ms","timestamp":"2026-01-11T12:00:00Z"}
@@ -1120,28 +1112,24 @@ logPerformance("fetchTasks", duration);
 
 ```typescript
 // backend/src/api/middleware/performanceMonitor.ts
-export function performanceMonitor(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function performanceMonitor(req: Request, res: Response, next: NextFunction): void {
   const startTime = Date.now();
 
   // Track when response is finished
-  res.on("finish", () => {
+  res.on('finish', () => {
     const duration = Date.now() - startTime;
 
-    logger.info("[PERF] Request completed", {
+    logger.info('[PERF] Request completed', {
       method: req.method,
       path: req.path,
       statusCode: res.statusCode,
       duration: duration,
-      unit: "ms",
+      unit: 'ms',
     });
 
     // Alert on slow requests (>1 second)
     if (duration > 1000) {
-      logger.warn("[PERF] Slow request detected", {
+      logger.warn('[PERF] Slow request detected', {
         method: req.method,
         path: req.path,
         duration: duration,
@@ -1160,16 +1148,16 @@ app.use(performanceMonitor);
 
 ```typescript
 // Log slow queries (Sequelize)
-import { Sequelize } from "sequelize";
+import { Sequelize } from 'sequelize';
 
 const sequelize = new Sequelize(process.env.DATABASE_URL!, {
   logging: (sql, timing) => {
     // Log queries taking >100ms
     if (timing && timing > 100) {
-      logger.warn("[DB] Slow query detected", {
+      logger.warn('[DB] Slow query detected', {
         sql: sql,
         duration: timing,
-        unit: "ms",
+        unit: 'ms',
       });
     }
   },
@@ -1209,33 +1197,33 @@ npm install --save-dev artillery
 ```yaml
 # artillery-config.yml
 config:
-  target: "http://localhost:3000"
+  target: 'http://localhost:3000'
   phases:
     - duration: 60
       arrivalRate: 10 # 10 requests per second
-      name: "Warm up"
+      name: 'Warm up'
     - duration: 120
       arrivalRate: 50 # 50 requests per second
-      name: "Sustained load"
+      name: 'Sustained load'
     - duration: 60
       arrivalRate: 100 # 100 requests per second
-      name: "Peak load"
+      name: 'Peak load'
 
 scenarios:
-  - name: "Get tasks"
+  - name: 'Get tasks'
     flow:
       - get:
-          url: "/api/tasks"
+          url: '/api/tasks'
           headers:
-            Authorization: "Basic {{ base64(username:password) }}"
+            Authorization: 'Basic {{ base64(username:password) }}'
           capture:
-            - json: "$.data[0].id"
-              as: "taskId"
+            - json: '$.data[0].id'
+              as: 'taskId'
       - think: 1 # Wait 1 second
       - get:
-          url: "/api/tasks/{{ taskId }}"
+          url: '/api/tasks/{{ taskId }}'
           headers:
-            Authorization: "Basic {{ base64(username:password) }}"
+            Authorization: 'Basic {{ base64(username:password) }}'
 ```
 
 **Run Load Test:**
@@ -1259,31 +1247,31 @@ artillery run artillery-config.yml
 
 ```javascript
 // load-test.js
-import http from "k6/http";
-import { check, sleep } from "k6";
+import http from 'k6/http';
+import { check, sleep } from 'k6';
 
 export let options = {
   stages: [
-    { duration: "1m", target: 10 }, // Ramp up to 10 users
-    { duration: "3m", target: 50 }, // Stay at 50 users
-    { duration: "1m", target: 0 }, // Ramp down to 0 users
+    { duration: '1m', target: 10 }, // Ramp up to 10 users
+    { duration: '3m', target: 50 }, // Stay at 50 users
+    { duration: '1m', target: 0 }, // Ramp down to 0 users
   ],
   thresholds: {
-    http_req_duration: ["p(95)<500"], // 95% of requests < 500ms
-    http_req_failed: ["rate<0.01"], // Error rate < 1%
+    http_req_duration: ['p(95)<500'], // 95% of requests < 500ms
+    http_req_failed: ['rate<0.01'], // Error rate < 1%
   },
 };
 
 export default function () {
   const auth = __ENV.BASIC_AUTH; // username:password (base64)
 
-  const res = http.get("http://localhost:3000/api/tasks", {
+  const res = http.get('http://localhost:3000/api/tasks', {
     headers: { Authorization: `Basic ${auth}` },
   });
 
   check(res, {
-    "status is 200": (r) => r.status === 200,
-    "response time < 500ms": (r) => r.timings.duration < 500,
+    'status is 200': (r) => r.status === 200,
+    'response time < 500ms': (r) => r.timings.duration < 500,
   });
 
   sleep(1);

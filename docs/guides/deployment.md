@@ -1006,11 +1006,11 @@ Docker automatically rotates logs with configuration in docker-compose.yml:
 
 ```yaml
 logging:
-  driver: "json-file"
+  driver: 'json-file'
   options:
-    max-size: "25m" # Max 25MB per log file
-    max-file: "3" # Keep 3 rotated files
-    compress: "true" # Compress rotated logs
+    max-size: '25m' # Max 25MB per log file
+    max-file: '3' # Keep 3 rotated files
+    compress: 'true' # Compress rotated logs
 ```
 
 **Total log storage:** 75MB per container (3 files × 25MB)

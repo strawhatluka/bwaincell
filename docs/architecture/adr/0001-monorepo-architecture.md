@@ -109,9 +109,9 @@ Workspaces can reference each other using workspace protocol:
 **Usage in code:**
 
 ```typescript
-import { validateEmail } from "@shared/validation/emailValidator";
-import { Task } from "@database/models/Task";
-import { logger } from "@shared/utils/logger";
+import { validateEmail } from '@shared/validation/emailValidator';
+import { Task } from '@database/models/Task';
+import { logger } from '@shared/utils/logger';
 ```
 
 ---
@@ -317,16 +317,16 @@ npm install -D concurrently
 
 ```typescript
 // backend/src/services/UserService.ts
-import { validateEmail } from "@shared/validation/emailValidator";
-import { logger } from "@shared/utils/logger";
+import { validateEmail } from '@shared/validation/emailValidator';
+import { logger } from '@shared/utils/logger';
 
 export class UserService {
   static async createUser(email: string) {
     if (!validateEmail(email)) {
-      throw new Error("Invalid email");
+      throw new Error('Invalid email');
     }
 
-    logger.info("Creating user", { email });
+    logger.info('Creating user', { email });
     // ...
   }
 }

@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface Event {
   id: number;
@@ -18,32 +18,29 @@ export function useSchedule() {
   const { toast } = useToast();
 
   const eventsQuery = useQuery({
-    queryKey: ["events"],
+    queryKey: ['events'],
     queryFn: async () => {
-      const response = await api.get<Event[]>("/schedule");
+      const response = await api.get<Event[]>('/schedule');
       return response.data || [];
     },
     refetchInterval: 15000, // Poll every 15 seconds
   });
 
   const createEventMutation = useMutation({
-    mutationFn: (newEvent: {
-      title: string;
-      description: string;
-      datetime: string;
-    }) => api.post("/schedule", newEvent),
+    mutationFn: (newEvent: { title: string; description: string; datetime: string }) =>
+      api.post('/schedule', newEvent),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       toast({
-        title: "Event created",
-        description: "Your event has been added to the schedule.",
+        title: 'Event created',
+        description: 'Your event has been added to the schedule.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create event",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to create event',
+        variant: 'destructive',
       });
     },
   });
@@ -52,17 +49,17 @@ export function useSchedule() {
     mutationFn: ({ id, data }: { id: number; data: Partial<Event> }) =>
       api.patch(`/schedule/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       toast({
-        title: "Event updated",
-        description: "Your event has been updated successfully.",
+        title: 'Event updated',
+        description: 'Your event has been updated successfully.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update event",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to update event',
+        variant: 'destructive',
       });
     },
   });
@@ -70,17 +67,17 @@ export function useSchedule() {
   const deleteEventMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/schedule/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       toast({
-        title: "Event deleted",
-        description: "Your event has been deleted successfully.",
+        title: 'Event deleted',
+        description: 'Your event has been deleted successfully.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete event",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to delete event',
+        variant: 'destructive',
       });
     },
   });

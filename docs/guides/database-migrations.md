@@ -162,7 +162,7 @@ psql --version
 **File:** `docker-compose.yml`
 
 ```yaml
-version: "3.8"
+version: '3.8'
 
 services:
   postgres:
@@ -173,7 +173,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: bwaincell
     ports:
-      - "5433:5432" # Expose on port 5433 to avoid conflicts
+      - '5433:5432' # Expose on port 5433 to avoid conflicts
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -244,24 +244,16 @@ EOF
 **File:** `backend/scripts/export-sqlite-data.ts`
 
 ```typescript
-import {
-  sequelize,
-  Task,
-  Note,
-  Reminder,
-  Budget,
-  Schedule,
-  List,
-} from "@database";
-import fs from "fs/promises";
-import path from "path";
+import { sequelize, Task, Note, Reminder, Budget, Schedule, List } from '@database';
+import fs from 'fs/promises';
+import path from 'path';
 
 async function exportData() {
   try {
-    console.log("Connecting to SQLite database...");
+    console.log('Connecting to SQLite database...');
     await sequelize.authenticate();
 
-    const exportDir = path.join(__dirname, "../../backup");
+    const exportDir = path.join(__dirname, '../../backup');
     await fs.mkdir(exportDir, { recursive: true });
 
     // Export each table
@@ -271,20 +263,15 @@ async function exportData() {
       console.log(`Exporting ${modelName}...`);
 
       const data = await Model.findAll({ raw: true });
-      const filename = path.join(
-        exportDir,
-        `${modelName.toLowerCase()}_data.json`,
-      );
+      const filename = path.join(exportDir, `${modelName.toLowerCase()}_data.json`);
 
       await fs.writeFile(filename, JSON.stringify(data, null, 2));
-      console.log(
-        `✓ Exported ${data.length} ${modelName} records to ${filename}`,
-      );
+      console.log(`✓ Exported ${data.length} ${modelName} records to ${filename}`);
     }
 
-    console.log("Export complete!");
+    console.log('Export complete!');
   } catch (error) {
-    console.error("Export failed:", error);
+    console.error('Export failed:', error);
     process.exit(1);
   } finally {
     await sequelize.close();
@@ -321,7 +308,7 @@ Bwaincell uses Sequelize ORM, which abstracts database differences. The models a
 **File:** `backend/database/models/Task.ts`
 
 ```typescript
-import { Model, DataTypes, Sequelize } from "sequelize";
+import { Model, DataTypes, Sequelize } from 'sequelize';
 
 export default class Task extends Model {
   public id!: string;
@@ -345,7 +332,7 @@ export default class Task extends Model {
         userId: {
           type: DataTypes.STRING,
           allowNull: false,
-          field: "user_id", // PostgreSQL uses snake_case
+          field: 'user_id', // PostgreSQL uses snake_case
         },
         title: {
           type: DataTypes.STRING(200),
@@ -362,20 +349,20 @@ export default class Task extends Model {
         dueDate: {
           type: DataTypes.DATE,
           allowNull: true,
-          field: "due_date",
+          field: 'due_date',
         },
         listId: {
           type: DataTypes.UUID,
           allowNull: true,
-          field: "list_id",
+          field: 'list_id',
         },
       },
       {
         sequelize,
-        tableName: "tasks",
+        tableName: 'tasks',
         timestamps: true,
         underscored: true, // Use snake_case for columns
-      },
+      }
     );
   }
 }
@@ -398,7 +385,7 @@ export default class Task extends Model {
 Sequelize will automatically create tables when you run `sequelize.sync()`:
 
 ```typescript
-import { sequelize } from "@database";
+import { sequelize } from '@database';
 
 // Sync all models (create tables)
 await sequelize.sync();
@@ -419,38 +406,27 @@ await sequelize.sync({ alter: true });
 **File:** `backend/scripts/import-to-postgres.ts`
 
 ```typescript
-import {
-  sequelize,
-  Task,
-  Note,
-  Reminder,
-  Budget,
-  Schedule,
-  List,
-} from "@database";
-import fs from "fs/promises";
-import path from "path";
+import { sequelize, Task, Note, Reminder, Budget, Schedule, List } from '@database';
+import fs from 'fs/promises';
+import path from 'path';
 
 async function importData() {
   try {
-    console.log("Connecting to PostgreSQL database...");
+    console.log('Connecting to PostgreSQL database...');
     await sequelize.authenticate();
 
     // Sync tables (create if they don't exist)
-    console.log("Syncing database schema...");
+    console.log('Syncing database schema...');
     await sequelize.sync();
 
-    const backupDir = path.join(__dirname, "../../backup");
+    const backupDir = path.join(__dirname, '../../backup');
     const models = { Task, Note, Reminder, Budget, Schedule, List };
 
     for (const [modelName, Model] of Object.entries(models)) {
-      const filename = path.join(
-        backupDir,
-        `${modelName.toLowerCase()}_data.json`,
-      );
+      const filename = path.join(backupDir, `${modelName.toLowerCase()}_data.json`);
 
       try {
-        const data = JSON.parse(await fs.readFile(filename, "utf-8"));
+        const data = JSON.parse(await fs.readFile(filename, 'utf-8'));
         console.log(`Importing ${data.length} ${modelName} records...`);
 
         // Bulk create records
@@ -465,9 +441,9 @@ async function importData() {
       }
     }
 
-    console.log("Import complete!");
+    console.log('Import complete!');
   } catch (error) {
-    console.error("Import failed:", error);
+    console.error('Import failed:', error);
     process.exit(1);
   } finally {
     await sequelize.close();
@@ -545,22 +521,22 @@ POSTGRES_DB=bwaincell
 **File:** `backend/database/config.js`
 
 ```javascript
-require("dotenv").config({ path: "../.env" });
+require('dotenv').config({ path: '../.env' });
 
 module.exports = {
   development: {
     url: process.env.DATABASE_URL,
-    dialect: "postgres",
+    dialect: 'postgres',
     logging: console.log,
   },
   test: {
-    url: "postgresql://test:test@localhost:5433/bwaincell_test",
-    dialect: "postgres",
+    url: 'postgresql://test:test@localhost:5433/bwaincell_test',
+    dialect: 'postgres',
     logging: false,
   },
   production: {
     url: process.env.DATABASE_URL,
-    dialect: "postgres",
+    dialect: 'postgres',
     logging: false,
     dialectOptions: {
       ssl: {
@@ -577,18 +553,18 @@ module.exports = {
 **File:** `backend/database/index.ts`
 
 ```typescript
-import { Sequelize } from "sequelize";
+import { Sequelize } from 'sequelize';
 
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error("DATABASE_URL environment variable is required");
+  throw new Error('DATABASE_URL environment variable is required');
 }
 
 // Create Sequelize instance with PostgreSQL
 const sequelize = new Sequelize(databaseUrl, {
-  dialect: "postgres",
-  logging: (sql: string) => logger.info("SQL Query", { query: sql }),
+  dialect: 'postgres',
+  logging: (sql: string) => logger.info('SQL Query', { query: sql }),
   pool: {
     max: 10, // Maximum connections
     min: 2, // Minimum connections
@@ -597,8 +573,7 @@ const sequelize = new Sequelize(databaseUrl, {
   },
   dialectOptions: {
     ssl:
-      process.env.NODE_ENV === "production" &&
-      process.env.DEPLOYMENT_MODE !== "pi"
+      process.env.NODE_ENV === 'production' && process.env.DEPLOYMENT_MODE !== 'pi'
         ? {
             require: true,
             rejectUnauthorized: false,
@@ -738,8 +713,8 @@ DATABASE_PATH=./data/bwaincell.sqlite
 // File: backend/database/index.ts
 // Revert to SQLite configuration
 const sequelize = new Sequelize({
-  dialect: "sqlite",
-  storage: process.env.DATABASE_PATH || "./data/bwaincell.sqlite",
+  dialect: 'sqlite',
+  storage: process.env.DATABASE_PATH || './data/bwaincell.sqlite',
   logging: false,
 });
 ```

@@ -32,37 +32,31 @@ Comprehensive security guide for Bwaincell - protecting your productivity platfo
 
 ```typescript
 // backend/src/api/middleware/auth.ts
-export function authenticateUser(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function authenticateUser(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Basic ")) {
-    logger.warn("[AUTH] Missing or invalid authorization header", {
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    logger.warn('[AUTH] Missing or invalid authorization header', {
       path: req.path,
       ip: req.ip,
     });
 
     res.status(401).json({
       success: false,
-      error: "Unauthorized - Basic authentication required",
+      error: 'Unauthorized - Basic authentication required',
     });
     return;
   }
 
   // Parse and validate credentials
-  const base64Credentials = authHeader.split(" ")[1];
-  const credentials = Buffer.from(base64Credentials, "base64").toString(
-    "ascii",
-  );
-  const [username, password] = credentials.split(":");
+  const base64Credentials = authHeader.split(' ')[1];
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+  const [username, password] = credentials.split(':');
 
   const user = USERS[username.toLowerCase()];
 
   if (!user || user.password !== password) {
-    logger.warn("[AUTH] Invalid credentials", {
+    logger.warn('[AUTH] Invalid credentials', {
       username: username,
       path: req.path,
       ip: req.ip,
@@ -70,7 +64,7 @@ export function authenticateUser(
 
     res.status(401).json({
       success: false,
-      error: "Invalid credentials",
+      error: 'Invalid credentials',
     });
     return;
   }
@@ -156,14 +150,14 @@ volumes:
   postgres-data:
     driver: local
     labels:
-      com.bwaincell.description: "PostgreSQL production database storage"
+      com.bwaincell.description: 'PostgreSQL production database storage'
 ```
 
 **Encryption in Transit:**
 
 ```typescript
 // All API requests must use HTTPS in production
-if (process.env.NODE_ENV === "production" && req.protocol !== "https") {
+if (process.env.NODE_ENV === 'production' && req.protocol !== 'https') {
   return res.redirect(301, `https://${req.headers.host}${req.url}`);
 }
 ```
@@ -205,14 +199,14 @@ See [SQL Injection Prevention](#sql-injection-prevention) section below.
 
 ```typescript
 // backend/src/api/server.ts
-import helmet from "helmet";
+import helmet from 'helmet';
 
 app.use(helmet()); // Security headers middleware
 
 // Disable verbose errors in production
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === 'production') {
   app.use((err, req, res, next) => {
-    logger.error("[ERROR] Production error", {
+    logger.error('[ERROR] Production error', {
       error: err.message,
       path: req.path,
       method: req.method,
@@ -221,7 +215,7 @@ if (process.env.NODE_ENV === "production") {
     // Generic error message (don't expose internals)
     res.status(500).json({
       success: false,
-      error: "Internal server error",
+      error: 'Internal server error',
     });
   });
 }
@@ -234,12 +228,12 @@ if (process.env.NODE_ENV === "production") {
 security_opt:
   - no-new-privileges:true # Prevent privilege escalation
 
-user: "1001:1001" # Run as non-root user
+user: '1001:1001' # Run as non-root user
 
 deploy:
   resources:
     limits:
-      cpus: "1.0" # Limit CPU to prevent DoS
+      cpus: '1.0' # Limit CPU to prevent DoS
       memory: 512M # Limit memory to prevent DoS
 ```
 
@@ -265,7 +259,7 @@ const token = jwt.sign(
     discordId: user.discordId,
   },
   process.env.JWT_SECRET!,
-  { expiresIn: "15m" }, // Short expiration for security
+  { expiresIn: '15m' } // Short expiration for security
 );
 
 // Refresh token (7 days)
@@ -275,7 +269,7 @@ const refreshToken = jwt.sign(
     discordId: user.discordId,
   },
   process.env.JWT_SECRET!,
-  { expiresIn: "7d" },
+  { expiresIn: '7d' }
 );
 ```
 
@@ -331,7 +325,7 @@ See [Monitoring and Logging Guide](monitoring-and-logging.md) for comprehensive 
 
 ```typescript
 // backend/src/api/middleware/auth.ts
-logger.warn("[AUTH] Invalid credentials", {
+logger.warn('[AUTH] Invalid credentials', {
   username: username,
   path: req.path,
   ip: req.ip,
@@ -353,12 +347,12 @@ function validateExternalUrl(url: string): boolean {
 
     // Block internal networks
     const blockedHosts = [
-      "localhost",
-      "127.0.0.1",
-      "0.0.0.0",
-      "10.", // Private network
-      "172.16.", // Private network
-      "192.168.", // Private network
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '10.', // Private network
+      '172.16.', // Private network
+      '192.168.', // Private network
     ];
 
     return !blockedHosts.some((host) => parsed.hostname.startsWith(host));
@@ -378,7 +372,7 @@ function validateExternalUrl(url: string): boolean {
 
 ```typescript
 // ❌ NEVER store JWT in localStorage (vulnerable to XSS)
-localStorage.setItem("token", jwt); // INSECURE!
+localStorage.setItem('token', jwt); // INSECURE!
 
 // ✅ Store JWT in httpOnly cookies (protected from XSS)
 // Set-Cookie: token=<jwt>; HttpOnly; Secure; SameSite=Strict
@@ -396,7 +390,7 @@ export default NextAuth({
     }),
   ],
   session: {
-    strategy: "jwt", // JWT stored in httpOnly cookies
+    strategy: 'jwt', // JWT stored in httpOnly cookies
     maxAge: 7 * 24 * 60 * 60, // 7 days
   },
   cookies: {
@@ -404,9 +398,9 @@ export default NextAuth({
       name: `__Secure-next-auth.session-token`,
       options: {
         httpOnly: true, // ✅ Not accessible from JavaScript
-        sameSite: "lax", // ✅ CSRF protection
-        path: "/",
-        secure: process.env.NODE_ENV === "production", // ✅ HTTPS only in production
+        sameSite: 'lax', // ✅ CSRF protection
+        path: '/',
+        secure: process.env.NODE_ENV === 'production', // ✅ HTTPS only in production
       },
     },
   },
@@ -425,7 +419,7 @@ const accessToken = jwt.sign(
     discordId: user.discordId,
   },
   process.env.JWT_SECRET!,
-  { expiresIn: "15m" },
+  { expiresIn: '15m' }
 );
 ```
 
@@ -437,10 +431,10 @@ const refreshToken = jwt.sign(
   {
     username: user.username,
     discordId: user.discordId,
-    type: "refresh",
+    type: 'refresh',
   },
   process.env.JWT_SECRET!,
-  { expiresIn: "7d" },
+  { expiresIn: '7d' }
 );
 ```
 
@@ -451,14 +445,14 @@ const refreshToken = jwt.sign(
 ```typescript
 // Frontend: Automatically refresh token before expiration
 async function refreshAccessToken(refreshToken: string): Promise<string> {
-  const response = await fetch("/api/auth/refresh", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
   });
 
   if (!response.ok) {
-    throw new Error("Token refresh failed");
+    throw new Error('Token refresh failed');
   }
 
   const { accessToken } = await response.json();
@@ -470,20 +464,16 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
 
 ```typescript
 // backend/src/api/middleware/jwtAuth.ts
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
 
-export function validateJWT(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function validateJWT(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Missing JWT token" });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing JWT token' });
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
@@ -497,11 +487,11 @@ export function validateJWT(
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({ error: "Token expired" });
+      return res.status(401).json({ error: 'Token expired' });
     }
 
-    logger.error("[JWT] Token validation failed", { error });
-    return res.status(401).json({ error: "Invalid token" });
+    logger.error('[JWT] Token validation failed', { error });
+    return res.status(401).json({ error: 'Invalid token' });
   }
 }
 ```
@@ -529,9 +519,9 @@ export default NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
           // PKCE enabled by default in NextAuth.js
         },
       },
@@ -549,8 +539,8 @@ The `state` parameter prevents CSRF attacks during OAuth flow:
 1. Generate random state before redirect:
 
    ```typescript
-   const state = crypto.randomBytes(32).toString("hex");
-   sessionStorage.setItem("oauth_state", state);
+   const state = crypto.randomBytes(32).toString('hex');
+   sessionStorage.setItem('oauth_state', state);
    ```
 
 2. Include state in authorization URL:
@@ -567,10 +557,10 @@ The `state` parameter prevents CSRF attacks during OAuth flow:
 
    ```typescript
    const receivedState = req.query.state;
-   const savedState = sessionStorage.getItem("oauth_state");
+   const savedState = sessionStorage.getItem('oauth_state');
 
    if (receivedState !== savedState) {
-     throw new Error("Invalid state parameter - possible CSRF attack");
+     throw new Error('Invalid state parameter - possible CSRF attack');
    }
    ```
 
@@ -589,12 +579,12 @@ NEXTAUTH_URL=https://bwaincell.sunny-stack.com  # Production
 ```typescript
 // Validate redirect_uri matches NEXTAUTH_URL
 const allowedRedirects = [
-  "https://bwaincell.sunny-stack.com",
-  "http://localhost:3010", // Development only
+  'https://bwaincell.sunny-stack.com',
+  'http://localhost:3010', // Development only
 ];
 
 if (!allowedRedirects.includes(redirectUri)) {
-  throw new Error("Invalid redirect_uri");
+  throw new Error('Invalid redirect_uri');
 }
 ```
 
@@ -609,10 +599,10 @@ ALLOWED_GOOGLE_EMAILS=user1@gmail.com,user2@gmail.com
 
 ```typescript
 // Validate user email during OAuth callback
-const allowedEmails = process.env.ALLOWED_GOOGLE_EMAILS!.split(",");
+const allowedEmails = process.env.ALLOWED_GOOGLE_EMAILS!.split(',');
 
 if (!allowedEmails.includes(userEmail)) {
-  throw new Error("Email not authorized");
+  throw new Error('Email not authorized');
 }
 ```
 
@@ -749,29 +739,25 @@ npm install joi
 
 ```typescript
 // backend/src/api/validation/taskValidation.ts
-import Joi from "joi";
+import Joi from 'joi';
 
 export const createTaskSchema = Joi.object({
   title: Joi.string().min(1).max(255).required().messages({
-    "string.empty": "Task title is required",
-    "string.max": "Task title must not exceed 255 characters",
+    'string.empty': 'Task title is required',
+    'string.max': 'Task title must not exceed 255 characters',
   }),
 
-  description: Joi.string().max(1000).optional().allow(null, "").messages({
-    "string.max": "Description must not exceed 1000 characters",
+  description: Joi.string().max(1000).optional().allow(null, '').messages({
+    'string.max': 'Description must not exceed 1000 characters',
   }),
 
   dueDate: Joi.date().iso().optional().allow(null).messages({
-    "date.format": "Due date must be in ISO 8601 format (YYYY-MM-DD)",
+    'date.format': 'Due date must be in ISO 8601 format (YYYY-MM-DD)',
   }),
 
-  priority: Joi.string()
-    .valid("low", "medium", "high")
-    .optional()
-    .default("medium")
-    .messages({
-      "any.only": "Priority must be one of: low, medium, high",
-    }),
+  priority: Joi.string().valid('low', 'medium', 'high').optional().default('medium').messages({
+    'any.only': 'Priority must be one of: low, medium, high',
+  }),
 });
 ```
 
@@ -779,8 +765,8 @@ export const createTaskSchema = Joi.object({
 
 ```typescript
 // backend/src/api/middleware/validate.ts
-import { Request, Response, NextFunction } from "express";
-import { Schema } from "joi";
+import { Request, Response, NextFunction } from 'express';
+import { Schema } from 'joi';
 
 export function validateRequest(schema: Schema) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -791,18 +777,18 @@ export function validateRequest(schema: Schema) {
 
     if (error) {
       const errors = error.details.map((detail) => ({
-        field: detail.path.join("."),
+        field: detail.path.join('.'),
         message: detail.message,
       }));
 
-      logger.warn("[VALIDATION] Request validation failed", {
+      logger.warn('[VALIDATION] Request validation failed', {
         path: req.path,
         errors: errors,
       });
 
       return res.status(400).json({
         success: false,
-        error: "Validation failed",
+        error: 'Validation failed',
         details: errors,
       });
     }
@@ -818,23 +804,18 @@ export function validateRequest(schema: Schema) {
 
 ```typescript
 // backend/src/api/routes/tasks.ts
-import { validateRequest } from "../middleware/validate";
-import { createTaskSchema } from "../validation/taskValidation";
+import { validateRequest } from '../middleware/validate';
+import { createTaskSchema } from '../validation/taskValidation';
 
-router.post(
-  "/tasks",
-  authenticateUser,
-  validateRequest(createTaskSchema),
-  async (req, res) => {
-    // req.body is now validated and sanitized
-    const task = await Task.create({
-      ...req.body,
-      discordUserId: req.user.discordId,
-    });
+router.post('/tasks', authenticateUser, validateRequest(createTaskSchema), async (req, res) => {
+  // req.body is now validated and sanitized
+  const task = await Task.create({
+    ...req.body,
+    discordUserId: req.user.discordId,
+  });
 
-    res.json({ success: true, data: task });
-  },
-);
+  res.json({ success: true, data: task });
+});
 ```
 
 ### Sanitization
@@ -842,7 +823,7 @@ router.post(
 **HTML Sanitization:**
 
 ```typescript
-import DOMPurify from "dompurify";
+import DOMPurify from 'dompurify';
 
 // Sanitize HTML input to prevent XSS
 function sanitizeHTML(input: string): string {
@@ -873,7 +854,7 @@ const tasks = await Task.findAll({
 
 // ❌ UNSAFE: Never use raw queries without parameterization
 const tasks = await sequelize.query(
-  `SELECT * FROM tasks WHERE title = '${searchTerm}'`, // SQL injection!
+  `SELECT * FROM tasks WHERE title = '${searchTerm}'` // SQL injection!
 );
 ```
 
@@ -932,19 +913,19 @@ WHERE discord_user_id = $1
 ```typescript
 // ✅ SAFE: Use replacements for parameterization
 const tasks = await sequelize.query(
-  "SELECT * FROM tasks WHERE discord_user_id = :discordUserId AND title LIKE :searchTerm",
+  'SELECT * FROM tasks WHERE discord_user_id = :discordUserId AND title LIKE :searchTerm',
   {
     replacements: {
       discordUserId: req.user.discordId,
       searchTerm: `%${searchTerm}%`,
     },
     type: QueryTypes.SELECT,
-  },
+  }
 );
 
 // ❌ UNSAFE: String interpolation (SQL injection vulnerability!)
 const tasks = await sequelize.query(
-  `SELECT * FROM tasks WHERE discord_user_id = '${req.user.discordId}'`,
+  `SELECT * FROM tasks WHERE discord_user_id = '${req.user.discordId}'`
 );
 ```
 
@@ -981,7 +962,7 @@ REVOKE DROP ON ALL TABLES IN SCHEMA public FROM bwaincell_app;
 
 ```typescript
 // backend/src/api/server.ts
-import helmet from "helmet";
+import helmet from 'helmet';
 
 app.use(
   helmet({
@@ -990,8 +971,8 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts (Next.js)
         styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://accounts.google.com"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'https://accounts.google.com'],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
@@ -999,7 +980,7 @@ app.use(
       },
     },
     crossOriginEmbedderPolicy: false, // Required for external APIs
-  }),
+  })
 );
 ```
 
@@ -1009,7 +990,7 @@ app.use(
 
 ```typescript
 // frontend/components/TaskForm.tsx
-import DOMPurify from "dompurify";
+import DOMPurify from 'dompurify';
 
 function TaskForm() {
   const handleSubmit = (e: React.FormEvent) => {
@@ -1084,17 +1065,17 @@ cookies: {
 
 ```typescript
 // Generate CSRF token
-import crypto from "crypto";
+import crypto from 'crypto';
 
-const csrfToken = crypto.randomBytes(32).toString("hex");
-res.cookie("csrf-token", csrfToken, { httpOnly: false });
+const csrfToken = crypto.randomBytes(32).toString('hex');
+res.cookie('csrf-token', csrfToken, { httpOnly: false });
 
 // Validate CSRF token
-const receivedToken = req.headers["x-csrf-token"];
-const cookieToken = req.cookies["csrf-token"];
+const receivedToken = req.headers['x-csrf-token'];
+const cookieToken = req.cookies['csrf-token'];
 
 if (receivedToken !== cookieToken) {
-  throw new Error("CSRF token mismatch");
+  throw new Error('CSRF token mismatch');
 }
 ```
 
@@ -1114,13 +1095,13 @@ npm install express-rate-limit
 
 ```typescript
 // backend/src/api/middleware/rateLimiter.ts
-import rateLimit from "express-rate-limit";
+import rateLimit from 'express-rate-limit';
 
 // General API rate limiter
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later",
+  message: 'Too many requests from this IP, please try again later',
   standardHeaders: true, // Return rate limit info in RateLimit-* headers
   legacyHeaders: false, // Disable X-RateLimit-* headers
 });
@@ -1129,7 +1110,7 @@ export const apiLimiter = rateLimit({
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 login attempts per windowMs
-  message: "Too many login attempts, please try again later",
+  message: 'Too many login attempts, please try again later',
   skipSuccessfulRequests: true, // Don't count successful logins
 });
 
@@ -1137,7 +1118,7 @@ export const authLimiter = rateLimit({
 export const createTaskLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // Limit to 10 task creations per minute
-  message: "Too many tasks created, please slow down",
+  message: 'Too many tasks created, please slow down',
 });
 ```
 
@@ -1145,12 +1126,12 @@ export const createTaskLimiter = rateLimit({
 
 ```typescript
 // backend/src/api/routes/tasks.ts
-import { apiLimiter, createTaskLimiter } from "../middleware/rateLimiter";
+import { apiLimiter, createTaskLimiter } from '../middleware/rateLimiter';
 
 // Apply rate limiters to routes
 router.use(apiLimiter); // Apply to all routes
 
-router.post("/tasks", createTaskLimiter, authenticateUser, async (req, res) => {
+router.post('/tasks', createTaskLimiter, authenticateUser, async (req, res) => {
   // Create task
 });
 ```
@@ -1169,8 +1150,8 @@ Discord enforces rate limits on API requests:
 
 ```typescript
 // discord.js automatically handles rate limits
-client.on("rateLimit", (rateLimitData) => {
-  logger.warn("[DISCORD] Rate limit hit", {
+client.on('rateLimit', (rateLimitData) => {
+  logger.warn('[DISCORD] Rate limit hit', {
     timeout: rateLimitData.timeout,
     limit: rateLimitData.limit,
     method: rateLimitData.method,
@@ -1227,24 +1208,24 @@ npm audit fix --force
 version: 2
 updates:
   # Backend dependencies
-  - package-ecosystem: "npm"
-    directory: "/backend"
+  - package-ecosystem: 'npm'
+    directory: '/backend'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     open-pull-requests-limit: 5
 
   # Frontend dependencies
-  - package-ecosystem: "npm"
-    directory: "/frontend"
+  - package-ecosystem: 'npm'
+    directory: '/frontend'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     open-pull-requests-limit: 5
 
   # Root dependencies
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
+      interval: 'weekly'
     open-pull-requests-limit: 5
 ```
 
@@ -1285,7 +1266,7 @@ npm install helmet
 
 ```typescript
 // backend/src/api/server.ts
-import helmet from "helmet";
+import helmet from 'helmet';
 
 app.use(
   helmet({
@@ -1295,8 +1276,8 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://accounts.google.com"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'https://accounts.google.com'],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
@@ -1309,7 +1290,7 @@ app.use(
 
     // X-Frame-Options: DENY
     frameguard: {
-      action: "deny",
+      action: 'deny',
     },
 
     // X-XSS-Protection: 1; mode=block
@@ -1332,9 +1313,9 @@ app.use(
 
     // Referrer-Policy: no-referrer
     referrerPolicy: {
-      policy: "no-referrer",
+      policy: 'no-referrer',
     },
-  }),
+  })
 );
 ```
 
@@ -1379,17 +1360,17 @@ mkcert localhost 127.0.0.1 ::1
 
 ```typescript
 // backend/src/api/server.ts
-import https from "https";
-import fs from "fs";
+import https from 'https';
+import fs from 'fs';
 
 const options = {
-  key: fs.readFileSync("localhost+2-key.pem"),
-  cert: fs.readFileSync("localhost+2.pem"),
+  key: fs.readFileSync('localhost+2-key.pem'),
+  cert: fs.readFileSync('localhost+2.pem'),
 };
 
 const server = https.createServer(options, app);
 server.listen(3000, () => {
-  console.log("HTTPS server running on https://localhost:3000");
+  console.log('HTTPS server running on https://localhost:3000');
 });
 ```
 
@@ -1498,7 +1479,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
           memory: 512M
 ```
 
@@ -1586,7 +1567,7 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=27
 **backend/src/bot.ts:**
 
 ```typescript
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits } from 'discord.js';
 
 const client = new Client({
   intents: [
@@ -1607,39 +1588,35 @@ const client = new Client({
 
 ```typescript
 // backend/commands/task.ts
-import { SlashCommandBuilder } from "@discordjs/builders";
+import { SlashCommandBuilder } from '@discordjs/builders';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("task")
-    .setDescription("Manage tasks")
+    .setName('task')
+    .setDescription('Manage tasks')
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("create")
-        .setDescription("Create a new task")
+        .setName('create')
+        .setDescription('Create a new task')
         .addStringOption(
           (option) =>
-            option
-              .setName("title")
-              .setDescription("Task title")
-              .setRequired(true)
-              .setMaxLength(255), // ✅ Validate input length
+            option.setName('title').setDescription('Task title').setRequired(true).setMaxLength(255) // ✅ Validate input length
         )
         .addStringOption((option) =>
-          option.setName("priority").setDescription("Task priority").addChoices(
+          option.setName('priority').setDescription('Task priority').addChoices(
             // ✅ Restrict to valid values
-            { name: "Low", value: "low" },
-            { name: "Medium", value: "medium" },
-            { name: "High", value: "high" },
-          ),
-        ),
+            { name: 'Low', value: 'low' },
+            { name: 'Medium', value: 'medium' },
+            { name: 'High', value: 'high' }
+          )
+        )
     ),
 
   async execute(interaction) {
     // Validate user is in allowed guild
     if (interaction.guildId !== process.env.GUILD_ID) {
       return interaction.reply({
-        content: "This bot is not available in this server",
+        content: 'This bot is not available in this server',
         ephemeral: true,
       });
     }

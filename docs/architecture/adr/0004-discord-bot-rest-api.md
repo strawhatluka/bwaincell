@@ -136,15 +136,13 @@ backend/
 **File:** `backend/commands/tasks.ts`
 
 ```typescript
-import { SlashCommandBuilder } from "discord.js";
-import { Task } from "@database";
+import { SlashCommandBuilder } from 'discord.js';
+import { Task } from '@database';
 
 export const data = new SlashCommandBuilder()
-  .setName("tasks")
-  .setDescription("Manage your tasks")
-  .addSubcommand((subcommand) =>
-    subcommand.setName("list").setDescription("List all your tasks"),
-  );
+  .setName('tasks')
+  .setDescription('Manage your tasks')
+  .addSubcommand((subcommand) => subcommand.setName('list').setDescription('List all your tasks'));
 
 export async function execute(interaction) {
   const userId = interaction.user.id;
@@ -152,7 +150,7 @@ export async function execute(interaction) {
   // Use shared database model
   const tasks = await Task.findAll({
     where: { userId },
-    order: [["createdAt", "DESC"]],
+    order: [['createdAt', 'DESC']],
   });
 
   await interaction.reply({
@@ -167,20 +165,20 @@ export async function execute(interaction) {
 **File:** `backend/src/api/routes/tasks.ts`
 
 ```typescript
-import { Router } from "express";
-import { Task } from "@database";
-import { authenticateToken } from "../middleware/oauth";
+import { Router } from 'express';
+import { Task } from '@database';
+import { authenticateToken } from '../middleware/oauth';
 
 const router = Router();
 
 // GET /api/tasks - List all tasks
-router.get("/", authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   const userId = req.user.discordId; // From JWT token
 
   // Use same database model as Discord bot
   const tasks = await Task.findAll({
     where: { userId },
-    order: [["createdAt", "DESC"]],
+    order: [['createdAt', 'DESC']],
   });
 
   res.json({
@@ -197,7 +195,7 @@ export default router;
 **File:** `backend/database/models/Task.ts`
 
 ```typescript
-import { Model, DataTypes, Sequelize } from "sequelize";
+import { Model, DataTypes, Sequelize } from 'sequelize';
 
 export default class Task extends Model {
   public id!: string;
@@ -228,9 +226,9 @@ export default class Task extends Model {
       },
       {
         sequelize,
-        tableName: "tasks",
+        tableName: 'tasks',
         timestamps: true,
-      },
+      }
     );
   }
 }
@@ -434,7 +432,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - API_PORT=3000
     ports:
-      - "3000:3000" # API port
+      - '3000:3000' # API port
     # Discord bot runs in same process
 
   frontend:
@@ -442,7 +440,7 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:3000
     ports:
-      - "3010:3010"
+      - '3010:3010'
 
   postgres:
     image: postgres:15-alpine
@@ -457,11 +455,11 @@ services:
 ```typescript
 export function validateTaskTitle(title: string): void {
   if (!title || title.trim().length === 0) {
-    throw new Error("Title cannot be empty");
+    throw new Error('Title cannot be empty');
   }
 
   if (title.length > 200) {
-    throw new Error("Title must be less than 200 characters");
+    throw new Error('Title must be less than 200 characters');
   }
 }
 ```
@@ -470,15 +468,15 @@ export function validateTaskTitle(title: string): void {
 
 ```typescript
 // backend/commands/tasks.ts
-import { validateTaskTitle } from "@shared/utils/taskValidator";
+import { validateTaskTitle } from '@shared/utils/taskValidator';
 
 export async function execute(interaction) {
-  const title = interaction.options.getString("title");
+  const title = interaction.options.getString('title');
 
   try {
     validateTaskTitle(title);
     await Task.create({ userId: interaction.user.id, title });
-    await interaction.reply("Task created!");
+    await interaction.reply('Task created!');
   } catch (error) {
     await interaction.reply({ content: error.message, ephemeral: true });
   }
@@ -489,9 +487,9 @@ export async function execute(interaction) {
 
 ```typescript
 // backend/src/api/routes/tasks.ts
-import { validateTaskTitle } from "@shared/utils/taskValidator";
+import { validateTaskTitle } from '@shared/utils/taskValidator';
 
-router.post("/", async (req, res) => {
+router.post('/', async (req, res) => {
   const { title } = req.body;
 
   try {

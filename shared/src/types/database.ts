@@ -47,7 +47,7 @@ export interface ListModel {
  * Reminder Frequency
  * How often a reminder should repeat
  */
-export type ReminderFrequency = "once" | "daily" | "weekly";
+export type ReminderFrequency = 'once' | 'daily' | 'weekly';
 
 /**
  * Reminder Model

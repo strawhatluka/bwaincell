@@ -40,6 +40,14 @@ backend/dist/
 frontend/.next/
 frontend/out/
 shared/dist/
+supabase/dist/
+
+# Supabase compiled output (ts-jest should use .ts source)
+supabase/**/*.js
+supabase/**/*.js.map
+supabase/**/*.d.ts
+supabase/**/*.d.ts.map
+!supabase/migrations/**
 
 # PWA service worker files (auto-generated)
 frontend/public/sw.js

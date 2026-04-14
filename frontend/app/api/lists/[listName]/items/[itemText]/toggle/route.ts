@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../../../../auth/[...nextauth]/route';
+import { prisma } from '@/lib/db/prisma';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 interface ListItem {
   text: string;
@@ -18,16 +18,14 @@ interface ListItem {
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { listName: string; itemText: string } },
+  props: { params: Promise<{ listName: string; itemText: string }> }
 ) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -36,10 +34,7 @@ export async function PATCH(
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const listName = decodeURIComponent(params.listName);
@@ -51,16 +46,13 @@ export async function PATCH(
         guildId: user.guildId,
         name: {
           equals: listName,
-          mode: "insensitive",
+          mode: 'insensitive',
         },
       },
     });
 
     if (!list) {
-      return NextResponse.json(
-        { success: false, error: "List not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'List not found' }, { status: 404 });
     }
 
     // Parse existing items
@@ -83,8 +75,8 @@ export async function PATCH(
 
     if (!itemFound) {
       return NextResponse.json(
-        { success: false, error: "Item not found in list" },
-        { status: 404 },
+        { success: false, error: 'Item not found in list' },
+        { status: 404 }
       );
     }
 
@@ -97,17 +89,17 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: updatedList,
-      message: "Item toggled successfully",
+      message: 'Item toggled successfully',
     });
   } catch (error) {
-    console.error("[API] Error toggling item:", error);
+    console.error('[API] Error toggling item:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to toggle item",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to toggle item',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -12,11 +12,11 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
-import sequelize from '../../database';
-import Task from '../../database/models/Task';
-import List from '../../database/models/List';
-import Note from '../../database/models/Note';
-import Budget from '../../database/models/Budget';
+import sequelize from '../../supabase';
+import Task from '../../supabase/models/Task';
+import List from '../../supabase/models/List';
+import Note from '../../supabase/models/Note';
+import Budget from '../../supabase/models/Budget';
 
 describe('Database Load Tests', () => {
   beforeAll(async () => {

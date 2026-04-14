@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
   return (
@@ -12,15 +12,10 @@ export default function HomePage() {
           <h1 className="text-6xl font-bold bg-gradient-to-r from-twilight-400 via-dusk-400 to-dawn-400 bg-clip-text text-transparent mb-4">
             Bwain.app
           </h1>
-          <p className="text-xl text-purple-200 mb-8">
-            Same Fweak, Same Bwaincell
-          </p>
+          <p className="text-xl text-purple-200 mb-8">Same Fweak, Same Bwaincell</p>
           <div className="flex gap-4 justify-center">
             <Link href="/login">
-              <Button
-                size="lg"
-                className="bg-dawn-500 hover:bg-dawn-600 text-white"
-              >
+              <Button size="lg" className="bg-dawn-500 hover:bg-dawn-600 text-white">
                 Get Started
               </Button>
             </Link>
@@ -56,10 +51,7 @@ export default function HomePage() {
             <ellipse cx="100" cy="75" rx="18" ry="14" />
 
             {/* Cape/scarf flowing behind */}
-            <path
-              d="M 80 95 Q 45 120 35 180 Q 40 150 50 120 Q 60 100 80 100"
-              opacity="0.6"
-            />
+            <path d="M 80 95 Q 45 120 35 180 Q 40 150 50 120 Q 60 100 80 100" opacity="0.6" />
             <path
               d="M 120 95 Q 155 120 165 180 Q 160 150 150 120 Q 140 100 120 100"
               opacity="0.6"
@@ -194,14 +186,12 @@ export default function HomePage() {
             <a href="/privacy" className="hover:text-purple-100 underline">
               Privacy Policy
             </a>
-            {" · "}
+            {' · '}
             <a href="/terms" className="hover:text-purple-100 underline">
               Terms of Service
             </a>
           </p>
-          <p className="mt-2 text-xs">
-            © 2024 Bwain.app. All rights reserved.
-          </p>
+          <p className="mt-2 text-xs">© 2024 Bwain.app. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
 // SVG icon template with gradient and "B" letter
 const createSVG = (size) => `<?xml version="1.0" encoding="UTF-8"?>
@@ -18,25 +18,21 @@ const createSVG = (size) => `<?xml version="1.0" encoding="UTF-8"?>
 </svg>`;
 
 // Create public directory if it doesn't exist
-const publicDir = path.join(__dirname, "..", "public");
+const publicDir = path.join(__dirname, '..', 'public');
 if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true });
 }
 
 // Generate 192x192 icon
 const svg192 = createSVG(192);
-fs.writeFileSync(path.join(publicDir, "icon-192.svg"), svg192);
-console.log("Created icon-192.svg");
+fs.writeFileSync(path.join(publicDir, 'icon-192.svg'), svg192);
+console.log('Created icon-192.svg');
 
 // Generate 512x512 icon
 const svg512 = createSVG(512);
-fs.writeFileSync(path.join(publicDir, "icon-512.svg"), svg512);
-console.log("Created icon-512.svg");
+fs.writeFileSync(path.join(publicDir, 'icon-512.svg'), svg512);
+console.log('Created icon-512.svg');
 
-console.log("\nSVG icons created successfully!");
-console.log(
-  "Note: You can convert these to PNG using an online converter or sharp library.",
-);
-console.log(
-  "For now, update manifest.json to use .svg files or install sharp for PNG conversion.",
-);
+console.log('\nSVG icons created successfully!');
+console.log('Note: You can convert these to PNG using an online converter or sharp library.');
+console.log('For now, update manifest.json to use .svg files or install sharp for PNG conversion.');

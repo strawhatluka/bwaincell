@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { createApiServer } from '../../src/api/server';
-import { sequelize } from '../../database';
-import Task from '../../database/models/Task';
+import { sequelize } from '../../supabase';
+import Task from '../../supabase/models/Task';
 
 const app = createApiServer();
 

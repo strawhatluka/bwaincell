@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]/route';
+import { prisma } from '@/lib/db/prisma';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * GET /api/notes
@@ -16,10 +16,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -28,15 +25,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     // Get search query parameter
     const searchParams = request.nextUrl.searchParams;
-    const searchQuery = searchParams.get("search");
+    const searchQuery = searchParams.get('search');
 
     // Build where clause with search functionality
     const whereClause: any = { guildId: user.guildId };
@@ -47,7 +41,7 @@ export async function GET(request: NextRequest) {
         {
           title: {
             contains: searchQuery.trim(),
-            mode: "insensitive",
+            mode: 'insensitive',
           },
         },
         {
@@ -60,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     const notes = await prisma.note.findMany({
       where: whereClause,
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: 'desc' },
     });
 
     return NextResponse.json({
@@ -68,13 +62,13 @@ export async function GET(request: NextRequest) {
       data: notes,
     });
   } catch (error) {
-    console.error("[API] GET /api/notes error:", error);
+    console.error('[API] GET /api/notes error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch notes",
+        error: 'Failed to fetch notes',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -88,10 +82,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -100,10 +91,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -111,12 +99,12 @@ export async function POST(request: NextRequest) {
 
     if (!title || !content) {
       return NextResponse.json(
-        { success: false, error: "Title and content are required" },
-        { status: 400 },
+        { success: false, error: 'Title and content are required' },
+        { status: 400 }
       );
     }
 
-    console.log("[API] POST /api/notes - creating note:", {
+    console.log('[API] POST /api/notes - creating note:', {
       title,
       content,
       tags,
@@ -139,10 +127,7 @@ export async function POST(request: NextRequest) {
       data: note,
     });
   } catch (error) {
-    console.error("[API] POST /api/notes error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to create note" },
-      { status: 500 },
-    );
+    console.error('[API] POST /api/notes error:', error);
+    return NextResponse.json({ success: false, error: 'Failed to create note' }, { status: 500 });
   }
 }

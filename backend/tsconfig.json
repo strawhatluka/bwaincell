@@ -30,17 +30,10 @@
       "@commands/*": ["src/commands/*"],
       "@handlers/*": ["src/handlers/*"],
       "@services/*": ["src/services/*"],
-      "@database/*": ["database/*"]
+      "@database/*": ["../supabase/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "commands/**/*",
-    "database/**/*",
-    "utils/**/*",
-    "shared/**/*",
-    "config/**/*"
-  ],
+  "include": ["src/**/*", "commands/**/*", "utils/**/*", "shared/**/*", "config/**/*"],
   "exclude": [
     "node_modules",
     "dist",
@@ -52,5 +45,5 @@
     "tests/**/*",
     "*.js"
   ],
-  "references": [{ "path": "../shared" }]
+  "references": [{ "path": "../shared" }, { "path": "../supabase" }]
 }

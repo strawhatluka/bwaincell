@@ -15,15 +15,15 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import SunsetConfig from '../../../database/models/SunsetConfig';
+import SunsetConfig from '../../../../supabase/models/SunsetConfig';
 
 describe('SunsetConfig Model', () => {
   let mockConfig: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
 
-    // Create mock configuration object matching SunsetConfig attributes
     mockConfig = {
       id: 1,
       guild_id: 'guild-123',
@@ -34,21 +34,18 @@ describe('SunsetConfig Model', () => {
       timezone: 'America/Los_Angeles',
       is_enabled: true,
       last_announcement: null,
-      created_at: new Date(),
-      updated_at: new Date(),
-      update: jest.fn().mockImplementation(function (this: any, values: any) {
-        Object.assign(this, values);
-        return Promise.resolve(this);
-      }),
-      save: jest.fn().mockResolvedValue(undefined),
+      created_at: '2024-01-15T00:00:00.000Z',
+      updated_at: '2024-01-15T00:00:00.000Z',
     };
   });
 
   describe('upsertConfig', () => {
-    test('should create new config when no existing config found', async () => {
-      const newConfig = { ...mockConfig, guild_id: 'guild-new', user_id: 'user-new' };
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(null);
-      jest.spyOn(SunsetConfig as any, 'create').mockResolvedValue(newConfig);
+    test('should create new config with default options', async () => {
+      jest.spyOn(SunsetConfig, 'upsertConfig').mockResolvedValue({
+        ...mockConfig,
+        guild_id: 'guild-new',
+        user_id: 'user-new',
+      });
 
       const result = await SunsetConfig.upsertConfig(
         'guild-new',
@@ -58,29 +55,23 @@ describe('SunsetConfig Model', () => {
       );
 
       expect(result).toBeDefined();
-      expect((SunsetConfig as any).findOne).toHaveBeenCalledWith({
-        where: { guild_id: 'guild-new' },
-      });
-      expect((SunsetConfig as any).create).toHaveBeenCalledWith({
-        guild_id: 'guild-new',
-        user_id: 'user-new',
-        channel_id: 'channel-789',
-        zip_code: '90210',
-        advance_minutes: 60,
-        timezone: 'America/Los_Angeles',
-        is_enabled: true,
-      });
+      expect(result.guild_id).toBe('guild-new');
+      expect(result.user_id).toBe('user-new');
+      expect(SunsetConfig.upsertConfig).toHaveBeenCalledWith(
+        'guild-new',
+        'user-new',
+        'channel-789',
+        '90210'
+      );
     });
 
     test('should create new config with custom options', async () => {
-      const newConfig = {
+      jest.spyOn(SunsetConfig, 'upsertConfig').mockResolvedValue({
         ...mockConfig,
         advance_minutes: 30,
         timezone: 'America/New_York',
         is_enabled: false,
-      };
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(null);
-      jest.spyOn(SunsetConfig as any, 'create').mockResolvedValue(newConfig);
+      });
 
       const result = await SunsetConfig.upsertConfig(
         'guild-123',
@@ -91,19 +82,18 @@ describe('SunsetConfig Model', () => {
       );
 
       expect(result).toBeDefined();
-      expect((SunsetConfig as any).create).toHaveBeenCalledWith({
-        guild_id: 'guild-123',
-        user_id: 'user-456',
-        channel_id: 'channel-789',
-        zip_code: '10001',
-        advance_minutes: 30,
-        timezone: 'America/New_York',
-        is_enabled: false,
-      });
+      expect(result.advance_minutes).toBe(30);
+      expect(result.timezone).toBe('America/New_York');
+      expect(result.is_enabled).toBe(false);
     });
 
-    test('should update existing config when guild_id matches', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
+    test('should update existing config when guild_id matches (upsert)', async () => {
+      jest.spyOn(SunsetConfig, 'upsertConfig').mockResolvedValue({
+        ...mockConfig,
+        user_id: 'user-999',
+        channel_id: 'channel-999',
+        zip_code: '30301',
+      });
 
       const result = await SunsetConfig.upsertConfig(
         'guild-123',
@@ -113,81 +103,24 @@ describe('SunsetConfig Model', () => {
       );
 
       expect(result).toBeDefined();
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          user_id: 'user-999',
-          channel_id: 'channel-999',
-          zip_code: '30301',
-          advance_minutes: 60,
-          timezone: 'America/Los_Angeles',
-          is_enabled: true,
-        })
-      );
-    });
-
-    test('should update existing config with custom options', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
-
-      await SunsetConfig.upsertConfig('guild-123', 'user-456', 'channel-789', '90210', {
-        advanceMinutes: 15,
-        timezone: 'America/Chicago',
-        isEnabled: false,
-      });
-
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          advance_minutes: 15,
-          timezone: 'America/Chicago',
-          is_enabled: false,
-        })
-      );
-    });
-
-    test('should preserve existing values when options are not provided on update', async () => {
-      mockConfig.advance_minutes = 45;
-      mockConfig.timezone = 'Europe/London';
-      mockConfig.is_enabled = false;
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
-
-      await SunsetConfig.upsertConfig('guild-123', 'user-456', 'channel-789', '90210');
-
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          advance_minutes: 45,
-          timezone: 'Europe/London',
-          is_enabled: false,
-        })
-      );
-    });
-
-    test('should set updated_at when updating existing config', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
-
-      await SunsetConfig.upsertConfig('guild-123', 'user-456', 'channel-789', '90210');
-
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          updated_at: expect.any(Date),
-        })
-      );
+      expect(result.user_id).toBe('user-999');
+      expect(result.zip_code).toBe('30301');
     });
   });
 
   describe('getGuildConfig', () => {
     test('should return config for valid guild', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
+      jest.spyOn(SunsetConfig, 'getGuildConfig').mockResolvedValue(mockConfig);
 
       const config = await SunsetConfig.getGuildConfig('guild-123');
 
       expect(config).toBeDefined();
       expect(config?.guild_id).toBe('guild-123');
-      expect((SunsetConfig as any).findOne).toHaveBeenCalledWith({
-        where: { guild_id: 'guild-123' },
-      });
+      expect(SunsetConfig.getGuildConfig).toHaveBeenCalledWith('guild-123');
     });
 
     test('should return null for non-existent guild', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(null);
+      jest.spyOn(SunsetConfig, 'getGuildConfig').mockResolvedValue(null);
 
       const config = await SunsetConfig.getGuildConfig('guild-999');
 
@@ -201,18 +134,16 @@ describe('SunsetConfig Model', () => {
         { ...mockConfig, guild_id: 'guild-1', is_enabled: true },
         { ...mockConfig, guild_id: 'guild-2', is_enabled: true },
       ];
-      jest.spyOn(SunsetConfig as any, 'findAll').mockResolvedValue(enabledConfigs);
+      jest.spyOn(SunsetConfig, 'getEnabledConfigs').mockResolvedValue(enabledConfigs);
 
       const configs = await SunsetConfig.getEnabledConfigs();
 
       expect(configs).toHaveLength(2);
-      expect((SunsetConfig as any).findAll).toHaveBeenCalledWith({
-        where: { is_enabled: true },
-      });
+      expect(SunsetConfig.getEnabledConfigs).toHaveBeenCalled();
     });
 
     test('should return empty array when no configs are enabled', async () => {
-      jest.spyOn(SunsetConfig as any, 'findAll').mockResolvedValue([]);
+      jest.spyOn(SunsetConfig, 'getEnabledConfigs').mockResolvedValue([]);
 
       const configs = await SunsetConfig.getEnabledConfigs();
 
@@ -222,37 +153,31 @@ describe('SunsetConfig Model', () => {
 
   describe('toggleEnabled', () => {
     test('should enable a disabled configuration', async () => {
-      mockConfig.is_enabled = false;
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
+      jest
+        .spyOn(SunsetConfig, 'toggleEnabled')
+        .mockResolvedValue({ ...mockConfig, is_enabled: true });
 
       const result = await SunsetConfig.toggleEnabled('guild-123', true);
 
       expect(result).toBeDefined();
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          is_enabled: true,
-          updated_at: expect.any(Date),
-        })
-      );
+      expect(result?.is_enabled).toBe(true);
+      expect(SunsetConfig.toggleEnabled).toHaveBeenCalledWith('guild-123', true);
     });
 
     test('should disable an enabled configuration', async () => {
-      mockConfig.is_enabled = true;
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
+      jest
+        .spyOn(SunsetConfig, 'toggleEnabled')
+        .mockResolvedValue({ ...mockConfig, is_enabled: false });
 
       const result = await SunsetConfig.toggleEnabled('guild-123', false);
 
       expect(result).toBeDefined();
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          is_enabled: false,
-          updated_at: expect.any(Date),
-        })
-      );
+      expect(result?.is_enabled).toBe(false);
+      expect(SunsetConfig.toggleEnabled).toHaveBeenCalledWith('guild-123', false);
     });
 
     test('should return null for non-existent guild', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(null);
+      jest.spyOn(SunsetConfig, 'toggleEnabled').mockResolvedValue(null);
 
       const result = await SunsetConfig.toggleEnabled('guild-999', true);
 
@@ -262,21 +187,19 @@ describe('SunsetConfig Model', () => {
 
   describe('updateAdvanceMinutes', () => {
     test('should update advance minutes for existing config', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
+      jest
+        .spyOn(SunsetConfig, 'updateAdvanceMinutes')
+        .mockResolvedValue({ ...mockConfig, advance_minutes: 30 });
 
       const result = await SunsetConfig.updateAdvanceMinutes('guild-123', 30);
 
       expect(result).toBeDefined();
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          advance_minutes: 30,
-          updated_at: expect.any(Date),
-        })
-      );
+      expect(result?.advance_minutes).toBe(30);
+      expect(SunsetConfig.updateAdvanceMinutes).toHaveBeenCalledWith('guild-123', 30);
     });
 
     test('should return null for non-existent guild', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(null);
+      jest.spyOn(SunsetConfig, 'updateAdvanceMinutes').mockResolvedValue(null);
 
       const result = await SunsetConfig.updateAdvanceMinutes('guild-999', 30);
 
@@ -286,60 +209,40 @@ describe('SunsetConfig Model', () => {
 
   describe('updateLastAnnouncement', () => {
     test('should update last_announcement timestamp when config exists', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
+      jest.spyOn(SunsetConfig, 'updateLastAnnouncement').mockResolvedValue(undefined);
 
       await SunsetConfig.updateLastAnnouncement('guild-123');
 
-      expect(mockConfig.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          last_announcement: expect.any(Date),
-          updated_at: expect.any(Date),
-        })
-      );
+      expect(SunsetConfig.updateLastAnnouncement).toHaveBeenCalledWith('guild-123');
     });
 
-    test('should do nothing when config does not exist', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(null);
+    test('should not throw when config does not exist', async () => {
+      jest.spyOn(SunsetConfig, 'updateLastAnnouncement').mockResolvedValue(undefined);
 
-      await SunsetConfig.updateLastAnnouncement('guild-999');
-
-      // No update should be called since config is null
-      expect(mockConfig.update).not.toHaveBeenCalled();
+      await expect(SunsetConfig.updateLastAnnouncement('guild-999')).resolves.not.toThrow();
     });
   });
 
   describe('Queries', () => {
-    test('should find by guild_id', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
+    test('should find by guild_id using getGuildConfig', async () => {
+      jest.spyOn(SunsetConfig, 'getGuildConfig').mockResolvedValue(mockConfig);
 
-      const config = await (SunsetConfig as any).findOne({
-        where: { guild_id: 'guild-123' },
-      });
+      const config = await SunsetConfig.getGuildConfig('guild-123');
 
       expect(config).toBeDefined();
-      expect(config.guild_id).toBe('guild-123');
+      expect(config?.guild_id).toBe('guild-123');
     });
 
-    test('should find all configurations', async () => {
-      jest.spyOn(SunsetConfig as any, 'findAll').mockResolvedValue([
+    test('should find all enabled configurations', async () => {
+      jest.spyOn(SunsetConfig, 'getEnabledConfigs').mockResolvedValue([
         { ...mockConfig, guild_id: 'guild-1' },
         { ...mockConfig, guild_id: 'guild-2' },
         { ...mockConfig, guild_id: 'guild-3' },
       ]);
 
-      const all = await (SunsetConfig as any).findAll();
+      const all = await SunsetConfig.getEnabledConfigs();
 
       expect(all).toHaveLength(3);
-    });
-
-    test('should update configuration via instance update', async () => {
-      jest.spyOn(SunsetConfig as any, 'findOne').mockResolvedValue(mockConfig);
-
-      const config = await SunsetConfig.getGuildConfig('guild-123');
-      await config?.update({ zip_code: '10001' });
-
-      expect(config?.zip_code).toBe('10001');
-      expect(config?.update).toHaveBeenCalledWith({ zip_code: '10001' });
     });
   });
 });

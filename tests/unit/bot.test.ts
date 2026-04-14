@@ -87,7 +87,7 @@ jest.mock('../../utils/interactions', () => ({
 }));
 
 // Mock database
-jest.mock('../../database', () => ({
+jest.mock('../../supabase', () => ({
   sequelize: mockSequelize,
 }));
 
@@ -239,7 +239,7 @@ describe('Bot Initialization', () => {
     it('should filter only .js files', () => {
       // The bot filters for .js files (after TypeScript compilation)
       const files = ['command.js', 'command.d.ts', 'README.md', '.DS_Store'];
-      const commandFiles = files.filter(file => file.endsWith('.js') && !file.endsWith('.d.ts'));
+      const commandFiles = files.filter((file) => file.endsWith('.js') && !file.endsWith('.d.ts'));
 
       expect(commandFiles).toHaveLength(1);
       expect(commandFiles).toContain('command.js');

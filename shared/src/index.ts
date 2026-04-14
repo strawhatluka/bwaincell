@@ -16,7 +16,7 @@ export type {
   NoteModel,
   ScheduleModel,
   UserModel,
-} from "./types/database";
+} from './types/database';
 
 // API types (to be added as needed)
 // export type { ... } from './types/api';
