@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `IngredientCategory`, `SanitizerInputItem`, `SanitizedItem`, and `SanitizedShoppingList` type exports to `backend/utils/geminiService.ts`
 - Add `sanitizeShoppingList` function to `backend/utils/geminiService.ts` to clean up and categorize aggregated shopping lists using Gemini (issue #44)
 - Add `sanitizeAggregatedList` helper function to `backend/utils/shoppingList.ts` to integrate Gemini's shopping list sanitation (issue #44)
-
 - Add `Recipe` model import to `backend/commands/random.ts` (issue #44)
 - Add `formatQuantity` and `RecipeIngredient` imports to `backend/commands/random.ts` (issue #44)
 - Add imports for `ingestRecipeFromUrl`, `summarizeProvenance`, `FieldProvenance` to `backend/commands/recipe.ts` (issue #44)
