@@ -53,12 +53,12 @@ router.post('/google/verify', async (req: Request, res: Response) => {
 
       // Create new user
       user = await User.create({
-        googleId: googleUser.googleId,
+        google_id: googleUser.googleId,
         email: googleUser.email,
         name: googleUser.name,
         picture: googleUser.picture,
-        discordId: discordId,
-        guildId: guildId,
+        discord_id: discordId,
+        guild_id: guildId,
       });
 
       logger.info('[OAUTH] New user created', {
@@ -73,37 +73,37 @@ router.post('/google/verify', async (req: Request, res: Response) => {
       };
 
       // Update Discord IDs if they're missing (migration support)
-      if (!user.discordId || !user.guildId) {
+      if (!user.discord_id || !user.guild_id) {
         const emailToDiscordMap: Record<string, string> = {
           [process.env.STRAWHATLUKA_EMAIL || '']: process.env.STRAWHATLUKA_DISCORD_ID || '',
           [process.env.DANDELION_EMAIL || '']: process.env.DANDELION_DISCORD_ID || '',
         };
 
-        updateData.discordId =
+        updateData.discord_id =
           emailToDiscordMap[googleUser.email] || process.env.STRAWHATLUKA_DISCORD_ID || '';
-        updateData.guildId = process.env.GUILD_ID || '';
+        updateData.guild_id = process.env.GUILD_ID || '';
       }
 
       user = (await User.update(user.id, updateData)) || user;
 
       logger.info('[OAUTH] User updated', {
         email: googleUser.email,
-        discordId: user.discordId,
+        discordId: user.discord_id,
       });
     }
 
     // Generate tokens
     const accessToken = generateAccessToken({
-      googleId: user.googleId,
+      googleId: user.google_id,
       email: user.email,
-      discordId: user.discordId,
-      guildId: user.guildId,
+      discordId: user.discord_id,
+      guildId: user.guild_id,
     });
 
-    const refreshToken = generateRefreshToken(user.googleId);
+    const refreshToken = generateRefreshToken(user.google_id);
 
     // Store refresh token
-    await User.update(user.id, { refreshToken });
+    await User.update(user.id, { refresh_token: refreshToken });
 
     return res.json({
       success: true,
@@ -152,7 +152,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     // Find user by googleId and verify refresh token matches
     const user = await User.findByGoogleId(decoded.googleId);
 
-    if (!user || user.refreshToken !== refreshToken) {
+    if (!user || user.refresh_token !== refreshToken) {
       return res.status(401).json({
         success: false,
         message: 'Invalid refresh token',
@@ -161,10 +161,10 @@ router.post('/refresh', async (req: Request, res: Response) => {
 
     // Generate new access token
     const accessToken = generateAccessToken({
-      googleId: user.googleId,
+      googleId: user.google_id,
       email: user.email,
-      discordId: user.discordId,
-      guildId: user.guildId,
+      discordId: user.discord_id,
+      guildId: user.guild_id,
     });
 
     return res.json({
@@ -200,7 +200,7 @@ router.post('/logout', async (req: Request, res: Response) => {
       const user = await User.findByGoogleId(decoded.googleId);
 
       if (user) {
-        await User.update(user.id, { refreshToken: null });
+        await User.update(user.id, { refresh_token: null });
       }
     }
 

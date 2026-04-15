@@ -8,23 +8,18 @@ import {
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
 import { GeminiService } from '../utils/geminiService';
+import Recipe from '../../supabase/models/Recipe';
+import { formatQuantity } from '../utils/fractionFormat';
+import type { RecipeIngredient } from '../../supabase/types';
 
 // Import recipe data (will need to type this properly later)
-const { dinnerOptions, movieData } = require('../utils/recipeData');
+const { movieData } = require('../utils/recipeData');
 
 interface MovieDetails {
   year: string;
   genre: string;
   rating: string;
   link: string;
-}
-
-interface DinnerDetails {
-  description: string;
-  image: string;
-  prepTime: string;
-  difficulty: string;
-  recipe: string;
 }
 
 const dateIdeas: string[] = [
@@ -72,7 +67,7 @@ export default {
       subcommand.setName('movie').setDescription('Pick a random movie')
     )
     .addSubcommand((subcommand) =>
-      subcommand.setName('dinner').setDescription('Pick a random dinner option')
+      subcommand.setName('recipe').setDescription('Pick a random recipe from your saved recipes')
     )
     .addSubcommand((subcommand) =>
       subcommand.setName('date').setDescription('Generate a random date idea')
@@ -163,37 +158,74 @@ export default {
           break;
         }
 
-        case 'dinner': {
-          const dinnerNames = Object.keys(dinnerOptions);
-          const dinner = dinnerNames[Math.floor(Math.random() * dinnerNames.length)];
-          const details: DinnerDetails = dinnerOptions[dinner];
+        case 'recipe': {
+          const guildId = interaction.guild?.id;
+          if (!guildId) {
+            await interaction.editReply({
+              content: '❌ This command can only be used in a server.',
+            });
+            return;
+          }
 
-          embed
-            .setTitle('🍽️ Random Dinner Pick')
-            .setDescription(`**${dinner}**\n${details.description}`)
-            .setImage(details.image)
-            .addFields(
-              { name: '⏱️ Prep Time', value: details.prepTime, inline: true },
-              { name: '📊 Difficulty', value: details.difficulty, inline: true }
-            )
-            .setFooter({ text: 'Click below for the full recipe!' });
+          const recipe = await Recipe.getRandom(guildId);
+          if (!recipe) {
+            await interaction.editReply({
+              content: '❌ No recipes yet. Add some with `/recipe add`.',
+            });
+            return;
+          }
+
+          const descParts: string[] = [];
+          if (recipe.cuisine) descParts.push(`🍽️ ${recipe.cuisine}`);
+          if (recipe.difficulty) descParts.push(`⚙️ ${recipe.difficulty}`);
+          if (recipe.dietary_tags && recipe.dietary_tags.length > 0) {
+            descParts.push(`🥗 ${recipe.dietary_tags.join(', ')}`);
+          }
+
+          embed.setTitle(`🎲 Bwaincell Picks: ${recipe.name}`).setColor(0x9b59b6);
+          if (descParts.length > 0) embed.setDescription(descParts.join(' • '));
+          if (recipe.image_url) embed.setImage(recipe.image_url);
+          embed.addFields(
+            {
+              name: '🍽️ Servings',
+              value: recipe.servings !== null ? String(recipe.servings) : '?',
+              inline: true,
+            },
+            {
+              name: '⏱️ Prep Time',
+              value: recipe.prep_time_minutes !== null ? `${recipe.prep_time_minutes} min` : '?',
+              inline: true,
+            },
+            {
+              name: '🔥 Cook Time',
+              value: recipe.cook_time_minutes !== null ? `${recipe.cook_time_minutes} min` : '?',
+              inline: true,
+            }
+          );
+
+          const firstFive = recipe.ingredients
+            .slice(0, 5)
+            .map((ing: RecipeIngredient) => {
+              const qty = formatQuantity(ing.quantity);
+              const unit = ing.unit ? ` ${ing.unit}` : '';
+              const prefix = qty ? `${qty}${unit} ` : '';
+              return `- ${prefix}${ing.name}`.trim();
+            })
+            .join('\n');
+          if (firstFive.length > 0) {
+            embed.addFields({
+              name: `🧂 Ingredients (${recipe.ingredients.length})`,
+              value: `\`\`\`\n${firstFive}\n\`\`\``,
+            });
+          }
+          embed.setFooter({ text: 'Use /recipe view to cook this' });
 
           const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
-              .setLabel('View Recipe')
-              .setURL(details.recipe)
-              .setStyle(ButtonStyle.Link)
-              .setEmoji('📖'),
-            new ButtonBuilder()
-              .setCustomId('random_dinner_reroll')
+              .setCustomId('random_recipe_reroll')
               .setLabel('Pick Another')
               .setStyle(ButtonStyle.Secondary)
-              .setEmoji('🎲'),
-            new ButtonBuilder()
-              .setCustomId(`save_dinner_${dinner}`)
-              .setLabel('Save to List')
-              .setStyle(ButtonStyle.Success)
-              .setEmoji('💾')
+              .setEmoji('🎲')
           );
 
           await interaction.editReply({ embeds: [embed], components: [row] });

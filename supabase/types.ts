@@ -185,32 +185,32 @@ export interface ScheduleInsert {
 
 export interface UserRow {
   id: number;
-  googleId: string;
+  google_id: string;
   email: string;
   name: string;
   picture: string | null;
-  discordId: string;
-  guildId: string;
-  refreshToken: string | null;
-  createdAt: string;
-  updatedAt: string;
+  discord_id: string;
+  guild_id: string;
+  refresh_token: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserInsert {
-  googleId: string;
+  google_id: string;
   email: string;
   name: string;
   picture?: string | null;
-  discordId: string;
-  guildId: string;
-  refreshToken?: string | null;
+  discord_id: string;
+  guild_id: string;
+  refresh_token?: string | null;
 }
 
 export interface UserUpdate {
   name?: string;
   picture?: string | null;
-  refreshToken?: string | null;
-  updatedAt?: string;
+  refresh_token?: string | null;
+  updated_at?: string;
 }
 
 export interface EventConfigRow {
@@ -289,6 +289,147 @@ export interface SunsetConfigUpdate {
   updated_at?: string;
 }
 
+// ============ Recipe Types ============
+
+export type RecipeDifficulty = 'easy' | 'medium' | 'hard';
+export type RecipeSourceType = 'website' | 'video' | 'file' | 'manual';
+
+export interface RecipeIngredient {
+  name: string;
+  quantity: number | string; // e.g., 1.5 or "1/2"
+  unit: string; // e.g., "cup", "tbsp", "g", "oz", "" for unit-less
+  category?: string; // "produce", "meats", "dairy", "pantry", "spices", "frozen", "bakery", "other"
+}
+
+export interface RecipeNutrition {
+  calories?: number;
+  protein?: number; // grams
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number; // mg
+}
+
+export interface RecipeRow {
+  id: number;
+  name: string;
+  source_url: string | null;
+  source_type: RecipeSourceType;
+  ingredients: RecipeIngredient[];
+  instructions: string[];
+  servings: number | null;
+  prep_time_minutes: number | null;
+  cook_time_minutes: number | null;
+  nutrition: RecipeNutrition | null;
+  cuisine: string | null;
+  difficulty: RecipeDifficulty | null;
+  dietary_tags: string[];
+  image_url: string | null;
+  notes: string | null;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  guild_id: string;
+}
+
+export interface RecipeInsert {
+  name: string;
+  source_url?: string | null;
+  source_type?: RecipeSourceType;
+  ingredients: RecipeIngredient[];
+  instructions: string[];
+  servings?: number | null;
+  prep_time_minutes?: number | null;
+  cook_time_minutes?: number | null;
+  nutrition?: RecipeNutrition | null;
+  cuisine?: string | null;
+  difficulty?: RecipeDifficulty | null;
+  dietary_tags?: string[];
+  image_url?: string | null;
+  notes?: string | null;
+  is_favorite?: boolean;
+  user_id: string;
+  guild_id: string;
+}
+
+export interface RecipeUpdate {
+  name?: string;
+  source_url?: string | null;
+  ingredients?: RecipeIngredient[];
+  instructions?: string[];
+  servings?: number | null;
+  prep_time_minutes?: number | null;
+  cook_time_minutes?: number | null;
+  nutrition?: RecipeNutrition | null;
+  cuisine?: string | null;
+  difficulty?: RecipeDifficulty | null;
+  dietary_tags?: string[];
+  image_url?: string | null;
+  notes?: string | null;
+  is_favorite?: boolean;
+  updated_at?: string;
+}
+
+// ============ Meal Plan Types ============
+
+export interface MealPlanRow {
+  id: number;
+  recipe_ids: number[];
+  servings_per_recipe: number[];
+  week_start: string; // YYYY-MM-DD
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  guild_id: string;
+}
+
+export interface MealPlanInsert {
+  recipe_ids: number[];
+  servings_per_recipe: number[];
+  week_start: string;
+  archived?: boolean;
+  user_id: string;
+  guild_id: string;
+}
+
+export interface MealPlanUpdate {
+  recipe_ids?: number[];
+  servings_per_recipe?: number[];
+  week_start?: string;
+  archived?: boolean;
+  updated_at?: string;
+  user_id?: string;
+}
+
+// ============ Recipe Preferences Types ============
+
+export interface RecipePreferencesRow {
+  id: number;
+  guild_id: string;
+  dietary_restrictions: string[];
+  excluded_cuisines: string[];
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
+export interface RecipePreferencesInsert {
+  guild_id: string;
+  dietary_restrictions?: string[];
+  excluded_cuisines?: string[];
+  user_id: string;
+}
+
+export interface RecipePreferencesUpdate {
+  dietary_restrictions?: string[];
+  excluded_cuisines?: string[];
+  updated_at?: string;
+  user_id?: string;
+}
+
 // ============ Supabase Database Type Definition ============
 
 export interface ScheduleUpdate {
@@ -355,12 +496,32 @@ export interface Database {
         Update: SunsetConfigUpdate;
         Relationships: [];
       };
+      recipes: {
+        Row: RecipeRow;
+        Insert: RecipeInsert;
+        Update: RecipeUpdate;
+        Relationships: [];
+      };
+      meal_plans: {
+        Row: MealPlanRow;
+        Insert: MealPlanInsert;
+        Update: MealPlanUpdate;
+        Relationships: [];
+      };
+      recipe_preferences: {
+        Row: RecipePreferencesRow;
+        Insert: RecipePreferencesInsert;
+        Update: RecipePreferencesUpdate;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
       reminder_frequency: ReminderFrequency;
       budget_type: BudgetType;
+      recipe_difficulty: RecipeDifficulty;
+      recipe_source_type: RecipeSourceType;
     };
   };
 }

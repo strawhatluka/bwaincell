@@ -108,22 +108,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
 
-    # PostgreSQL service for backend tests (Supabase-compatible)
-    # Tests use mocked Supabase client, but DB is available for future integration tests
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5433:5432
+    # Backend tests use mocked Supabase client — no live database needed.
 
     steps:
       - name: Checkout code
@@ -158,7 +143,6 @@ jobs:
       - name: Run backend tests with coverage
         env:
           NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/postgres
           SUPABASE_URL: http://test-supabase.local
           SUPABASE_SERVICE_ROLE_KEY: test-key
         run: npm run test:coverage --workspace=backend
@@ -225,18 +209,18 @@ jobs:
       - name: Build shared package
         run: npm run build --workspace=shared
 
-      - name: Generate Prisma Client
-        run: npx prisma generate --schema=frontend/prisma/schema.prisma
+      - name: Build supabase package (TS project reference for frontend)
+        run: npx tsc --build supabase
 
       - name: Lint frontend
         run: npm run lint --workspace=frontend
 
       - name: Build frontend
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/postgres
-          NEXT_PUBLIC_API_URL: http://localhost:3000
           NEXTAUTH_SECRET: test_secret_for_ci_build_only
           NEXTAUTH_URL: http://localhost:3010
+          SUPABASE_URL: http://test-supabase.local
+          SUPABASE_SERVICE_ROLE_KEY: test-key
         run: npm run build --workspace=frontend
 
       - name: Run frontend tests with coverage

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import Reminder from '@database/models/Reminder';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -19,10 +20,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
@@ -34,15 +32,9 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       return NextResponse.json({ success: false, error: 'Invalid reminder ID' }, { status: 400 });
     }
 
-    // Delete reminder
-    const deletedReminder = await prisma.reminder.deleteMany({
-      where: {
-        id: reminderId,
-        guildId: user.guildId,
-      },
-    });
+    const deleted = await Reminder.deleteReminder(reminderId, user.guild_id);
 
-    if (deletedReminder.count === 0) {
+    if (!deleted) {
       return NextResponse.json({ success: false, error: 'Reminder not found' }, { status: 404 });
     }
 

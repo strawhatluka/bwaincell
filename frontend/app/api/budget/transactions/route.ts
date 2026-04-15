@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
-import { BudgetType } from '@prisma/client';
+import { User } from '@database/models/User';
+import Budget from '@database/models/Budget';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
  * GET /api/budget/transactions
- * Retrieve all budget transactions for the authenticated user's guild
+ * Retrieve recent budget transactions for the authenticated user's guild
  */
 export async function GET(request: NextRequest) {
   try {
@@ -19,19 +19,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    const transactions = await prisma.budget.findMany({
-      where: { guildId: user.guildId },
-      orderBy: { date: 'desc' },
-    });
+    const transactions = await Budget.getRecentEntries(user.guild_id, 100);
 
     return NextResponse.json({
       success: true,
@@ -62,17 +56,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true, discordId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
-    const { amount, type, category, description, date } = body;
+    const { amount, type, category, description } = body;
 
     // Validate required fields
     if (!amount || typeof amount !== 'number') {
@@ -89,36 +80,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!category || typeof category !== 'string') {
+    if (type === 'expense' && (!category || typeof category !== 'string')) {
       return NextResponse.json({ success: false, error: 'Category is required' }, { status: 400 });
     }
 
-    // Parse date as local timezone, not UTC
-    // If date is YYYY-MM-DD format, append time to treat as local timezone
-    let transactionDate: Date;
-    if (date) {
-      // Check if date is YYYY-MM-DD format (no time component)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        // Append local midnight time to prevent UTC conversion
-        transactionDate = new Date(date + 'T00:00:00');
-      } else {
-        transactionDate = new Date(date);
-      }
-    } else {
-      transactionDate = new Date();
-    }
-
-    const transaction = await prisma.budget.create({
-      data: {
-        amount,
-        type: type as BudgetType,
+    let transaction;
+    if (type === 'expense') {
+      transaction = await Budget.addExpense(
+        user.guild_id,
         category,
-        description: description || null,
-        date: transactionDate,
-        userId: user.discordId,
-        guildId: user.guildId,
-      },
-    });
+        amount,
+        description || undefined,
+        user.discord_id
+      );
+    } else {
+      transaction = await Budget.addIncome(
+        user.guild_id,
+        amount,
+        description || undefined,
+        user.discord_id
+      );
+    }
 
     return NextResponse.json(
       {

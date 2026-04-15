@@ -22,6 +22,7 @@ import { handleTaskButton } from './handlers/taskHandlers';
 import { handleListButton } from './handlers/listHandlers';
 import { handleReminderButton } from './handlers/reminderHandlers';
 import { handleRandomButton } from './handlers/randomHandlers';
+import { handleRecipeButton } from './handlers/recipeHandlers';
 import { handleSelectMenuInteraction } from './handlers/selectMenuHandlers';
 import { handleModalSubmit } from './modals/modalHandlers';
 
@@ -105,8 +106,10 @@ async function handleButtonInteractionInternal(
       await handleListButton(interaction);
     } else if (customId.startsWith('reminder_')) {
       await handleReminderButton(interaction);
-    } else if (customId.startsWith('random_') || customId.startsWith('save_dinner_')) {
+    } else if (customId.startsWith('random_')) {
       await handleRandomButton(interaction);
+    } else if (customId.startsWith('recipe_')) {
+      await handleRecipeButton(interaction);
     } else if (
       customId === 'schedule_add_new' ||
       customId === 'budget_add_new' ||

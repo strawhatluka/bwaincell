@@ -7,18 +7,12 @@ jest.mock('next-auth', () => ({
   getServerSession: jest.fn(),
 }));
 jest.mock('next-auth/providers/google', () => ({ __esModule: true, default: jest.fn() }));
-jest.mock('@/lib/db/prisma', () => {
-  const mock = {
-    user: { findUnique: jest.fn() },
-    reminder: { deleteMany: jest.fn() },
-  };
-  return { __esModule: true, default: mock, prisma: mock };
-});
 
 import { DELETE } from '@/app/api/reminders/[id]/route';
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import Reminder from '@database/models/Reminder';
 
 const mockSession = getServerSession as jest.Mock;
 
@@ -28,11 +22,11 @@ describe('/api/reminders/[id] DELETE', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSession.mockResolvedValue({ user: { email: 'test@example.com' } });
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({ guildId: 'guild-456' });
+    (User.findByEmail as jest.Mock).mockResolvedValue({ guild_id: 'guild-456' });
   });
 
   it('deletes a reminder', async () => {
-    (prisma.reminder.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
+    (Reminder.deleteReminder as jest.Mock).mockResolvedValue(true);
     const res = await DELETE(req(), { params: Promise.resolve({ id: '1' }) });
     const body = await res.json();
     expect(res.status).toBe(200);
@@ -46,7 +40,7 @@ describe('/api/reminders/[id] DELETE', () => {
   });
 
   it('returns 404 when user not found', async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+    (User.findByEmail as jest.Mock).mockResolvedValue(null);
     const res = await DELETE(req(), { params: Promise.resolve({ id: '1' }) });
     expect(res.status).toBe(404);
   });
@@ -57,21 +51,19 @@ describe('/api/reminders/[id] DELETE', () => {
   });
 
   it('returns 404 when reminder not found', async () => {
-    (prisma.reminder.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
+    (Reminder.deleteReminder as jest.Mock).mockResolvedValue(false);
     const res = await DELETE(req(), { params: Promise.resolve({ id: '1' }) });
     expect(res.status).toBe(404);
   });
 
-  it('scopes delete by guildId', async () => {
-    (prisma.reminder.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
+  it('scopes delete by guild_id', async () => {
+    (Reminder.deleteReminder as jest.Mock).mockResolvedValue(true);
     await DELETE(req(), { params: Promise.resolve({ id: '42' }) });
-    expect(prisma.reminder.deleteMany).toHaveBeenCalledWith({
-      where: { id: 42, guildId: 'guild-456' },
-    });
+    expect(Reminder.deleteReminder).toHaveBeenCalledWith(42, 'guild-456');
   });
 
-  it('returns 500 on prisma error', async () => {
-    (prisma.reminder.deleteMany as jest.Mock).mockRejectedValue(new Error('db'));
+  it('returns 500 on db error', async () => {
+    (Reminder.deleteReminder as jest.Mock).mockRejectedValue(new Error('db'));
     const res = await DELETE(req(), { params: Promise.resolve({ id: '1' }) });
     expect(res.status).toBe(500);
   });

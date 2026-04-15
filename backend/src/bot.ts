@@ -207,9 +207,19 @@ function setupEventHandlers() {
                 logger.debug('Button interaction deferred', { customId: interaction.customId });
               }
             } else if (interaction.isStringSelectMenu()) {
-              // Select menus use deferUpdate to keep the message intact
-              await interaction.deferUpdate();
-              logger.debug('Select menu interaction deferred', { customId: interaction.customId });
+              // Select menus that open a modal must NOT be deferred (modals require non-deferred interactions)
+              const modalSelectMenus = ['recipe_edit_field_'];
+              const selectOpensModal = modalSelectMenus.some((prefix) =>
+                interaction.customId.startsWith(prefix)
+              );
+
+              if (!selectOpensModal) {
+                // Select menus use deferUpdate to keep the message intact
+                await interaction.deferUpdate();
+                logger.debug('Select menu interaction deferred', {
+                  customId: interaction.customId,
+                });
+              }
             } else {
               // Commands and modals use deferReply
               await interaction.deferReply();

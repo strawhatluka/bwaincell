@@ -132,12 +132,12 @@ describe('OAuth API Routes', () => {
 
       const mockNewUser = {
         id: 'user-uuid-new',
-        googleId: 'google-new',
+        google_id: 'google-new',
         email: 'luka@test.com',
         name: 'New User',
         picture: null,
-        discordId: 'discord-luka-123',
-        guildId: 'test-guild-id',
+        discord_id: 'discord-luka-123',
+        guild_id: 'test-guild-id',
       };
       mockUserCreate.mockResolvedValue(mockNewUser);
       mockUserUpdate.mockResolvedValue(mockNewUser);
@@ -153,7 +153,7 @@ describe('OAuth API Routes', () => {
       expect(res.body.data.accessToken).toBe('new-access-token');
       expect(mockUserCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          googleId: 'google-new',
+          google_id: 'google-new',
           email: 'luka@test.com',
         })
       );
@@ -247,11 +247,11 @@ describe('OAuth API Routes', () => {
       mockJwtVerify.mockReturnValue({ googleId: 'google-123' });
 
       const mockUser = {
-        googleId: 'google-123',
+        google_id: 'google-123',
         email: 'luka@test.com',
-        discordId: 'discord-luka-123',
-        guildId: 'test-guild-id',
-        refreshToken: 'valid-refresh-token',
+        discord_id: 'discord-luka-123',
+        guild_id: 'test-guild-id',
+        refresh_token: 'valid-refresh-token',
       };
       mockUserFindByGoogleId.mockResolvedValue(mockUser);
       mockGenerateAccessToken.mockReturnValue('new-access-token');
@@ -309,11 +309,11 @@ describe('OAuth API Routes', () => {
 
       const mockUser = {
         id: 'user-uuid-123',
-        googleId: 'google-123',
-        refreshToken: 'valid-refresh-token',
+        google_id: 'google-123',
+        refresh_token: 'valid-refresh-token',
       };
       mockUserFindByGoogleId.mockResolvedValue(mockUser);
-      mockUserUpdate.mockResolvedValue({ ...mockUser, refreshToken: null });
+      mockUserUpdate.mockResolvedValue({ ...mockUser, refresh_token: null });
 
       const res = await request(app)
         .post('/auth/logout')
@@ -322,7 +322,7 @@ describe('OAuth API Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.message).toContain('Logged out successfully');
-      expect(mockUserUpdate).toHaveBeenCalledWith('user-uuid-123', { refreshToken: null });
+      expect(mockUserUpdate).toHaveBeenCalledWith('user-uuid-123', { refresh_token: null });
     });
 
     it('should return 200 even without refresh token', async () => {

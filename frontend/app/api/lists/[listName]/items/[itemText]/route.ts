@@ -1,26 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import List from '@database/models/List';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-interface ListItem {
-  text: string;
-  completed: boolean;
-  added_at: string;
-}
 
 /**
  * DELETE /api/lists/[listName]/items/[itemText]
  * Remove an item from a list
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   props: { params: Promise<{ listName: string; itemText: string }> }
 ) {
-  const params = await props.params;
+  const { listName: rawListName, itemText: rawItemText } = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -28,53 +23,23 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    const listName = decodeURIComponent(params.listName);
-    const itemText = decodeURIComponent(params.itemText);
+    const listName = decodeURIComponent(rawListName);
+    const itemText = decodeURIComponent(rawItemText);
 
-    // Find the list
-    const list = await prisma.list.findFirst({
-      where: {
-        guildId: user.guildId,
-        name: {
-          equals: listName,
-          mode: 'insensitive',
-        },
-      },
-    });
+    const updatedList = await List.removeItem(user.guild_id, listName, itemText);
 
-    if (!list) {
-      return NextResponse.json({ success: false, error: 'List not found' }, { status: 404 });
-    }
-
-    // Parse existing items
-    const items: ListItem[] = Array.isArray(list.items)
-      ? (list.items as unknown as ListItem[])
-      : [];
-
-    // Remove the item (case-insensitive match)
-    const updatedItems = items.filter((item) => item.text.toLowerCase() !== itemText.toLowerCase());
-
-    if (updatedItems.length === items.length) {
+    if (!updatedList) {
       return NextResponse.json(
-        { success: false, error: 'Item not found in list' },
+        { success: false, error: 'List or item not found' },
         { status: 404 }
       );
     }
-
-    // Update list with filtered items array
-    const updatedList = await prisma.list.update({
-      where: { id: list.id },
-      data: { items: updatedItems as any },
-    });
 
     return NextResponse.json({
       success: true,

@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import Budget from '@database/models/Budget';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
  * GET /api/budget
- * Returns all budget transactions for the authenticated user's guild
+ * Returns recent budget transactions for the authenticated user's guild
  */
 export async function GET(request: NextRequest) {
   try {
@@ -18,19 +19,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    const transactions = await prisma.budget.findMany({
-      where: { guildId: user.guildId },
-      orderBy: { date: 'desc' },
-    });
+    const transactions = await Budget.getRecentEntries(user.guild_id, 100);
 
     return NextResponse.json({
       success: true,

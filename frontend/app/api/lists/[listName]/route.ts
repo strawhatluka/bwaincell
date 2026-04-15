@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
+import { User } from '@database/models/User';
+import List from '@database/models/List';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -11,10 +12,10 @@ export const runtime = 'nodejs';
  * Delete a list by name
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   props: { params: Promise<{ listName: string }> }
 ) {
-  const params = await props.params;
+  const { listName: rawListName } = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -22,29 +23,17 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    const listName = decodeURIComponent(params.listName);
+    const listName = decodeURIComponent(rawListName);
 
-    // Delete the list
-    const deletedList = await prisma.list.deleteMany({
-      where: {
-        guildId: user.guildId,
-        name: {
-          equals: listName,
-          mode: 'insensitive',
-        },
-      },
-    });
+    const deleted = await List.deleteList(user.guild_id, listName);
 
-    if (deletedList.count === 0) {
+    if (!deleted) {
       return NextResponse.json({ success: false, error: 'List not found' }, { status: 404 });
     }
 

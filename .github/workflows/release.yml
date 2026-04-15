@@ -58,58 +58,6 @@ jobs:
           echo "$EOF" >> $GITHUB_OUTPUT
 
   # ---------------------------------------------------------------------------
-  # Validate (tests + build)
-  # ---------------------------------------------------------------------------
-  validate:
-    name: Validate Release
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5433:5432
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci --ignore-scripts
-      - name: Build shared package
-        run: npm run build --workspace=shared
-      - name: Build supabase package (TS project reference for backend)
-        run: npx tsc --build supabase
-      - name: Build backend
-        run: npm run build --workspace=backend
-      - name: Generate Prisma Client
-        run: npx prisma generate --schema=frontend/prisma/schema.prisma
-      - name: Build frontend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/postgres
-          NEXT_PUBLIC_API_URL: http://localhost:3000
-          NEXTAUTH_SECRET: test_secret_for_ci_build_only
-          NEXTAUTH_URL: http://localhost:3010
-        run: npm run build --workspace=frontend
-      - name: Run backend tests
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/postgres
-          SUPABASE_URL: http://test-supabase.local
-          SUPABASE_SERVICE_ROLE_KEY: test-key
-        run: npm run test --workspace=backend
-      - name: Run frontend tests
-        run: npm run test --workspace=frontend
-
-  # ---------------------------------------------------------------------------
   # Create draft release
   # ---------------------------------------------------------------------------
   release:

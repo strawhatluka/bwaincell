@@ -20,6 +20,17 @@ module.exports = {
     '!**/coverage/**',
     '!**/*.test.ts',
     '!tests/**',
+    // Process entrypoints + thin SDK wrappers — tested end-to-end in Discord,
+    // not unit-testable without elaborate SDK mocking that provides no signal.
+    '!src/bot.ts',
+    '!src/deploy-commands.ts',
+    '!utils/googleServices.ts',
+  ],
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '<rootDir>/src/bot.ts',
+    '<rootDir>/src/deploy-commands.ts',
+    '<rootDir>/utils/googleServices.ts',
   ],
   moduleNameMapper: {
     '^@shared/(.*)$': '<rootDir>/shared/$1',
@@ -36,10 +47,10 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
   coverageThreshold: {
     global: {
-      branches: 0, // TODO: Increase to 80% as coverage improves
-      functions: 0, // TODO: Increase to 80% as coverage improves
-      lines: 0, // TODO: Increase to 80% as coverage improves
-      statements: 0, // TODO: Increase to 80% as coverage improves
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
     },
   },
   testTimeout: 10000,

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/db/prisma';
-import { BudgetType } from '@prisma/client';
+import { User } from '@database/models/User';
+import Budget from '@database/models/Budget';
+import supabase from '@database/supabase';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -20,10 +21,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
@@ -44,10 +42,10 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     // Build update data object
     const updateData: {
       amount?: number;
-      type?: BudgetType;
+      type?: string;
       category?: string;
       description?: string | null;
-      date?: Date;
+      date?: string;
     } = {};
 
     if (amount !== undefined) {
@@ -67,7 +65,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
           { status: 400 }
         );
       }
-      updateData.type = type as BudgetType;
+      updateData.type = type;
     }
 
     if (category !== undefined) {
@@ -80,35 +78,30 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
     if (date !== undefined) {
       // Parse date as local timezone, not UTC
+      let d: Date;
       if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        // Append local midnight time to prevent UTC conversion
-        updateData.date = new Date(date + 'T00:00:00');
+        d = new Date(date + 'T00:00:00');
       } else {
-        updateData.date = new Date(date);
+        d = new Date(date);
       }
+      updateData.date = d.toISOString();
     }
 
-    // Update transaction
-    const updatedTransaction = await prisma.budget.updateMany({
-      where: {
-        id: transactionId,
-        guildId: user.guildId,
-      },
-      data: updateData,
-    });
+    const { data: updated, error } = await supabase
+      .from('budgets')
+      .update(updateData)
+      .eq('id', transactionId)
+      .eq('guild_id', user.guild_id)
+      .select()
+      .single();
 
-    if (updatedTransaction.count === 0) {
+    if (error || !updated) {
       return NextResponse.json({ success: false, error: 'Transaction not found' }, { status: 404 });
     }
 
-    // Fetch and return updated transaction
-    const transaction = await prisma.budget.findUnique({
-      where: { id: transactionId },
-    });
-
     return NextResponse.json({
       success: true,
-      data: transaction,
+      data: updated,
       message: 'Transaction updated successfully',
     });
   } catch (error) {
@@ -137,10 +130,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
@@ -155,15 +145,9 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       );
     }
 
-    // Delete transaction
-    const deletedTransaction = await prisma.budget.deleteMany({
-      where: {
-        id: transactionId,
-        guildId: user.guildId,
-      },
-    });
+    const deleted = await Budget.deleteEntry(transactionId, user.guild_id);
 
-    if (deletedTransaction.count === 0) {
+    if (!deleted) {
       return NextResponse.json({ success: false, error: 'Transaction not found' }, { status: 404 });
     }
 

@@ -2,7 +2,7 @@
  * Unit tests for /random slash command
  *
  * Tests the Discord slash command with 8 subcommands:
- * movie, dinner, date, question, choice, number, coin, dice
+ * movie, recipe, date, question, choice, number, coin, dice
  */
 
 // Mock dependencies BEFORE imports
@@ -31,16 +31,14 @@ jest.mock('../../../utils/geminiService', () => ({
   },
 }));
 
-jest.mock('../../../utils/recipeData', () => ({
-  dinnerOptions: {
-    'Pasta Carbonara': {
-      description: 'Classic Italian',
-      image: 'http://img.com/pasta.jpg',
-      prepTime: '30 min',
-      difficulty: 'Medium',
-      recipe: 'http://recipe.com/pasta',
-    },
+jest.mock('../../../../supabase/models/Recipe', () => ({
+  __esModule: true,
+  default: {
+    getRandom: jest.fn(),
   },
+}));
+
+jest.mock('../../../utils/recipeData', () => ({
   movieData: {
     'The Matrix': {
       year: '1999',
@@ -55,6 +53,7 @@ import { ChatInputCommandInteraction } from 'discord.js';
 import randomCommand from '../../../commands/random';
 import { GeminiService } from '../../../utils/geminiService';
 import { logger } from '../../../shared/utils/logger';
+import Recipe from '../../../../supabase/models/Recipe';
 
 describe('/random Slash Command', () => {
   let mockInteraction: Partial<ChatInputCommandInteraction>;
@@ -108,7 +107,7 @@ describe('/random Slash Command', () => {
       expect(subcommandNames).toEqual(
         expect.arrayContaining([
           'movie',
-          'dinner',
+          'recipe',
           'date',
           'question',
           'choice',
@@ -172,60 +171,6 @@ describe('/random Slash Command', () => {
       // Reroll button
       expect(buttons[1].data.custom_id).toBe('random_movie_reroll');
       expect(buttons[1].data.label).toBe('Pick Another');
-    });
-  });
-
-  describe('Subcommand: dinner', () => {
-    beforeEach(() => {
-      (mockInteraction.options as any).getSubcommand.mockReturnValue('dinner');
-      mathRandomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
-    });
-
-    it('should select a dinner and reply with an embed', async () => {
-      await randomCommand.execute(mockInteraction as ChatInputCommandInteraction);
-
-      expect(mockInteraction.editReply).toHaveBeenCalledTimes(1);
-      const call = (mockInteraction.editReply as jest.Mock).mock.calls[0][0];
-      expect(call.embeds).toBeDefined();
-      expect(call.embeds.length).toBe(1);
-    });
-
-    it('should include dinner name and description in embed', async () => {
-      await randomCommand.execute(mockInteraction as ChatInputCommandInteraction);
-
-      const call = (mockInteraction.editReply as jest.Mock).mock.calls[0][0];
-      const embed = call.embeds[0];
-      expect(embed.data.description).toContain('Pasta Carbonara');
-      expect(embed.data.description).toContain('Classic Italian');
-    });
-
-    it('should include image, prepTime, and difficulty fields', async () => {
-      await randomCommand.execute(mockInteraction as ChatInputCommandInteraction);
-
-      const call = (mockInteraction.editReply as jest.Mock).mock.calls[0][0];
-      const embed = call.embeds[0];
-      expect(embed.data.image.url).toBe('http://img.com/pasta.jpg');
-      const fieldNames = embed.data.fields.map((f: any) => f.name);
-      expect(fieldNames).toEqual(expect.arrayContaining(['⏱️ Prep Time', '📊 Difficulty']));
-    });
-
-    it('should include recipe link, reroll, and save buttons', async () => {
-      await randomCommand.execute(mockInteraction as ChatInputCommandInteraction);
-
-      const call = (mockInteraction.editReply as jest.Mock).mock.calls[0][0];
-      expect(call.components).toBeDefined();
-      const buttons = call.components[0].components;
-      expect(buttons.length).toBe(3);
-
-      // Recipe link button
-      expect(buttons[0].data.url).toBe('http://recipe.com/pasta');
-      expect(buttons[0].data.label).toBe('View Recipe');
-      // Reroll button
-      expect(buttons[1].data.custom_id).toBe('random_dinner_reroll');
-      expect(buttons[1].data.label).toBe('Pick Another');
-      // Save button
-      expect(buttons[2].data.custom_id).toBe('save_dinner_Pasta Carbonara');
-      expect(buttons[2].data.label).toBe('Save to List');
     });
   });
 
@@ -701,7 +646,7 @@ describe('/random Slash Command', () => {
     });
 
     it('should log subcommand name in error context', async () => {
-      (mockInteraction.options as any).getSubcommand.mockReturnValue('dinner');
+      (mockInteraction.options as any).getSubcommand.mockReturnValue('movie');
       (mockInteraction.editReply as jest.Mock)
         .mockRejectedValueOnce(new Error('embed failure'))
         .mockResolvedValueOnce({});
@@ -711,7 +656,7 @@ describe('/random Slash Command', () => {
       expect(logger.error).toHaveBeenCalledWith(
         'Error in random command',
         expect.objectContaining({
-          subcommand: 'dinner',
+          subcommand: 'movie',
           error: 'embed failure',
           stack: expect.any(String),
         })
@@ -733,6 +678,61 @@ describe('/random Slash Command', () => {
           stack: undefined,
         })
       );
+    });
+  });
+
+  describe('recipe subcommand', () => {
+    function makeRecipe(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 1,
+        name: 'Test Recipe',
+        cuisine: 'italian',
+        difficulty: 'easy',
+        dietary_tags: ['vegetarian'],
+        servings: 4,
+        prep_time_minutes: 10,
+        cook_time_minutes: 20,
+        ingredients: [{ name: 'flour', quantity: 1, unit: 'cup' }],
+        image_url: null,
+        ...overrides,
+      };
+    }
+
+    beforeEach(() => {
+      (mockInteraction.options!.getSubcommand as jest.Mock).mockReturnValue('recipe');
+    });
+
+    it('calls Recipe.getRandom with the guild id (user isolation)', async () => {
+      (Recipe.getRandom as jest.Mock).mockResolvedValue(makeRecipe());
+      await randomCommand.execute(mockInteraction as ChatInputCommandInteraction);
+      expect(Recipe.getRandom).toHaveBeenCalledWith('guild-123');
+    });
+
+    it('renders an embed with a reroll button when a recipe is found', async () => {
+      (Recipe.getRandom as jest.Mock).mockResolvedValue(makeRecipe({ name: 'Spaghetti' }));
+      await randomCommand.execute(mockInteraction as ChatInputCommandInteraction);
+      const call = (mockInteraction.editReply as jest.Mock).mock.calls.at(-1)[0];
+      expect(call.embeds[0].data.title).toContain('Spaghetti');
+      expect(call.components).toHaveLength(1);
+      expect(call.components[0].components[0].data.custom_id).toBe('random_recipe_reroll');
+    });
+
+    it('shows empty-state message when no recipes exist in the guild', async () => {
+      (Recipe.getRandom as jest.Mock).mockResolvedValue(null);
+      await randomCommand.execute(mockInteraction as ChatInputCommandInteraction);
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('No recipes') })
+      );
+    });
+
+    it('rejects use outside a guild', async () => {
+      const noGuild = {
+        ...mockInteraction,
+        guild: null,
+        guildId: null,
+      } as unknown as ChatInputCommandInteraction;
+      await randomCommand.execute(noGuild);
+      expect(Recipe.getRandom).not.toHaveBeenCalled();
     });
   });
 });

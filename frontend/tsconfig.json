@@ -20,14 +20,11 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@bwaincell/shared": ["../shared/src"]
+      "@bwaincell/shared": ["../shared/src"],
+      "@database/*": ["../supabase/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../supabase/**/*.ts"],
   "exclude": ["node_modules", ".next"],
-  "references": [
-    {
-      "path": "../shared"
-    }
-  ]
+  "references": [{ "path": "../shared" }, { "path": "../supabase" }]
 }

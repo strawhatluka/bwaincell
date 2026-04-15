@@ -6,27 +6,23 @@ import type { UserRow, UserInsert, UserUpdate } from '../types';
  */
 export interface UserAttributes {
   id: number;
-  googleId: string;
+  google_id: string;
   email: string;
   name: string;
   picture: string | null;
-  discordId: string;
-  guildId: string;
-  refreshToken: string | null;
-  createdAt: string;
-  updatedAt: string;
+  discord_id: string;
+  guild_id: string;
+  refresh_token: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-/**
- * User model class
- * Note: User table uses camelCase columns (googleId, discordId, guildId) unlike other tables.
- */
 export class User {
   static async findByGoogleId(googleId: string): Promise<UserRow | null> {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('googleId', googleId)
+      .eq('google_id', googleId)
       .single();
 
     if (error && error.code === 'PGRST116') return null; // No rows found
@@ -52,7 +48,7 @@ export class User {
   static async update(id: number, userData: UserUpdate): Promise<UserRow | null> {
     const { data, error } = await supabase
       .from('users')
-      .update({ ...userData, updatedAt: new Date().toISOString() })
+      .update({ ...userData, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
