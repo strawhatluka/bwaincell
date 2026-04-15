@@ -2,6 +2,28 @@
 
 Comprehensive guide to Bwaincell's continuous integration and deployment pipeline using GitHub Actions.
 
+> **Supabase update (2026-04-15):** CI no longer provisions a standalone `postgres` service. Integration tests that need a database should use the Supabase CLI:
+>
+> ```yaml
+> - name: Install Supabase CLI
+>   uses: supabase/setup-cli@v1
+> - name: Start Supabase
+>   run: supabase start
+> - name: Apply migrations
+>   run: supabase db reset    # replays supabase/migrations/*.sql
+> - name: Run tests
+>   env:
+>     SUPABASE_URL: http://127.0.0.1:54321
+>     SUPABASE_SERVICE_ROLE_KEY: ${{ steps.supabase_status.outputs.service_role_key }}
+>   run: npm run test:backend
+> ```
+>
+> Deployment jobs in `.github/workflows/deploy.yml` (triggered on release) are:
+> - **deploy** — SSH to the Pi, `git pull`, `docker compose up -d --build`, `supabase db push` against the Pi's self-hosted Supabase
+> - **deploy-vercel** — frontend to Vercel via `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`
+>
+> Required repo secrets (see [.env.example](../../.env.example) trailing comments): `PI_HOST`, `PI_USERNAME`, `PI_SSH_KEY`, `PI_SSH_PASSPHRASE` (optional), `PI_SSH_PORT` (optional), `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+
 ## Table of Contents
 
 1. [GitHub Actions Workflow](#github-actions-workflow)

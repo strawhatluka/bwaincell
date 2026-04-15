@@ -2,6 +2,19 @@
 
 Comprehensive guide for monitoring and logging in Bwaincell - ensuring observability, debugging, and production readiness.
 
+> **Supabase update (2026-04-15):** In addition to the Winston-based Express logging described below, Bwaincell now has two new log surfaces:
+>
+> **Supabase Logs Dashboard** — The self-hosted Supabase instance on the Pi exposes a Studio UI at `http://<pi-host>:54323` (default). Database logs, Auth logs, Storage logs, and Realtime logs are browsable from there.
+>
+> **PostgREST Logs** — Every Supabase query from `@supabase/supabase-js` goes through PostgREST. Query logs show up in the Supabase Dashboard's "Logs → API" panel and are invaluable when debugging RLS or unexpected 4xx responses.
+>
+> **Retention:** Self-hosted Supabase retains logs per its own Postgres log-retention settings; tune via `supabase/config.toml` or Postgres parameters. Winston backend logs retain per the existing volume-rotation policy.
+>
+> **Recommended alerting additions:**
+> - Alarm on `supabase-js` errors emitted via Winston (`logger.error('Supabase connection failed', ...)` in `supabase/supabase.ts`).
+> - Alarm on `sunsetService` / `eventsService` cron failures.
+> - Alarm on Gemini quota errors (`geminiService.ts`).
+
 ## Table of Contents
 
 1. [Winston Logger Configuration](#winston-logger-configuration)

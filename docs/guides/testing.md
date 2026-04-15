@@ -1,6 +1,26 @@
 # Testing Guide
 
-**Last Updated** 2026-01-12
+**Last Updated:** 2026-04-15
+
+> **Supabase update (2026-04-15):** The backend test DB is no longer SQLite in-memory or a Docker `postgres` service. Use the Supabase local stack.
+>
+> ```bash
+> npm run supabase:start        # once per session
+> npm run supabase:reset        # clean DB + re-apply all migrations
+> npm test                      # or: npm run test:backend
+> ```
+>
+> In `tests/` and per-feature test files, initialize the Supabase client with the local URL and service-role key (from `npm run supabase:status`). Reset between test suites with `supabase db reset` for isolation, or wrap each test in an explicit cleanup step (`DELETE FROM tasks WHERE guild_id = <test-guild>`).
+>
+> Jest setup still reads from `.env` (via `dotenv-cli` or `jest.setup.ts`). Provide:
+>
+> ```env
+> SUPABASE_URL=http://127.0.0.1:54321
+> SUPABASE_SERVICE_ROLE_KEY=<from supabase status>
+> SUPABASE_ANON_KEY=<from supabase status>
+> ```
+>
+> CI uses the same pattern via `supabase/setup-cli` — see [ci-cd-pipeline.md](ci-cd-pipeline.md).
 **Target:** Contributors implementing features with comprehensive test coverage
 
 ---

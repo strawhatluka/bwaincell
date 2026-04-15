@@ -1,6 +1,25 @@
 # Troubleshooting Guide
 
-**Version:** 2.0.0
+**Version:** 2.1.2
+**Last Updated:** 2026-04-15
+
+> **Supabase update (2026-04-15):** Key troubleshooting entries for the current stack.
+>
+> **"SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY ... environment variables are required"** — Thrown by `supabase/supabase.ts` on the first query. Set both in `.env` (local) or in your deployment environment. Service-role or anon key is accepted; service-role is preferred server-side.
+>
+> **Supabase local stack won't start** — `npm run supabase:status`. If Docker is not running, start Docker Desktop. If ports 54321–54324 are in use, stop the conflicting process. `npm run supabase:stop` then `npm run supabase:start` clears a hung stack.
+>
+> **Migrations out of sync** — `npm run supabase:reset` locally replays `init.sql` + all migrations from scratch. Never edit an already-applied migration; add a new forward migration instead.
+>
+> **RLS denying reads** — We currently do not ship RLS policies; if you add them and the backend starts returning zero rows with the anon key, check `auth.jwt() ->> 'guild_id'` matches the row's `guild_id` and/or test with the service-role key to confirm it's an RLS issue.
+>
+> **Service-role vs anon key mismatch** — If inserts succeed from Discord but fail from the PWA, you're likely using the anon key without matching RLS policies in place. Either use the service-role key on the server-side API route or add the RLS policy.
+>
+> **Recipe scraper fails on a URL** — `backend/utils/recipeScraper.ts`. Check logs; many sites block scraping. Fallback: use `/recipe add` with manual entry.
+>
+> **Gemini errors** — `GEMINI_API_KEY` missing / quota exhausted / network issue. Recipe ingestion will store the raw ingredient text without normalization. `/random date` and AI shopping-list will fail outright.
+>
+> **Sunset announcement didn't fire** — Check `sunset_configs.is_enabled`, `channel_id` validity, bot channel permissions, and that the Pi was online at the computed trigger time (`sunset - advance_minutes`).
 **Last Updated** 2026-01-12
 
 Comprehensive troubleshooting guide for common issues in Bwaincell's Discord bot, database, authentication, API, frontend, and deployment.

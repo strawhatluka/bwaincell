@@ -1,6 +1,110 @@
 # API Development Guide
 
-**Last Updated** 2026-01-12
+**Last Updated:** 2026-04-15
+
+> **Supabase update (2026-04-15):** Backend routes no longer use Sequelize. All data access goes through typed model wrappers in `supabase/models/*.ts`, which in turn use `@supabase/supabase-js` via the lazy-initialized client in `supabase/supabase.ts`. Any Sequelize idioms (`Model.findAll`, `Op.like`, `sequelize.transaction`) shown later in this file should be read as historical; the current equivalents are documented below.
+>
+> **Current backend REST route groups** (`backend/src/api/routes/`): `tasks`, `lists`, `notes`, `reminders`, `budget`, `schedule`, `oauth`, `health`.
+> **Recipes / MealPlans / Sunset config / Events config are not yet exposed via REST** — they are currently driven through Discord commands and the Supabase model wrappers. See [api/README.md](../api/README.md).
+
+## Quick patterns (current)
+
+**Query with the Supabase model wrapper:**
+
+```typescript
+// backend/src/api/routes/tasks.ts
+import { Router } from 'express';
+import { authenticateToken } from '../middleware/oauth';
+import * as Task from '../../../supabase/models/Task';
+
+const router = Router();
+
+router.get('/', authenticateToken, async (req, res, next) => {
+  try {
+    const tasks = await Task.getGuildTasks(req.user.guildId);
+    res.json({ success: true, data: tasks });
+  } catch (err) {
+    next(err);
+  }
+});
+
+export default router;
+```
+
+**Inside the model wrapper (`supabase/models/Task.ts`):**
+
+```typescript
+import supabase from '../supabase';
+
+export async function getGuildTasks(guildId: string) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('guild_id', guildId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+```
+
+**Example: adding a new Recipe endpoint** (illustrative — no REST routes exist for recipes yet):
+
+```typescript
+import * as Recipe from '../../../supabase/models/Recipe';
+
+router.get('/', authenticateToken, async (req, res, next) => {
+  try {
+    const recipes = await Recipe.listForGuild(req.user.guildId);
+    res.json({ success: true, data: recipes });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/favorite/:id', authenticateToken, async (req, res, next) => {
+  try {
+    const updated = await Recipe.toggleFavorite(
+      Number(req.params.id),
+      req.user.guildId
+    );
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+```
+
+**Example: reading the active meal plan:**
+
+```typescript
+import * as MealPlan from '../../../supabase/models/MealPlan';
+
+router.get('/active', authenticateToken, async (req, res, next) => {
+  try {
+    const plan = await MealPlan.getActiveForGuild(req.user.guildId);
+    res.json({ success: true, data: plan });
+  } catch (err) {
+    next(err);
+  }
+});
+```
+
+**Example: shopping list generation** (delegates to `backend/utils/shoppingList.ts`):
+
+```typescript
+import { generateShoppingList } from '../../utils/shoppingList';
+
+router.get('/shopping-list', authenticateToken, async (req, res, next) => {
+  try {
+    const list = await generateShoppingList(req.user.guildId);
+    res.json({ success: true, data: list });
+  } catch (err) {
+    next(err);
+  }
+});
+```
+
+Keep Joi validation on the route, keep all Supabase queries inside `supabase/models/*.ts`, and surface errors via your standard Express error middleware.
 **Target:** Contributors adding REST API endpoints to Bwaincell
 
 ---

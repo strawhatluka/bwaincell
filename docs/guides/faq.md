@@ -1,6 +1,27 @@
 # Frequently Asked Questions (FAQ)
 
-**Version:** 2.0.0
+**Version:** 2.1.2
+**Last Updated:** 2026-04-15
+
+> **Supabase update (2026-04-15):** Any FAQ entries below that mention Sequelize, Prisma, or a local Docker `postgres` service are historical. The current answers are:
+>
+> **Q: What database does Bwaincell use?**
+> A: **Supabase (managed PostgreSQL).** Schema lives in `supabase/migrations/`, models in `supabase/models/*.ts`, client in `supabase/supabase.ts`.
+>
+> **Q: How do I run the database locally?**
+> A: `npm run supabase:start` — the Supabase CLI provisions Postgres, PostgREST, GoTrue, and Studio in Docker. Get keys via `npm run supabase:status`.
+>
+> **Q: How do I change the schema?**
+> A: `supabase migration new <description>` — write SQL, commit, apply with `npm run supabase:reset` (local) or `supabase db push` (remote). See [database-migrations.md](database-migrations.md).
+>
+> **Q: Why does `/recipe` fail on an unusual ingredient?**
+> A: The recipe pipeline uses Gemini for ingredient normalization. Check `GEMINI_API_KEY` is set and not rate-limited. Fallback stores the unnormalized ingredient line.
+>
+> **Q: Why didn't the sunset announcement fire today?**
+> A: Check `sunset_configs.is_enabled`, the configured `channel_id` is still valid, the bot had permission to post, and the Gemini/zip-code lookup didn't time out. Missed runs are not retroactively posted.
+>
+> **Q: Can I access recipes or meal plans from the PWA?**
+> A: Not yet. Recipe/MealPlan/SunsetConfig/EventConfig are currently only exposed through the Discord bot and the Supabase model wrappers. REST/Next.js-API integration is tracked for future work.
 **Last Updated** 2026-01-12
 
 Complete FAQ covering installation, Discord bot, development, deployment, and troubleshooting for Bwaincell productivity platform.

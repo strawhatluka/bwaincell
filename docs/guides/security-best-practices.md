@@ -2,6 +2,51 @@
 
 Comprehensive security guide for Bwaincell - protecting your productivity platform from vulnerabilities.
 
+> **Supabase update (2026-04-15):** The migration to Supabase introduces new keys and new primitives (RLS) that must be handled carefully. The following rules are **current** and override anything below that contradicts them.
+>
+> ## Supabase key handling
+>
+> - **`SUPABASE_SERVICE_ROLE_KEY`** — full-privileged key that **bypasses RLS**. Use **only** server-side (backend Express routes, Next.js API routes running on the server, cron jobs). **Never** ship this key to a browser, embed it in a PWA bundle, or log it. It must be provisioned as a server-only env var on Vercel and on the Pi.
+> - **`SUPABASE_ANON_KEY`** — unprivileged key intended for the browser. This is what the PWA uses if/when it talks to Supabase directly. RLS policies protect data from this key.
+> - Both keys are emitted by `npm run supabase:status` during local development.
+> - Rotate `SUPABASE_DB_PASSWORD` and the service-role key periodically via the Supabase CLI.
+>
+> ## Row Level Security (RLS)
+>
+> Current migrations (`20260413000000_initial_schema.sql`, `20260414000000_recipes_schema.sql`) **do not define RLS policies**. Isolation is enforced in application code today by the backend using the service-role key and filtering every query by `guild_id`.
+>
+> Recommended hardening when the PWA begins using the anon key directly:
+>
+> ```sql
+> -- Enable RLS on every domain table (example: tasks)
+> ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+>
+> -- Allow selects only for authenticated users whose JWT guild claim matches
+> CREATE POLICY "tasks_select_by_guild"
+>   ON tasks FOR SELECT
+>   USING (auth.jwt() ->> 'guild_id' = guild_id);
+>
+> CREATE POLICY "tasks_insert_by_guild"
+>   ON tasks FOR INSERT
+>   WITH CHECK (auth.jwt() ->> 'guild_id' = guild_id);
+> ```
+>
+> Apply similar policies to `lists`, `notes`, `reminders`, `budgets`, `schedules`, `event_configs`, `sunset_configs`, `recipes`, `meal_plans`, `recipe_preferences`. Service-role key bypasses these, so backend code continues to work without change.
+>
+> ## Guild-based isolation
+>
+> Until RLS is in place, **every** Supabase query in model wrappers **must** filter by `guild_id`. Code review checklist: no bare `.from('tasks').select('*')` without a `.eq('guild_id', ...)`.
+>
+> ## Secrets storage
+>
+> - On the Pi, `.env` must be `chmod 600` (already documented in `.env.example`).
+> - On Vercel, use the environment-variables UI; never commit `.env.local`.
+> - Rotate `JWT_SECRET`, `NEXTAUTH_SECRET`, `SUPABASE_DB_PASSWORD`, service-role key, and `GEMINI_API_KEY` on personnel changes.
+>
+> ## Gemini
+>
+> `GEMINI_API_KEY` is server-only. Never surface Gemini responses that contain prompt-injected content back to Discord or the PWA without sanitization; recipe ingest is the most exposed surface (user-supplied URLs feed into Gemini).
+
 ## Table of Contents
 
 1. [OWASP Top 10 Mitigation](#owasp-top-10-mitigation)

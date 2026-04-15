@@ -2,6 +2,8 @@
 
 Comprehensive guide to Progressive Web App (PWA) features in Bwaincell - making the web app feel native.
 
+> **Supabase update (2026-04-15):** The PWA runs on Next.js 14 (App Router). Data-access now flows through Next.js API routes under `frontend/app/api/` (tasks, lists, notes, reminders, schedule, budget, auth), which use `@supabase/supabase-js`. Any Prisma or Sequelize references later in this file are historical. Service-worker / offline-mode / dark-mode sections remain accurate.
+
 ## Table of Contents
 
 1. [PWA Manifest](#pwa-manifest)

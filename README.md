@@ -1,14 +1,14 @@
 # Bwaincell
 
-A **unified monorepo productivity platform** providing task management, reminders, lists, notes, budgets, scheduling, AI-powered suggestions, and random generators through three integrated interfaces: **Discord Bot** (10 slash commands with 49+ subcommands), **REST API** (39 authenticated endpoints), and **Progressive Web App** (Next.js 14).
+A **unified monorepo productivity platform** providing task management, reminders, lists, notes, budgets, scheduling, recipe management, AI-powered suggestions, and random generators through three integrated interfaces: **Discord Bot** (12 slash commands with multiple subcommands each), **REST API** (authenticated endpoints), and **Progressive Web App** (Next.js 15).
 
-**Built for personal and household productivity** with guild-based data sharing, deployed on **Raspberry Pi 4B** (backend + PostgreSQL) and **Vercel** (frontend PWA).
+**Built for personal and household productivity** with guild-based data sharing, deployed on **Raspberry Pi 4B** (backend + self-hosted Supabase) and **Vercel** (frontend PWA).
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
 [![Discord.js](https://img.shields.io/badge/Discord.js-14.14.1-purple)](https://discord.js.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14.2.35-black)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)](https://www.postgresql.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black)](https://nextjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ---
@@ -41,7 +41,7 @@ A **unified monorepo productivity platform** providing task management, reminder
 
 **For Users:**
 
-1. Add the Discord bot to your server → Use `/task`, `/list`, `/note`, `/remind`, `/budget`, `/schedule`, `/random`, `/events`, `/issues`, `/quote` commands
+1. Add the Discord bot to your server → Use `/task`, `/list`, `/note`, `/remind`, `/budget`, `/schedule`, `/random`, `/recipe`, `/sunset`, `/events`, `/issues`, `/make-it-a-quote` commands
 2. Or access the PWA at [https://bwaincell.sunny-stack.com](https://bwaincell.sunny-stack.com) → Sign in with Google
 3. Full guide: [docs/guides/getting-started.md](docs/guides/getting-started.md)
 
@@ -58,7 +58,10 @@ npm run build:shared
 
 # Setup environment variables
 cp .env.example .env
-# Edit .env with your Discord bot token, Google OAuth credentials, etc.
+# Edit .env with your Discord bot token, Google OAuth credentials, Supabase keys, etc.
+
+# Start local Supabase (required for backend)
+npm run supabase:start
 
 # Start development (backend + frontend)
 npm run dev
@@ -69,8 +72,8 @@ npm run deploy --workspace=backend
 
 **For Self-Hosting:**
 
-- Backend: Raspberry Pi 4B with Docker Compose → [docs/guides/deployment.md](docs/guides/deployment.md)
-- Frontend: Deploy to Vercel → [docs/guides/deployment.md#frontend-deployment-vercel](docs/guides/deployment.md#frontend-deployment-vercel)
+- Backend: Raspberry Pi 4B with Docker Compose + self-hosted Supabase → [docs/guides/deployment.md](docs/guides/deployment.md)
+- Frontend: Deploy to Vercel → [docs/guides/deployment.md](docs/guides/deployment.md)
 
 ---
 
@@ -78,33 +81,36 @@ npm run deploy --workspace=backend
 
 ### Core Interfaces
 
-- 💬 **Discord Bot** - Primary interface via 10 slash commands (/task, /list, /note, /remind, /budget, /schedule, /random, /events, /issues, /quote) with multiple subcommands for each feature
-- 🌐 **REST API** - Express 4.21.2 API with Google OAuth 2.0 + JWT authentication for programmatic access
-- 📱 **Progressive Web App** - Next.js 14.2 PWA with offline support, installable on iOS, Android, and desktop (see [frontend/README.md](frontend/README.md) for installation guide)
+- **Discord Bot** - Primary interface via 12 slash commands (/task, /list, /note, /remind, /budget, /schedule, /random, /recipe, /sunset, /events, /issues, /make-it-a-quote) with multiple subcommands for each feature
+- **REST API** - Express 4.21.2 API with Google OAuth 2.0 + JWT authentication for programmatic access
+- **Progressive Web App** - Next.js 15 PWA with offline support, installable on iOS, Android, and desktop (see [frontend/README.md](frontend/README.md) for installation guide)
 
 ### Productivity Features
 
-- ✅ **Task Management** - Create tasks with due dates, mark complete, filter by status, edit descriptions
-- 📝 **List Management** - Shareable lists with checkable items, completion tracking, bulk operations
-- 📓 **Note Taking** - Rich notes with tagging, full-text search, edit history, tag-based organization
-- ⏰ **Smart Reminders** - One-time, daily, weekly, monthly, and yearly reminders with timezone support and automated scheduling
-- 💰 **Budget Tracking** - Income/expense tracking, category spending, monthly summaries, trend analysis
-- 📅 **Event Scheduling** - Event management with countdown timers, today/week views, upcoming/past filters
-- 🎲 **Random Utilities** - Movie picker, dinner suggestions, date ideas, dice roller, coin flipper, and more
-- 🤖 **AI-Powered Features** - Gemini-powered date suggestions with local events, WNRS-inspired conversation starters, daily question scheduler
-- 📰 **GitHub Issues** - Browse and view project issues directly from Discord
-- 💬 **Inspirational Quotes** - Random motivational quotes on demand
+- **Task Management** - Create tasks with due dates, mark complete, filter by status, edit descriptions
+- **List Management** - Shareable lists with checkable items, completion tracking, bulk operations
+- **Note Taking** - Rich notes with tagging, full-text search, edit history, tag-based organization
+- **Smart Reminders** - One-time, daily, weekly, monthly, and yearly reminders with timezone support and automated scheduling
+- **Budget Tracking** - Income/expense tracking, category spending, monthly summaries, trend analysis
+- **Event Scheduling** - Event management with countdown timers, today/week views, upcoming/past filters
+- **Recipe Management** - Recipe storage, meal planning, and AI-generated shopping lists based on planned meals and household preferences
+- **Sunset Scheduler** - Daily sunset announcements configurable per Discord server (channel + timing)
+- **Random Utilities** - Movie picker, dinner suggestions, date ideas, dice roller, coin flipper, and more
+- **AI-Powered Features** - Gemini-powered date suggestions with local events, WNRS-inspired conversation starters, AI shopping list generation, daily question scheduler
+- **Local Events** - AI-powered local event discovery and announcement configuration
+- **GitHub Issues** - Browse and view project issues directly from Discord
+- **Make It A Quote** - Transform any Discord message into a shareable styled quote image
 
 ### Technical Architecture
 
-- 🔒 **User Isolation** - Guild-based data segregation (shared household model) with user audit trails
-- 🗄️ **PostgreSQL 15** - Production-grade database with Sequelize 6.37.7 ORM, connection pooling, auto-migrations
-- 🚀 **Docker Deployment** - Containerized backend + PostgreSQL on Raspberry Pi 4B with GitHub Actions CI/CD
-- 📦 **Monorepo** - npm workspaces (backend/, frontend/, shared/) with shared TypeScript types across packages
-- 🔧 **TypeScript 5.9.2** - Strict mode, shared type definitions, compile-time safety across all interfaces
-- 🧪 **Testing** - Jest + ts-jest with 282 tests across 13 suites (target: 80% coverage), integration tests with Supertest
-- 📊 **Monitoring** - Winston 3.17.0 structured logging, health endpoints, Docker stats, resource monitoring
-- 🔐 **Security** - Google OAuth 2.0, JWT access/refresh tokens, email whitelist, input validation with Joi
+- **User Isolation** - Guild-based data segregation (shared household model) with user audit trails
+- **Supabase** - Managed PostgreSQL with Supabase client (@supabase/supabase-js), row-level security, and migration-based schema management
+- **Docker Deployment** - Containerized backend alongside self-hosted Supabase on Raspberry Pi 4B with GitHub Actions CI/CD
+- **Monorepo** - npm workspaces (backend/, frontend/, shared/) with shared TypeScript types across packages
+- **TypeScript 5.9** - Strict mode, shared type definitions, compile-time safety across all interfaces
+- **Testing** - Jest + ts-jest with unit and integration tests (target: 80% coverage), integration tests with Supertest
+- **Monitoring** - Winston 3.17.0 structured logging, health endpoints, Docker stats, resource monitoring
+- **Security** - Google OAuth 2.0, JWT access/refresh tokens, email whitelist, input validation with Joi
 
 ---
 
@@ -114,9 +120,11 @@ npm run deploy --workspace=backend
 
 - **Node.js** 18.0 or higher
 - **npm** 9.0 or higher
-- **PostgreSQL** 15 or higher
+- **Supabase CLI** (for local development — [install guide](https://supabase.com/docs/guides/cli))
+- **Docker** (required by Supabase CLI and deployment)
 - **Discord Bot Token** ([Discord Developer Portal](https://discord.com/developers/applications))
 - **Google OAuth 2.0 Credentials** ([Google Cloud Console](https://console.cloud.google.com))
+- **Google Gemini API Key** ([Google AI Studio](https://ai.google.dev/)) — for AI features
 
 ### Install from Source
 
@@ -135,7 +143,10 @@ npm run build:shared
 cp .env.example .env
 
 # Edit .env with your credentials
-# Required: Discord bot token, Google OAuth credentials, PostgreSQL connection, JWT secret
+# Required: Discord bot token, Google OAuth credentials, Supabase keys, JWT secret, Gemini API key
+
+# Start local Supabase (spins up PostgreSQL + Studio in Docker)
+npm run supabase:start
 ```
 
 ---
@@ -252,6 +263,18 @@ npm run lint
 /random coin                            - Flip a coin
 /random dice <sides> [count]            - Roll dice (2-100 sides, 1-10 count)
 
+# Recipe Management (/recipe)
+/recipe add                             - Add a new recipe with ingredients and instructions
+/recipe list                            - Browse saved recipes
+/recipe view <recipe>                   - View recipe details
+/recipe plan                            - Plan meals for the week
+/recipe shopping-list                   - Generate an AI-powered shopping list from planned meals
+/recipe preferences                     - Configure dietary preferences and household settings
+
+# Sunset Scheduler (/sunset)
+/sunset configure                       - Configure daily sunset announcements (channel + timing)
+/sunset status                          - View current sunset announcement configuration
+
 # Events (/events)
 /events upcoming                        - View upcoming local events (AI-powered)
 /events configure                       - Configure event announcements for your server
@@ -260,8 +283,8 @@ npm run lint
 /issues list                            - Browse open project issues
 /issues view <number>                   - View specific issue details
 
-# Quotes (/quote)
-/quote                                  - Get a random inspirational quote
+# Make It A Quote (/make-it-a-quote)
+/make-it-a-quote <message>              - Generate a styled quote image from a Discord message
 ```
 
 ### REST API Endpoints
@@ -319,6 +342,13 @@ GET    /api/schedules          - Get scheduled events (supports ?filter= query p
 POST   /api/schedules          - Create new event
 DELETE /api/schedules/:id      - Delete event
 
+# Recipes
+GET    /api/recipes            - List recipes
+POST   /api/recipes            - Create new recipe
+GET    /api/recipes/:id        - Get specific recipe
+PATCH  /api/recipes/:id        - Update recipe
+DELETE /api/recipes/:id        - Delete recipe
+
 # Health Check (no auth required)
 GET    /health                 - Service health status
 ```
@@ -330,7 +360,7 @@ GET    /health                 - Service health status
 
 1. Open [https://bwaincell.sunny-stack.com](https://bwaincell.sunny-stack.com)
 2. Sign in with Google OAuth
-3. Access tasks, lists, notes, reminders, and budget tracking
+3. Access tasks, lists, notes, reminders, budget tracking, and recipes
 4. Install as PWA (Add to Home Screen)
 
 ---
@@ -339,28 +369,13 @@ GET    /health                 - Service health status
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (see `.env.example` for the full template):
 
 ```bash
 # Discord Bot Configuration
-DISCORD_BOT_TOKEN=your_discord_bot_token
-DISCORD_CLIENT_ID=your_discord_client_id
-DISCORD_GUILD_ID=your_discord_guild_id
-NOTIFICATION_CHANNEL_ID=your_notification_channel_id
-
-# PostgreSQL Database Configuration
-# For Docker deployment, use @postgres:5432 (internal Docker network)
-# For local development, use @localhost:5433
-DATABASE_URL=postgresql://bwaincell:securepassword@postgres:5432/bwaincell
-
-# REST API Configuration
-API_PORT=3000
-JWT_SECRET=generate_with_openssl_rand_base64_32
-JWT_REFRESH_SECRET=generate_with_openssl_rand_base64_32
-
-# Google OAuth 2.0 Configuration
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+BOT_TOKEN=your_bot_token_here
+CLIENT_ID=your_client_id_here
+GUILD_ID=your_guild_id_for_testing
 
 # User-Discord ID Mapping (email whitelist)
 USER1_EMAIL=user@gmail.com
@@ -368,20 +383,49 @@ USER1_DISCORD_ID=123456789
 USER2_EMAIL=partner@gmail.com
 USER2_DISCORD_ID=987654321
 
-# Application Configuration
-NODE_ENV=development
-TIMEZONE=America/Los_Angeles
+# Google OAuth 2.0 Configuration
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+ALLOWED_GOOGLE_EMAILS=user1@gmail.com,user2@gmail.com
 
-# Frontend Configuration (for frontend/.env.local)
-NEXT_PUBLIC_API_URL=http://localhost:3000
+# NextAuth (frontend)
 NEXTAUTH_URL=http://localhost:3010
 NEXTAUTH_SECRET=generate_with_openssl_rand_base64_32
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+
+# JWT Configuration
+JWT_SECRET=generate_with_openssl_rand_base64_32
+
+# REST API Configuration
+API_PORT=3000
+PORT=3000
+
+# Supabase Configuration
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_DB_PASSWORD=postgres
+
+# Application Settings
+NODE_ENV=development
+TIMEZONE=America/Los_Angeles
+DEFAULT_REMINDER_CHANNEL=your_channel_id_for_reminders
+
+# GitHub Integration (for /issues)
+GITHUB_TOKEN=ghp_your_github_personal_access_token_here
+GITHUB_REPO_OWNER=your-github-username
+GITHUB_REPO_NAME=Bwaincell
+
+# Gemini AI Configuration (for /random date and /recipe shopping-list)
+GEMINI_API_KEY=your_gemini_api_key_here
+LOCATION_ZIP_CODE=ZIP_CODE_HERE
 ```
 
 ### Configuration Files
 
-**docker-compose.yml** - Docker containerization for backend + PostgreSQL
+**docker-compose.yml** - Docker containerization for backend
+**supabase/config.toml** - Supabase local and self-hosted configuration
+**supabase/migrations/** - SQL migrations applied by Supabase CLI
 **backend/tsconfig.json** - TypeScript configuration for backend
 **frontend/next.config.js** - Next.js configuration with PWA support
 **shared/tsconfig.json** - Shared types TypeScript configuration
@@ -395,17 +439,17 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 1. User authenticates with Google OAuth (PWA or external client)
 2. Backend verifies Google ID token with `google-auth-library`
 3. Backend maps Google email to Discord user ID (from environment variables)
-4. Backend generates JWT access token (1 hour expiry) and refresh token (7 days expiry)
+4. Backend generates JWT access token and refresh token
 5. Client stores tokens and sends JWT in `Authorization: Bearer <token>` header
 6. All protected routes require valid JWT token
 
 ### Discord Bot Commands
 
-Slash commands are registered via `/deploy` and follow Discord.js 14 interaction patterns:
+Slash commands are registered via the backend `deploy` script and follow Discord.js 14 interaction patterns:
 
 - Commands located in `backend/commands/`
 - Interaction handlers in `backend/utils/interactions/`
-- Database operations via Sequelize ORM with user_id + guild_id isolation
+- Database operations via Supabase client with user_id + guild_id isolation
 
 ### REST API Routes
 
@@ -428,7 +472,7 @@ Comprehensive documentation organized into user guides, API references, architec
 **New to Bwaincell?** Start here:
 
 - **[Getting Started Guide](docs/guides/getting-started.md)** - Installation, prerequisites, project structure, quick start
-- **[Deployment Guide](docs/guides/deployment.md)** - Raspberry Pi 4B deployment with Docker Compose
+- **[Deployment Guide](docs/guides/deployment.md)** - Raspberry Pi 4B deployment with Docker + self-hosted Supabase
 - **[Troubleshooting Guide](docs/guides/troubleshooting.md)** - Common issues, debugging, performance optimization
 - **[FAQ](docs/guides/faq.md)** - Frequently asked questions and answers
 
@@ -437,26 +481,16 @@ Comprehensive documentation organized into user guides, API references, architec
 **REST API & Discord Bot References:**
 
 - **[API Overview](docs/api/README.md)** - Complete REST API reference with authentication flow
-- **[Discord Bot Commands](docs/api/discord-commands.md)** - All 10 slash commands with detailed subcommands and examples
-  - Task Management (/task) - 5 subcommands
-  - List Management (/list) - 7 subcommands
-  - Note Management (/note) - 8 subcommands
-  - Reminder System (/remind) - 7 subcommands
-  - Budget Tracking (/budget) - 6 subcommands
-  - Schedule Management (/schedule) - 6 subcommands
-  - Random Utilities (/random) - 8 subcommands
-  - Events (/events) - 2 subcommands
-  - GitHub Issues (/issues) - 2 subcommands
-  - Quotes (/quote) - 1 command
+- **[Discord Bot Commands](docs/api/discord-commands.md)** - All 12 slash commands with detailed subcommands and examples
 
 ### Architecture Documentation
 
 **System design and technical architecture:**
 
 - **[Architecture Overview](docs/architecture/overview.md)** - Multi-interface design, tech stack, data flow, deployment
-- **[Database Schema](docs/architecture/database-schema.md)** - PostgreSQL schema with Sequelize ORM (6 tables)
+- **[Database Schema](docs/architecture/database-schema.md)** - Supabase-managed PostgreSQL schema (12 models: User, Task, List, Note, Reminder, Schedule, Budget, Recipe, RecipePreferences, MealPlan, SunsetConfig, EventConfig)
 - **[Architecture Diagrams](docs/architecture/diagrams.md)** - System architecture, component diagrams, data flow visuals
-- **[Architecture Decision Records (ADRs)](docs/architecture/adr/)** - Key architectural decisions and rationale
+- **[Architecture Decision Records](docs/architecture/adr/README.md)** - ADRs including the Supabase migration
 
 ### Development Guides
 
@@ -465,7 +499,7 @@ Comprehensive documentation organized into user guides, API references, architec
 - **[API Development](docs/guides/api-development.md)** - Creating new REST API endpoints
 - **[Discord Bot Development](docs/guides/discord-bot-development.md)** - Adding new Discord slash commands
 - **[Testing Guide](docs/guides/testing.md)** - Unit, integration, and E2E testing strategies
-- **[Database Migrations](docs/guides/database-migrations.md)** - Sequelize migration management
+- **[Database Migrations](docs/guides/database-migrations.md)** - Supabase migration management
 - **[Docker Development](docs/guides/docker-development.md)** - Docker Compose setup and workflows
 - **[CI/CD Pipeline](docs/guides/ci-cd-pipeline.md)** - GitHub Actions automated deployment
 - **[Security Best Practices](docs/guides/security-best-practices.md)** - OAuth, JWT, input validation, OWASP compliance
@@ -502,12 +536,15 @@ npm run build:shared
 cp .env.example .env
 # Edit .env with your credentials
 
-# Initialize PostgreSQL database
-psql -U postgres -c "CREATE DATABASE bwaincell;"
-psql -U postgres -c "CREATE USER bwaincelluser WITH PASSWORD 'securepassword';"
-psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE bwaincell TO bwaincelluser;"
+# Start local Supabase (PostgreSQL + Studio via Docker)
+npm run supabase:start
 
-# Database migrations run automatically on backend startup
+# Check Supabase status and get local keys
+npm run supabase:status
+
+# Database migrations in supabase/migrations/ are applied automatically by Supabase CLI.
+# To reset the local database:
+#   npm run supabase:reset
 
 # Start development servers
 npm run dev  # Starts both backend and frontend
@@ -545,7 +582,7 @@ bwaincell/
 │   │   │   └── middleware/    # CORS, JWT auth, error handling, logging
 │   │   ├── types/             # Backend type definitions
 │   │   └── deploy-commands.ts # Discord slash command registration
-│   ├── commands/              # Discord slash commands (10 commands)
+│   ├── commands/              # Discord slash commands (12 commands)
 │   │   ├── task.ts            # Task management (/task)
 │   │   ├── list.ts            # List management (/list)
 │   │   ├── note.ts            # Note management (/note)
@@ -553,32 +590,34 @@ bwaincell/
 │   │   ├── budget.ts          # Budget tracking (/budget)
 │   │   ├── schedule.ts        # Event scheduling (/schedule)
 │   │   ├── random.ts          # Random utilities (/random)
+│   │   ├── recipe.ts          # Recipe management (/recipe)
+│   │   ├── sunset.ts          # Sunset announcements (/sunset)
 │   │   ├── events.ts          # Local events (AI-powered) (/events)
 │   │   ├── issues.ts          # GitHub issues browser (/issues)
-│   │   └── quote.ts           # Inspirational quotes (/quote)
-│   ├── database/              # Sequelize ORM layer
-│   │   ├── index.ts           # Database initialization and connection
-│   │   ├── models/            # Data models (Task, List, Note, Reminder, etc.)
-│   │   ├── schema.ts          # Schema definitions
-│   │   └── config.js          # Sequelize configuration
+│   │   └── make-it-a-quote.ts # Styled quote image generator (/make-it-a-quote)
 │   ├── utils/
 │   │   ├── interactions/      # Discord interaction handlers (buttons, modals, selects)
 │   │   ├── scheduler.ts       # Node-cron reminder & daily question scheduler
-│   │   ├── geminiService.ts   # Google Gemini AI service (date ideas, WNRS questions)
+│   │   ├── geminiService.ts   # Google Gemini AI service (date ideas, WNRS questions, shopping lists)
 │   │   ├── eventsService.ts   # Local event discovery service
 │   │   ├── githubService.ts   # GitHub API integration
-│   │   ├── imageService.ts    # Image generation service
+│   │   ├── imageService.ts    # Image generation service (quote images)
 │   │   ├── googleServices.ts  # Google API utilities
 │   │   ├── validators.ts      # Input validation utilities
-│   │   ├── dateHelpers.ts     # Date/time helper functions
-│   │   └── recipeData.ts      # Data for /random commands
+│   │   └── dateHelpers.ts     # Date/time helper functions
 │   ├── config/                # Configuration files
 │   ├── tests/                 # Jest unit and integration tests
 │   ├── Dockerfile             # Multi-stage Docker build
 │   ├── package.json           # Backend dependencies and scripts
 │   └── tsconfig.json          # TypeScript configuration
-├── frontend/                   # Next.js 14.2 PWA
-│   ├── app/                   # App Router (Next.js 14+)
+├── supabase/                   # Supabase database layer (source of truth)
+│   ├── init.sql               # Initial SQL bootstrap
+│   ├── config.toml            # Supabase CLI configuration
+│   ├── migrations/            # SQL migrations applied by Supabase CLI
+│   ├── models/                # Typed model wrappers (12 models)
+│   └── supabase.ts            # Shared Supabase client factory
+├── frontend/                   # Next.js 15 PWA
+│   ├── app/                   # App Router (Next.js)
 │   │   ├── dashboard/         # Dashboard pages (tasks, lists, notes, etc.)
 │   │   ├── api/               # API routes (NextAuth, health)
 │   │   ├── layout.tsx         # Root layout
@@ -588,25 +627,17 @@ bwaincell/
 │   │   └── dashboard/        # Dashboard-specific components
 │   ├── hooks/                 # Custom React hooks (useTasks, useLists, useNotes)
 │   ├── lib/
-│   │   ├── api-client.ts     # Axios API client with JWT handling
+│   │   ├── api-client.ts     # Axios-style API client with JWT handling
 │   │   ├── utils.ts          # Utility functions
-│   │   └── prisma.ts         # Prisma client instance
+│   │   └── supabase.ts       # Supabase client for frontend
 │   ├── public/
 │   │   ├── manifest.json     # PWA manifest
 │   │   └── icons/            # PWA icons (various sizes)
-│   ├── prisma/
-│   │   └── schema.prisma     # Prisma schema (frontend ORM)
 │   ├── next.config.js         # Next.js config with PWA support
 │   ├── package.json           # Frontend dependencies
 │   └── tsconfig.json          # TypeScript configuration
 ├── shared/                     # Shared TypeScript types (monorepo workspace)
-│   ├── types/
-│   │   ├── task.ts           # Task interfaces
-│   │   ├── list.ts           # List interfaces
-│   │   ├── note.ts           # Note interfaces
-│   │   ├── reminder.ts       # Reminder interfaces
-│   │   ├── budget.ts         # Budget interfaces
-│   │   └── schedule.ts       # Schedule interfaces
+│   ├── types/                 # Shared interfaces (task, list, note, reminder, budget, schedule, recipe, etc.)
 │   ├── utils/
 │   │   └── logger.ts         # Shared Winston logger
 │   └── validation/
@@ -615,16 +646,14 @@ bwaincell/
 ├── docs/                       # Comprehensive project documentation
 │   ├── guides/                # User and developer guides
 │   ├── api/                   # API and Discord command references
-│   ├── architecture/          # System architecture and database schema
+│   ├── architecture/          # System architecture, database schema, ADRs
 │   └── reference/             # Quick references and glossary
 ├── .github/
-│   └── workflows/
-│       └── deploy-pi.yml      # GitHub Actions CI/CD for Raspberry Pi
-├── docker-compose.yml          # Docker services (backend + PostgreSQL)
+│   └── workflows/             # GitHub Actions CI/CD
+├── docker-compose.yml          # Docker services (backend container)
 ├── .env.example                # Environment variable template
 ├── package.json                # Monorepo workspace configuration
-├── tsconfig.json               # Root TypeScript configuration
-
+└── tsconfig.json               # Root TypeScript configuration
 ```
 
 ---
@@ -651,7 +680,7 @@ Contributions are welcome!
 
 - **TypeScript Strict Mode** - All code must pass `tsc --strict`
 - **ESLint Compliance** - Run `npm run lint` before committing
-- **Test Coverage** - 80%+ target (282 tests across 13 suites)
+- **Test Coverage** - 80%+ target
 - **Documentation** - JSDoc for public functions, inline comments for complex logic
 - **Error Handling** - Use Winston logger, try-catch for async operations
 - **Commit Messages** - Conventional commits format
@@ -660,7 +689,7 @@ Contributions are welcome!
 
 ## Changelog
 
-Version history and release notes are tracked in the Changelog, following the Keep-A-Changelog standard format.
+Version history and release notes are tracked in [CHANGELOG.md](CHANGELOG.md), following the Keep-a-Changelog standard format.
 
 ---
 
@@ -668,18 +697,18 @@ Version history and release notes are tracked in the Changelog, following the Ke
 
 ### Documentation Resources
 
-- 📖 **Complete Documentation** - [docs/](docs/) directory with 28+ comprehensive guides
-- 🚀 **Getting Started Guide** - [docs/guides/getting-started.md](docs/guides/getting-started.md)
-- 🔧 **Troubleshooting** - [docs/guides/troubleshooting.md](docs/guides/troubleshooting.md)
-- 📋 **API Reference** - [docs/api/README.md](docs/api/README.md)
-- 💬 **Discord Commands** - [docs/api/discord-commands.md](docs/api/discord-commands.md)
+- **Complete Documentation** - [docs/](docs/) directory with comprehensive guides
+- **Getting Started Guide** - [docs/guides/getting-started.md](docs/guides/getting-started.md)
+- **Troubleshooting** - [docs/guides/troubleshooting.md](docs/guides/troubleshooting.md)
+- **API Reference** - [docs/api/README.md](docs/api/README.md)
+- **Discord Commands** - [docs/api/discord-commands.md](docs/api/discord-commands.md)
 
 ### Get Help
 
-- 🐛 **Bug Reports** - [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
-- 💡 **Feature Requests** - [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues/new)
-- 💬 **Discussions** - [GitHub Discussions](https://github.com/lukadfagundes/bwaincell/discussions)
-- 📧 **Contact** - Via [GitHub Profile](https://github.com/lukadfagundes)
+- **Bug Reports** - [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
+- **Feature Requests** - [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues/new)
+- **Discussions** - [GitHub Discussions](https://github.com/lukadfagundes/bwaincell/discussions)
+- **Contact** - Via [GitHub Profile](https://github.com/lukadfagundes)
 
 ### Common Resources
 
@@ -689,7 +718,7 @@ Version history and release notes are tracked in the Changelog, following the Ke
 
 ## License
 
-This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -699,28 +728,30 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 
 - **Discord.js 14.14.1** - Discord bot framework with slash commands ([discord.js.org](https://discord.js.org/))
 - **Express 4.21.2** - Fast, minimalist web framework for Node.js ([expressjs.com](https://expressjs.com/))
-- **Sequelize 6.37.7** - PostgreSQL ORM with TypeScript support ([sequelize.org](https://sequelize.org/))
+- **@supabase/supabase-js 2.x** - Supabase client for PostgreSQL access ([supabase.com](https://supabase.com/))
 - **Winston 3.17.0** - Structured logging library ([github.com/winstonjs/winston](https://github.com/winstonjs/winston))
 - **Joi 18.0.1** - Schema description and validation ([joi.dev](https://joi.dev/))
 - **node-cron 4.2.1** - Task scheduler for reminder system ([github.com/node-cron/node-cron](https://github.com/node-cron/node-cron))
 - **jsonwebtoken 9.0.2** - JWT implementation ([github.com/auth0/node-jsonwebtoken](https://github.com/auth0/node-jsonwebtoken))
-- **@google/genai** - Google Gemini AI SDK for date ideas and conversation questions
+- **@google/genai 1.x** - Google Gemini AI SDK for date ideas, conversation questions, and AI shopping lists
+- **skia-canvas 3.x** - Canvas rendering for generated quote images
 
 ### Frontend Frameworks & Libraries
 
-- **Next.js 14.2.35** - React framework with App Router ([nextjs.org](https://nextjs.org/))
-- **React 18.3.1** - JavaScript library for building user interfaces ([react.dev](https://react.dev/))
-- **Prisma 5.22.0** - Next-generation ORM for frontend ([prisma.io](https://prisma.io/))
-- **TanStack Query 5.90.2** - Powerful data synchronization for React ([tanstack.com/query](https://tanstack.com/query))
-- **NextAuth 4.24.7** - Authentication for Next.js ([next-auth.js.org](https://next-auth.js.org/))
+- **Next.js 15.5** - React framework with App Router ([nextjs.org](https://nextjs.org/))
+- **React 19.2** - JavaScript library for building user interfaces ([react.dev](https://react.dev/))
+- **@supabase/supabase-js 2.x** - Supabase client used in the PWA ([supabase.com](https://supabase.com/))
+- **TanStack Query 5.90** - Powerful data synchronization for React ([tanstack.com/query](https://tanstack.com/query))
+- **NextAuth 4.24.13** - Authentication for Next.js ([next-auth.js.org](https://next-auth.js.org/))
 - **Radix UI** - Unstyled, accessible component primitives ([radix-ui.com](https://www.radix-ui.com/))
 - **shadcn/ui** - Beautifully designed components built with Radix UI and Tailwind CSS ([ui.shadcn.com](https://ui.shadcn.com/))
-- **Tailwind CSS 3.4.1** - Utility-first CSS framework ([tailwindcss.com](https://tailwindcss.com/))
-- **Zustand 5.0.8** - Lightweight state management ([github.com/pmndrs/zustand](https://github.com/pmndrs/zustand))
+- **Tailwind CSS 3.4** - Utility-first CSS framework ([tailwindcss.com](https://tailwindcss.com/))
+- **Zustand 5.0** - Lightweight state management ([github.com/pmndrs/zustand](https://github.com/pmndrs/zustand))
 
 ### Infrastructure & Deployment
 
-- **PostgreSQL 15** - Advanced open-source relational database ([postgresql.org](https://www.postgresql.org/))
+- **Supabase** - PostgreSQL-based backend platform with migrations, auth, and storage ([supabase.com](https://supabase.com/))
+- **PostgreSQL 15** - Managed by Supabase ([postgresql.org](https://www.postgresql.org/))
 - **Docker** - Containerization platform ([docker.com](https://www.docker.com/))
 - **Raspberry Pi 4B** - Self-hosted backend deployment ([raspberrypi.com](https://www.raspberrypi.com/))
 - **Vercel** - Frontend deployment platform with edge network ([vercel.com](https://vercel.com/))
@@ -733,27 +764,26 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 
 ### Development Tools
 
-- **TypeScript 5.9.2** - Typed superset of JavaScript ([typescriptlang.org](https://www.typescriptlang.org/))
-- **Jest 30.1.3** - JavaScript testing framework ([jestjs.io](https://jestjs.io/))
+- **TypeScript 5.9** - Typed superset of JavaScript ([typescriptlang.org](https://www.typescriptlang.org/))
+- **Jest 30** - JavaScript testing framework ([jestjs.io](https://jestjs.io/))
 - **ESLint 8.x** - JavaScript linter ([eslint.org](https://eslint.org/))
 - **Prettier 3.0** - Code formatter ([prettier.io](https://prettier.io/))
+- **Supabase CLI** - Local Supabase development and migrations ([supabase.com/docs/guides/cli](https://supabase.com/docs/guides/cli))
 
 ---
 
-**Version:** 2.1.0
+**Version:** 2.2.0
 **Status:** Production Ready
-**Last Updated** 2026-02-11
-**Framework:** TypeScript 5.9.2 + Discord.js 14.14.1 + Express 4.21.2 + Next.js 14.2.35
-**Database:** PostgreSQL 15 + Sequelize 6.37.7 (Backend) + Prisma 5.22.0 (Frontend)
-**Deployment:** Backend (Raspberry Pi 4B + Docker) + Frontend (Vercel)
-**Tests:** 282 tests across 13 suites (target: 80% coverage)
-**Discord Commands:** 10 commands | 49+ subcommands
-**API Endpoints:** 39 RESTful endpoints with JWT authentication
-**Documentation:** 30 comprehensive documentation files in docs/
+**Last Updated:** 2026-04-15
+**Framework:** TypeScript 5.9 + Discord.js 14.14.1 + Express 4.21.2 + Next.js 15.5
+**Database:** Supabase-managed PostgreSQL 15
+**Deployment:** Backend (Raspberry Pi 4B + Docker + self-hosted Supabase) + Frontend (Vercel)
+**Discord Commands:** 12 commands with multiple subcommands each
+**Documentation:** 30+ comprehensive documentation files in docs/
 **Maintained by:** [lukadfagundes](https://github.com/lukadfagundes)
 
 ---
 
 **Built for personal and household productivity management**
-_A unified platform for tasks, lists, notes, reminders, budgets, and schedules_
-_Same Fweak, Same Bwaincell_ ✨
+_A unified platform for tasks, lists, notes, reminders, budgets, schedules, and recipes_
+_Same Fweak, Same Bwaincell_

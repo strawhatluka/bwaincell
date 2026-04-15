@@ -1,901 +1,144 @@
 # Database Migrations Guide
 
-**Last Updated** 2026-01-12
-**Target:** Contributors migrating from SQLite to PostgreSQL 15
+**Last Updated:** 2026-04-15
+**Database:** Supabase (managed PostgreSQL)
+**Tool:** Supabase CLI (`supabase`)
+
+Bwaincell uses Supabase-managed migrations. All schema changes live as timestamped SQL files under `supabase/migrations/` and are applied by the Supabase CLI.
 
 ---
 
-## Table of Contents
+## File Layout
 
-1. [Overview](#overview)
-2. [Why PostgreSQL Over SQLite](#why-postgresql-over-sqlite)
-3. [PostgreSQL 15 Installation](#postgresql-15-installation)
-4. [Data Export from SQLite](#data-export-from-sqlite)
-5. [Schema Conversion](#schema-conversion)
-6. [Data Import to PostgreSQL](#data-import-to-postgresql)
-7. [Configuration Changes](#configuration-changes)
-8. [Testing Migration Success](#testing-migration-success)
-9. [Rollback Strategy](#rollback-strategy)
-10. [Common Migration Issues](#common-migration-issues)
+```
+supabase/
+├── config.toml                # Supabase CLI config (references SUPABASE_DB_PASSWORD via env())
+├── init.sql                   # Bootstrap SQL (applied on first start)
+└── migrations/
+    ├── 20260413000000_initial_schema.sql   # Users, tasks, notes, lists, reminders, budgets, schedules, event_configs, sunset_configs
+    └── 20260414000000_recipes_schema.sql   # Recipes, meal_plans, recipe_preferences
+```
+
+**Filename convention:** `YYYYMMDDHHMMSS_<description>.sql`. The timestamp prefix determines apply order, so migrations must always be strictly increasing.
+
+`init.sql` is intended for **bootstrap-only** content that must exist before any migration runs (e.g., roles, extensions beyond what migrations enable). Schema changes during day-to-day development go into migration files, **not** `init.sql`.
 
 ---
 
-## Overview
-
-Bwaincell is transitioning from **SQLite** to **PostgreSQL 15** for production deployments. This guide covers the complete migration process, from installation to validation.
-
-### Migration Timeline
-
-```
-┌──────────────┐
-│ 1. Backup    │  Export SQLite data
-│    SQLite    │  Save schema
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ 2. Install   │  PostgreSQL 15
-│    PostgreSQL│  Configure database
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ 3. Convert   │  Adapt schema
-│    Schema    │  Handle data types
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ 4. Import    │  Load data
-│    Data      │  Verify integrity
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ 5. Configure │  Update .env
-│    App       │  Test connections
-└──────┬───────┘
-       │
-       ▼
-┌──────────────┐
-│ 6. Validate  │  Run tests
-│    & Deploy  │  Monitor logs
-└──────────────┘
-```
-
----
-
-## Why PostgreSQL Over SQLite
-
-### SQLite Limitations
-
-| Issue                | SQLite                              | PostgreSQL                                    |
-| -------------------- | ----------------------------------- | --------------------------------------------- |
-| **Concurrency**      | Single writer at a time             | Multiple concurrent writers                   |
-| **Scalability**      | Limited to ~1GB practical size      | Scales to terabytes                           |
-| **Data Types**       | Limited (TEXT, INTEGER, REAL, BLOB) | Rich type system (JSON, Arrays, etc.)         |
-| **Performance**      | Degrades with concurrent access     | Optimized for concurrent workloads            |
-| **Production**       | Not recommended for web apps        | Industry standard                             |
-| **Backup**           | File-based, risky                   | Point-in-time recovery, streaming replication |
-| **Full-Text Search** | Basic FTS5                          | Advanced full-text search with ranking        |
-| **Transactions**     | Database-level locks                | Row-level locks                               |
-
-### When to Use Each
-
-**Use SQLite for:**
-
-- Local development
-- Testing
-- Single-user applications
-- Embedded systems
-
-**Use PostgreSQL for:**
-
-- Production deployments
-- Multi-user web applications
-- Applications requiring high concurrency
-- Data-intensive applications
-- Applications requiring advanced features (JSON, full-text search)
-
-### Bwaincell's Needs
-
-Bwaincell requires PostgreSQL for:
-
-1. **Concurrent Access:** Discord bot + Web API + Scheduled jobs
-2. **Production Reliability:** Robust crash recovery and data integrity
-3. **Scalability:** Growing user base and data volume
-4. **Advanced Features:** JSON data types for flexible schemas
-5. **Backup/Recovery:** Automated backups and point-in-time recovery
-
----
-
-## PostgreSQL 15 Installation
-
-### Local Development (macOS)
+## Authoring a New Migration
 
 ```bash
-# Install PostgreSQL via Homebrew
-brew install postgresql@15
+# Create a blank migration file with a correct timestamp prefix
+supabase migration new <description>
 
-# Start PostgreSQL service
-brew services start postgresql@15
-
-# Verify installation
-psql --version
-# Expected: psql (PostgreSQL) 15.x
-
-# Connect to default database
-psql postgres
+# The CLI creates:
+#   supabase/migrations/<YYYYMMDDHHMMSS>_<description>.sql
 ```
 
-### Local Development (Ubuntu/Debian)
-
-```bash
-# Add PostgreSQL APT repository
-sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-
-# Update package list
-sudo apt-get update
-
-# Install PostgreSQL 15
-sudo apt-get install -y postgresql-15
-
-# Start PostgreSQL service
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-
-# Verify installation
-psql --version
-```
-
-### Local Development (Windows)
-
-1. Download PostgreSQL 15 installer from [postgresql.org](https://www.postgresql.org/download/windows/)
-2. Run installer (use default port 5432)
-3. Set superuser password during installation
-4. Add PostgreSQL to PATH: `C:\Program Files\PostgreSQL\15\bin`
-5. Verify: Open Command Prompt and run `psql --version`
-
-### Docker Setup (Recommended for Development)
-
-**File:** `docker-compose.yml`
-
-```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: bwaincell-postgres
-    environment:
-      POSTGRES_USER: bwaincell
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: bwaincell
-    ports:
-      - '5433:5432' # Expose on port 5433 to avoid conflicts
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-```
-
-**Start PostgreSQL container:**
-
-```bash
-# Start container
-docker compose up -d postgres
-
-# View logs
-docker compose logs -f postgres
-
-# Connect to database
-docker exec -it bwaincell-postgres psql -U bwaincell -d bwaincell
-```
-
-### Production Deployment (Raspberry Pi)
-
-```bash
-# Install PostgreSQL 15
-sudo apt-get update
-sudo apt-get install -y postgresql-15
-
-# Create database and user
-sudo -u postgres psql
-```
+Edit that file with plain SQL:
 
 ```sql
-CREATE USER bwaincell WITH PASSWORD 'your_secure_password';
-CREATE DATABASE bwaincell OWNER bwaincell;
-GRANT ALL PRIVILEGES ON DATABASE bwaincell TO bwaincell;
-\q
+-- supabase/migrations/20260501120000_add_task_priority.sql
+
+ALTER TABLE tasks
+  ADD COLUMN priority INTEGER NOT NULL DEFAULT 0;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks (priority);
 ```
 
-### Cloud PostgreSQL (Fly.io, Heroku, AWS RDS)
+**Guidelines:**
 
-See provider-specific documentation for managed PostgreSQL setup.
+- Every migration should be idempotent-friendly where reasonable (`IF NOT EXISTS`, `IF EXISTS`).
+- Include any new indexes in the same migration that adds the table/column.
+- Use the existing ENUM types or create new ones in the same migration that first uses them.
+- Prefer `TIMESTAMPTZ` over `TIMESTAMP` for new time columns (matches existing convention).
 
 ---
 
-## Data Export from SQLite
-
-### Method 1: Using `.dump` Command
+## Applying Migrations Locally
 
 ```bash
-# Export entire database to SQL file
-sqlite3 data/bwaincell.sqlite .dump > backup/sqlite_dump.sql
+# Wipe the local DB and replay init.sql + all migrations from scratch:
+npm run supabase:reset          # = supabase db reset
 
-# Export specific tables
-sqlite3 data/bwaincell.sqlite <<EOF
-.mode insert
-.output backup/tasks_export.sql
-SELECT * FROM tasks;
-.output backup/notes_export.sql
-SELECT * FROM notes;
-.output stdout
-.quit
-EOF
+# Or, once the stack is already running, apply pending migrations only:
+supabase db push
 ```
 
-### Method 2: Using Sequelize Export Script
-
-**File:** `backend/scripts/export-sqlite-data.ts`
-
-```typescript
-import { sequelize, Task, Note, Reminder, Budget, Schedule, List } from '@database';
-import fs from 'fs/promises';
-import path from 'path';
-
-async function exportData() {
-  try {
-    console.log('Connecting to SQLite database...');
-    await sequelize.authenticate();
-
-    const exportDir = path.join(__dirname, '../../backup');
-    await fs.mkdir(exportDir, { recursive: true });
-
-    // Export each table
-    const models = { Task, Note, Reminder, Budget, Schedule, List };
-
-    for (const [modelName, Model] of Object.entries(models)) {
-      console.log(`Exporting ${modelName}...`);
-
-      const data = await Model.findAll({ raw: true });
-      const filename = path.join(exportDir, `${modelName.toLowerCase()}_data.json`);
-
-      await fs.writeFile(filename, JSON.stringify(data, null, 2));
-      console.log(`✓ Exported ${data.length} ${modelName} records to ${filename}`);
-    }
-
-    console.log('Export complete!');
-  } catch (error) {
-    console.error('Export failed:', error);
-    process.exit(1);
-  } finally {
-    await sequelize.close();
-  }
-}
-
-exportData();
-```
-
-**Run export:**
-
-```bash
-cd backend
-ts-node scripts/export-sqlite-data.ts
-```
-
-### Method 3: Manual CSV Export
-
-```bash
-# Export to CSV
-sqlite3 -header -csv data/bwaincell.sqlite "SELECT * FROM tasks;" > backup/tasks.csv
-sqlite3 -header -csv data/bwaincell.sqlite "SELECT * FROM notes;" > backup/notes.csv
-sqlite3 -header -csv data/bwaincell.sqlite "SELECT * FROM reminders;" > backup/reminders.csv
-```
+`supabase db reset` is the safest way to verify a migration is self-contained — it re-applies everything on an empty database.
 
 ---
 
-## Schema Conversion
+## Applying Migrations to Remote (Production / Staging)
 
-### Sequelize Models (Already PostgreSQL-Compatible)
+```bash
+# One-time: link the local repo to the remote Supabase project
+supabase link --project-ref <project-ref>
 
-Bwaincell uses Sequelize ORM, which abstracts database differences. The models are already compatible with PostgreSQL.
-
-**File:** `backend/database/models/Task.ts`
-
-```typescript
-import { Model, DataTypes, Sequelize } from 'sequelize';
-
-export default class Task extends Model {
-  public id!: string;
-  public userId!: string;
-  public title!: string;
-  public description!: string | null;
-  public completed!: boolean;
-  public dueDate!: Date | null;
-  public listId!: string | null;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
-
-  public static init(sequelize: Sequelize) {
-    return super.init(
-      {
-        id: {
-          type: DataTypes.UUID,
-          defaultValue: DataTypes.UUIDV4,
-          primaryKey: true,
-        },
-        userId: {
-          type: DataTypes.STRING,
-          allowNull: false,
-          field: 'user_id', // PostgreSQL uses snake_case
-        },
-        title: {
-          type: DataTypes.STRING(200),
-          allowNull: false,
-        },
-        description: {
-          type: DataTypes.TEXT,
-          allowNull: true,
-        },
-        completed: {
-          type: DataTypes.BOOLEAN,
-          defaultValue: false,
-        },
-        dueDate: {
-          type: DataTypes.DATE,
-          allowNull: true,
-          field: 'due_date',
-        },
-        listId: {
-          type: DataTypes.UUID,
-          allowNull: true,
-          field: 'list_id',
-        },
-      },
-      {
-        sequelize,
-        tableName: 'tasks',
-        timestamps: true,
-        underscored: true, // Use snake_case for columns
-      }
-    );
-  }
-}
+# Push any un-applied migrations
+supabase db push
 ```
 
-### Data Type Mapping
-
-| SQLite  | PostgreSQL                 | Sequelize                  |
-| ------- | -------------------------- | -------------------------- |
-| TEXT    | VARCHAR(n) / TEXT          | DataTypes.STRING(n) / TEXT |
-| INTEGER | INTEGER / BIGINT           | DataTypes.INTEGER          |
-| REAL    | NUMERIC / DOUBLE PRECISION | DataTypes.DECIMAL / FLOAT  |
-| BLOB    | BYTEA                      | DataTypes.BLOB             |
-| (none)  | UUID                       | DataTypes.UUID             |
-| (none)  | JSON / JSONB               | DataTypes.JSON / JSONB     |
-| (none)  | ARRAY                      | DataTypes.ARRAY(type)      |
-
-### Creating Tables in PostgreSQL
-
-Sequelize will automatically create tables when you run `sequelize.sync()`:
-
-```typescript
-import { sequelize } from '@database';
-
-// Sync all models (create tables)
-await sequelize.sync();
-
-// Force recreate tables (WARNING: destroys data)
-await sequelize.sync({ force: true });
-
-// Alter tables to match models (safer)
-await sequelize.sync({ alter: true });
-```
+For the Raspberry Pi self-hosted deployment, `supabase db push` is run against the Pi’s Supabase instance as part of the deployment pipeline (see [deployment.md](deployment.md)).
 
 ---
 
-## Data Import to PostgreSQL
-
-### Method 1: Using Import Script
-
-**File:** `backend/scripts/import-to-postgres.ts`
-
-```typescript
-import { sequelize, Task, Note, Reminder, Budget, Schedule, List } from '@database';
-import fs from 'fs/promises';
-import path from 'path';
-
-async function importData() {
-  try {
-    console.log('Connecting to PostgreSQL database...');
-    await sequelize.authenticate();
-
-    // Sync tables (create if they don't exist)
-    console.log('Syncing database schema...');
-    await sequelize.sync();
-
-    const backupDir = path.join(__dirname, '../../backup');
-    const models = { Task, Note, Reminder, Budget, Schedule, List };
-
-    for (const [modelName, Model] of Object.entries(models)) {
-      const filename = path.join(backupDir, `${modelName.toLowerCase()}_data.json`);
-
-      try {
-        const data = JSON.parse(await fs.readFile(filename, 'utf-8'));
-        console.log(`Importing ${data.length} ${modelName} records...`);
-
-        // Bulk create records
-        await Model.bulkCreate(data, {
-          validate: true,
-          ignoreDuplicates: true, // Skip if ID already exists
-        });
-
-        console.log(`✓ Imported ${modelName} data`);
-      } catch (error) {
-        console.error(`✗ Failed to import ${modelName}:`, error.message);
-      }
-    }
-
-    console.log('Import complete!');
-  } catch (error) {
-    console.error('Import failed:', error);
-    process.exit(1);
-  } finally {
-    await sequelize.close();
-  }
-}
-
-importData();
-```
-
-**Run import:**
+## Reviewing Diffs Before Committing
 
 ```bash
-# Ensure DATABASE_URL points to PostgreSQL
-export DATABASE_URL="postgresql://bwaincell:password@localhost:5433/bwaincell"
+# Diff local schema vs. current migrations
+supabase db diff
 
-cd backend
-ts-node scripts/import-to-postgres.ts
+# Generate a new migration from schema drift (use with care — review before committing)
+supabase db diff -f <description>
 ```
 
-### Method 2: Using SQL Import
-
-```bash
-# Import from SQLite dump (requires manual adjustments)
-psql -U bwaincell -d bwaincell < backup/sqlite_dump.sql
-```
-
-**Note:** SQLite dumps require manual SQL editing to work with PostgreSQL:
-
-- Remove SQLite-specific pragmas
-- Convert `INTEGER PRIMARY KEY` to `SERIAL PRIMARY KEY` or `UUID`
-- Convert `AUTOINCREMENT` to `GENERATED BY DEFAULT AS IDENTITY`
-- Update data type names
-
-### Method 3: Manual CSV Import
-
-```bash
-# Import CSV files
-psql -U bwaincell -d bwaincell <<EOF
-\copy tasks FROM 'backup/tasks.csv' WITH (FORMAT csv, HEADER true);
-\copy notes FROM 'backup/notes.csv' WITH (FORMAT csv, HEADER true);
-\copy reminders FROM 'backup/reminders.csv' WITH (FORMAT csv, HEADER true);
-EOF
-```
+The project prefers **hand-authored** migration SQL so reviewers can read intent-clear statements rather than mechanically generated diffs. Use `supabase db diff` as a cross-check, not as the primary authoring tool.
 
 ---
 
-## Configuration Changes
+## Verifying a Migration
 
-### Update `.env` File
-
-**Before (SQLite):**
-
-```env
-# SQLite database path
-DATABASE_PATH=./data/bwaincell.sqlite
-```
-
-**After (PostgreSQL):**
-
-```env
-# PostgreSQL connection string
-DATABASE_URL=postgresql://bwaincell:your_password@localhost:5433/bwaincell
-
-# For Docker deployment
-# DATABASE_URL=postgresql://bwaincell:your_password@postgres:5432/bwaincell
-
-# PostgreSQL credentials (used by Docker)
-POSTGRES_USER=bwaincell
-POSTGRES_PASSWORD=your_secure_password_here
-POSTGRES_DB=bwaincell
-```
-
-### Update Database Configuration
-
-**File:** `backend/database/config.js`
-
-```javascript
-require('dotenv').config({ path: '../.env' });
-
-module.exports = {
-  development: {
-    url: process.env.DATABASE_URL,
-    dialect: 'postgres',
-    logging: console.log,
-  },
-  test: {
-    url: 'postgresql://test:test@localhost:5433/bwaincell_test',
-    dialect: 'postgres',
-    logging: false,
-  },
-  production: {
-    url: process.env.DATABASE_URL,
-    dialect: 'postgres',
-    logging: false,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
-  },
-};
-```
-
-### Update Sequelize Instance
-
-**File:** `backend/database/index.ts`
-
-```typescript
-import { Sequelize } from 'sequelize';
-
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL environment variable is required');
-}
-
-// Create Sequelize instance with PostgreSQL
-const sequelize = new Sequelize(databaseUrl, {
-  dialect: 'postgres',
-  logging: (sql: string) => logger.info('SQL Query', { query: sql }),
-  pool: {
-    max: 10, // Maximum connections
-    min: 2, // Minimum connections
-    acquire: 30000, // Max time to get connection (ms)
-    idle: 10000, // Max idle time (ms)
-  },
-  dialectOptions: {
-    ssl:
-      process.env.NODE_ENV === 'production' && process.env.DEPLOYMENT_MODE !== 'pi'
-        ? {
-            require: true,
-            rejectUnauthorized: false,
-          }
-        : false,
-  },
-});
-
-export { sequelize };
-```
+1. `npm run supabase:reset` — replay everything clean.
+2. `npm run dev:backend` — start the bot; `verifyConnection()` in `supabase/supabase.ts` will fail fast if the schema is broken.
+3. `npm test` — run backend tests against the reset local stack.
+4. Hit the relevant Discord command or REST endpoint to exercise the new shape end-to-end.
 
 ---
 
-## Testing Migration Success
+## Rolling Back
 
-### 1. Test Database Connection
+Supabase migrations are forward-only. To "roll back":
 
-```bash
-# Using psql
-psql -U bwaincell -d bwaincell -c "SELECT version();"
+1. Create a new migration that reverses the change (e.g., `DROP COLUMN`, `DROP INDEX`).
+2. Apply it via `supabase db push` (or `supabase db reset` locally).
 
-# Using Sequelize
-cd backend
-node -e "
-const { sequelize } = require('./database');
-sequelize.authenticate()
-  .then(() => console.log('✓ Connection successful'))
-  .catch(err => console.error('✗ Connection failed:', err));
-"
-```
-
-### 2. Verify Table Creation
-
-```bash
-psql -U bwaincell -d bwaincell -c "\dt"
-```
-
-**Expected output:**
-
-```
-              List of relations
- Schema |      Name       | Type  |   Owner
---------+-----------------+-------+-----------
- public | budget          | table | bwaincell
- public | lists           | table | bwaincell
- public | notes           | table | bwaincell
- public | reminders       | table | bwaincell
- public | schedules       | table | bwaincell
- public | tasks           | table | bwaincell
- public | users           | table | bwaincell
-```
-
-### 3. Verify Data Import
-
-```bash
-psql -U bwaincell -d bwaincell <<EOF
-SELECT 'tasks' AS table_name, COUNT(*) AS count FROM tasks
-UNION ALL
-SELECT 'notes', COUNT(*) FROM notes
-UNION ALL
-SELECT 'reminders', COUNT(*) FROM reminders
-UNION ALL
-SELECT 'budget', COUNT(*) FROM budget
-UNION ALL
-SELECT 'schedules', COUNT(*) FROM schedules
-UNION ALL
-SELECT 'lists', COUNT(*) FROM lists;
-EOF
-```
-
-### 4. Run Application Tests
-
-```bash
-# Set DATABASE_URL to PostgreSQL
-export DATABASE_URL="postgresql://bwaincell:password@localhost:5433/bwaincell"
-
-# Run backend tests
-npm run test:backend
-
-# Run integration tests
-npm run test:coverage:backend
-```
-
-### 5. Test Bot Functionality
-
-```bash
-# Start the bot
-npm run dev:backend
-
-# Test Discord commands:
-# /tasks list
-# /reminders list
-# /notes list
-```
-
-### 6. Test API Endpoints
-
-```bash
-# Test health endpoint
-curl http://localhost:3000/health
-
-# Test authenticated endpoint (requires valid JWT)
-curl -H "Authorization: Bearer <token>" http://localhost:3000/api/tasks
-```
+Never edit an already-committed migration file — it breaks reproducibility for any environment that already applied it.
 
 ---
 
-## Rollback Strategy
+## Model Wrappers
 
-### Pre-Migration Backup
+After changing schema, update the matching model wrapper in `supabase/models/`:
 
-```bash
-# Create SQLite backup
-cp data/bwaincell.sqlite backup/bwaincell_$(date +%Y%m%d_%H%M%S).sqlite
-
-# Create PostgreSQL dump (if switching back from PostgreSQL)
-pg_dump -U bwaincell -d bwaincell > backup/postgres_dump_$(date +%Y%m%d_%H%M%S).sql
-```
-
-### Rollback to SQLite
-
-1. **Stop application**
-
-```bash
-docker compose down
-```
-
-2. **Restore .env to SQLite configuration**
-
-```env
-DATABASE_PATH=./data/bwaincell.sqlite
-```
-
-3. **Comment out PostgreSQL configuration**
-
-```typescript
-// File: backend/database/index.ts
-// Revert to SQLite configuration
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: process.env.DATABASE_PATH || './data/bwaincell.sqlite',
-  logging: false,
-});
-```
-
-4. **Restore SQLite database from backup**
-
-```bash
-cp backup/bwaincell_20260111_120000.sqlite data/bwaincell.sqlite
-```
-
-5. **Restart application**
-
-```bash
-npm run dev:backend
-```
+- One TypeScript file per table (e.g., `Task.ts`, `Recipe.ts`).
+- Keep query logic centralized here so Discord commands, Express routes, and Next.js API routes all share the same data-access layer.
 
 ---
 
-## Common Migration Issues
+## Environment Variables
 
-### Issue 1: Connection Refused
+- `SUPABASE_URL` — CLI local default is `http://127.0.0.1:54321`
+- `SUPABASE_SERVICE_ROLE_KEY` — privileged (backend-only)
+- `SUPABASE_ANON_KEY` — unprivileged (browser-safe)
+- `SUPABASE_DB_PASSWORD` — loaded by `supabase/config.toml` via `env()`
 
-**Error:**
-
-```
-Error: connect ECONNREFUSED 127.0.0.1:5432
-```
-
-**Solution:**
-
-```bash
-# Check if PostgreSQL is running
-docker compose ps  # For Docker
-brew services list  # For Homebrew (macOS)
-sudo systemctl status postgresql  # For Linux
-
-# Start PostgreSQL
-docker compose up -d postgres  # Docker
-brew services start postgresql@15  # macOS
-sudo systemctl start postgresql  # Linux
-
-# Verify port in DATABASE_URL matches PostgreSQL port
-# Docker: port 5433 (mapped from 5432)
-# Native: port 5432 (default)
-```
-
-### Issue 2: Authentication Failed
-
-**Error:**
-
-```
-Error: password authentication failed for user "bwaincell"
-```
-
-**Solution:**
-
-```bash
-# Verify credentials in .env
-echo $DATABASE_URL
-
-# Reset PostgreSQL password
-psql -U postgres
-ALTER USER bwaincell WITH PASSWORD 'new_password';
-\q
-
-# Update .env with new password
-```
-
-### Issue 3: Database Does Not Exist
-
-**Error:**
-
-```
-Error: database "bwaincell" does not exist
-```
-
-**Solution:**
-
-```bash
-# Create database
-psql -U postgres
-CREATE DATABASE bwaincell OWNER bwaincell;
-\q
-
-# Or using createdb command
-createdb -U postgres -O bwaincell bwaincell
-```
-
-### Issue 4: SSL Connection Error
-
-**Error:**
-
-```
-Error: self signed certificate
-```
-
-**Solution:**
-
-```typescript
-// File: backend/database/index.ts
-dialectOptions: {
-  ssl: {
-    require: true,
-    rejectUnauthorized: false,  // Allow self-signed certificates
-  },
-}
-```
-
-### Issue 5: Data Type Mismatch
-
-**Error:**
-
-```
-Error: column "id" is of type uuid but expression is of type character varying
-```
-
-**Solution:**
-
-```typescript
-// Ensure model uses correct data type
-id: {
-  type: DataTypes.UUID,  // Not DataTypes.STRING
-  defaultValue: DataTypes.UUIDV4,
-  primaryKey: true,
-}
-```
-
-### Issue 6: Foreign Key Constraint Violation
-
-**Error:**
-
-```
-Error: insert or update on table "tasks" violates foreign key constraint
-```
-
-**Solution:**
-
-```bash
-# Import data in correct order (parent tables first)
-# 1. users
-# 2. lists
-# 3. tasks (references lists)
-# 4. notes (references tasks)
-
-# Or temporarily disable foreign key checks
-psql -U bwaincell -d bwaincell
-SET session_replication_role = 'replica';
--- Import data
-SET session_replication_role = 'origin';
-```
-
-### Issue 7: Slow Query Performance
-
-**Solution:**
-
-```sql
--- Add indexes for frequently queried columns
-CREATE INDEX idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX idx_tasks_completed ON tasks(completed);
-CREATE INDEX idx_reminders_due_date ON reminders(due_date);
-
--- Analyze tables for query optimization
-ANALYZE tasks;
-ANALYZE reminders;
-ANALYZE notes;
-```
+Run `npm run supabase:status` to print the current local URL and keys.
 
 ---
 
-## References
+## Related Documentation
 
-- [PostgreSQL 15 Documentation](https://www.postgresql.org/docs/15/)
-- [Sequelize PostgreSQL Guide](https://sequelize.org/docs/v6/other-topics/dialect-specific-things/#postgresql)
-- [Database Config](c:\Users\lukaf\Desktop\Dev Work\Bwaincell\backend\database\config.js)
-- [Database Index](c:\Users\lukaf\Desktop\Dev Work\Bwaincell\backend\database\index.ts)
-- [ADR: PostgreSQL Migration](../architecture/adr/0002-postgresql-migration.md)
-
----
-
-**Next Steps:**
-
-- [Testing Guide](testing.md) - Write comprehensive tests
-- [API Development Guide](api-development.md) - Create REST endpoints
-- [Discord Bot Development Guide](discord-bot-development.md) - Create Discord commands
+- [Database Schema](../architecture/database-schema.md) — authoritative table reference
+- [Deployment Guide](deployment.md)
+- [Troubleshooting](troubleshooting.md)

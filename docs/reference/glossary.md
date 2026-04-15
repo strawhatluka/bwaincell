@@ -1,22 +1,33 @@
 # Glossary
 
-**Version:** 2.0.0
-**Last Updated** 2026-01-12
+**Version:** 2.1.2
+**Last Updated:** 2026-04-15
+
+> **Supabase update (2026-04-15):** Any `backend/database/` references later in this file are stale — the current schema + typed model wrappers live under `supabase/` (`supabase/migrations/`, `supabase/models/`, `supabase/supabase.ts`).
+
+## Added / Updated Terms
+
+- **Supabase** — Managed PostgreSQL + PostgREST + GoTrue + Studio stack used by Bwaincell for all persistence. Local dev via `supabase start` (Docker); production self-hosted on the Pi.
+- **Supabase CLI** — `supabase` command-line tool that runs the local stack, applies migrations (`supabase db push` / `supabase db reset`), and manages project links.
+- **Row Level Security (RLS)** — PostgreSQL feature that enforces per-row access policies at the database level. Not yet enabled in Bwaincell's migrations; isolation is currently done in application code with the service-role key.
+- **Anon Key (`SUPABASE_ANON_KEY`)** — Browser-safe Supabase key; subject to RLS.
+- **Service Role Key (`SUPABASE_SERVICE_ROLE_KEY`)** — Privileged Supabase key that bypasses RLS. **Server-side only.**
+- **PostgREST** — Supabase's REST-over-Postgres layer; every `supabase-js` query is translated to a PostgREST request.
+- **Gemini / `@google/genai`** — Google's LLM API used by `geminiService.ts` for `/random`, recipe ingredient normalization, and AI shopping-list generation.
+- **Recipe** — Row in `recipes` table; shared per guild; ingredients/instructions stored as JSONB.
+- **Recipe Ingestion** — Pipeline (`recipeScraper.ts` → `recipeIngestion.ts` → `recipeNormalize.ts` → persist) that captures a recipe from URL/video/file/manual input and canonicalizes its ingredients.
+- **Ingredient Canonicalization** — Process in `ingredientCanonical.ts` that standardizes ingredient names/units/quantities before storage.
+- **MealPlan** — Row in `meal_plans`; one active plan per guild (enforced by partial unique index `idx_meal_plans_guild_active`). Holds parallel 7-slot arrays `recipe_ids` and `servings_per_recipe`.
+- **RecipePreferences** — Per-guild row holding `dietary_restrictions` and `excluded_cuisines` (JSONB) used during recipe suggestion.
+- **Shopping List (AI)** — Output of `shoppingList.ts`: consolidates ingredients from the active meal plan, scales by servings, canonicalizes, and merges via Gemini.
+- **Sunset Scheduler** — `backend/utils/sunsetService.ts` + `node-cron` combination that posts daily "sunset soon" announcements per guild based on `sunset_configs`.
+- **EventConfig** — Row in `event_configs`; per-guild local-events announcement scheduling. Consumed by `eventsService.ts`.
 
 Comprehensive glossary of technical terms, project-specific concepts, and acronyms used in Bwaincell documentation and codebase.
 
 ---
 
 ## Project-Specific Terms
-
-### ADR (Architecture Decision Record)
-
-A document that captures an important architectural decision made for the project, including context, decision, and consequences. Bwaincell tracks ADRs in the `docs/architecture/adr/` directory.
-
-**Related:** [Architecture Documentation](../architecture/README.md)
-**Location:** [docs/architecture/adr/](../architecture/adr/README.md)
-
----
 
 ### App Router
 
@@ -493,12 +504,6 @@ Development approach where tests are written before implementation.
 ---
 
 ## Acronyms
-
-### ADR
-
-Architecture Decision Record
-
----
 
 ### API
 

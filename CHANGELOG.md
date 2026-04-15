@@ -463,7 +463,6 @@ Major architecture overhaul migrating from Fly.io + SQLite to self-hosted Raspbe
 - **Migrated from SQLite to PostgreSQL 15**
   - No longer using file-based database (`./data/bwaincell.sqlite`)
   - Requires PostgreSQL server configuration
-  - See [docs/architecture/adr/0002-postgresql-migration.md](docs/architecture/adr/0002-postgresql-migration.md)
   - Migration guide: [docs/guides/database-migrations.md](docs/guides/database-migrations.md)
 
 #### Deployment Architecture
@@ -685,7 +684,6 @@ Major architecture overhaul migrating from Fly.io + SQLite to self-hosted Raspbe
 - **Trinity Method references removed** from all user-facing docs
 - **BAS Quality Gates** renamed to "Quality Gates"
 - **License consistency** fixed (MIT in all files)
-- **ADR location** corrected in glossary
 - **API endpoint count** updated to 39
 - **Subcommand count** updated to 46
 - **Version info** updated throughout

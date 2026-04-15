@@ -395,13 +395,68 @@ tasks = tasks_response.json()['data']
 print(tasks)
 ```
 
+## Endpoint Groups
+
+The Bwaincell system exposes HTTP endpoints from **two different layers**:
+
+### Backend Express REST API (`backend/src/api/routes/`)
+
+Implemented in Express, used by the Discord bot's companion API surface and by external programmatic clients:
+
+- **Tasks** — `/api/tasks`
+- **Lists** — `/api/lists` (+ `/items`, `/clear-completed`, item-toggle)
+- **Notes** — `/api/notes` (+ `/search`)
+- **Reminders** — `/api/reminders`
+- **Budget** — `/api/budget` (+ `/summary`, `/transactions`)
+- **Schedule** — `/api/schedule`
+- **Auth / OAuth** — `/api/auth/*`
+- **Health** — `/health`
+
+### Frontend Next.js API Routes (`frontend/app/api/`)
+
+Used by the PWA to broker requests from the browser to Supabase with NextAuth session context:
+
+- `frontend/app/api/auth/[...nextauth]` — NextAuth handlers
+- `frontend/app/api/tasks` (+ `[id]`)
+- `frontend/app/api/lists` (+ `items`, `clear-completed`, toggle, `[id]`)
+- `frontend/app/api/notes` (+ `[id]`)
+- `frontend/app/api/reminders` (+ `[id]`)
+- `frontend/app/api/schedule` (+ `[id]`)
+- `frontend/app/api/budget` (+ `transactions`, `[id]`)
+
+Recipes, MealPlans, Sunset-config, and Events-config are currently exposed **only through the Discord bot commands and Supabase model wrappers** (`supabase/models/`); there are no dedicated REST routes under `backend/src/api/routes/` for those features at the time of writing. Mutations happen through Discord interactions (`/recipe`, `/sunset`, `/events`) and direct Supabase model calls. 
+
+### Recipes (Supabase model wrapper: `supabase/models/Recipe.ts`)
+
+- Create / list / favorite / delete recipes per guild
+- Ingredients stored as JSONB array: `[{ name, quantity, unit, category }]`
+- Source types: `website`, `video`, `file`, `manual`
+- See the `recipes` table in [../architecture/database-schema.md](../architecture/database-schema.md)
+
+### MealPlans (`supabase/models/MealPlan.ts`)
+
+- One active meal plan per guild (`archived = FALSE`, enforced by partial unique index)
+- `recipe_ids INTEGER[]` and `servings_per_recipe INTEGER[]` (parallel 7-element arrays, one per weekday)
+
+### Sunset Config (`supabase/models/SunsetConfig.ts`)
+
+- Per-guild row in `sunset_configs`
+- Fields: `advance_minutes`, `channel_id`, `zip_code`, `timezone`, `is_enabled`, `last_announcement`
+- Scheduled via `backend/utils/sunsetService.ts` using `node-cron`
+
+### Events Config (`supabase/models/EventConfig.ts`)
+
+- Per-guild row in `event_configs`
+- Fields: `location`, `announcement_channel_id`, `schedule_day`, `schedule_hour`, `schedule_minute`, `timezone`, `is_enabled`
+- Scheduled via `backend/utils/eventsService.ts`
+
 ## Implementation Details
 
 - **Framework:** Express 4.21.2
 - **Authentication:** Google OAuth 2.0 + JWT (jsonwebtoken)
-- **Database:** PostgreSQL 15 with Sequelize ORM
+- **Database:** Supabase (managed PostgreSQL) with typed model wrappers in `supabase/models/` (replaces the earlier Sequelize setup)
 - **Middleware Stack:** CORS → JSON Parser → OAuth Verification → JWT Verification → Logging → Error Handler
-- **User Isolation:** All data segregated by Discord user_id and guild_id
+- **User Isolation:** All data segregated by Discord `guild_id` (shared-household model) with `user_id` retained for audit trail
 
 ## Related Documentation
 

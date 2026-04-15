@@ -1,13 +1,14 @@
 # Discord Bot Commands Reference
 
-**Version:** 2.0.0
-**Last Updated** 2026-01-12
+**Version:** 2.1.0
+**Last Updated:** 2026-04-15
 **Bot:** Bwaincell Discord Bot
 **Framework:** Discord.js v14
+**Database:** Supabase (PostgreSQL)
 
 ## Overview
 
-Bwaincell provides 8 slash commands for managing tasks, lists, notes, reminders, budgets, schedules, GitHub issues, and random utilities. All commands use Discord's modern slash command interface with autocomplete, interactive buttons, and embeds.
+Bwaincell provides 12 slash commands for managing tasks, lists, notes, reminders, budgets, schedules, GitHub issues, random utilities, recipes, meal plans, local events, dramatic quote images, and daily sunset announcements. All commands use Discord's modern slash command interface with autocomplete, interactive buttons, and embeds.
 
 **Command Prefix:** `/` (Discord slash commands)
 **Guild Isolation:** All data is isolated per Discord server (guild)
@@ -25,6 +26,10 @@ Bwaincell provides 8 slash commands for managing tasks, lists, notes, reminders,
 6. [Schedule Management](#6-schedule-management---schedule)
 7. [GitHub Issues](#7-github-issues---issues)
 8. [Random Utilities](#8-random-utilities---random)
+9. [Recipe Management](#9-recipe-management---recipe)
+10. [Local Events](#10-local-events---events)
+11. [Make it a Quote](#11-make-it-a-quote---make-it-a-quote)
+12. [Sunset Announcements](#12-sunset-announcements---sunset)
 
 ---
 
@@ -1833,7 +1838,180 @@ DEFAULT_REMINDER_CHANNEL=your_channel_id_for_reminders
 
 ---
 
+## 9. Recipe Management - `/recipe`
+
+Store recipes scraped from websites/videos, generate weekly meal plans, scale servings, and produce AI-consolidated shopping lists.
+
+Source: `backend/commands/recipe.ts`, interactions in `backend/utils/interactions/handlers/recipeHandlers.ts`.
+
+### Subcommands
+
+- `/recipe add link:<URL>` — Ingest a recipe from a website URL or YouTube video. Runs the two-pass ingestion pipeline (Pass 1: JSON-LD/microdata/OG scrape; Pass 2: Gemini fills remaining gaps). Returns an embed with provenance badges (🔍 source / 🤖 researched).
+- `/recipe view recipe:<autocomplete> servings:<1-50>` — Display a recipe scaled to the requested serving count.
+- `/recipe delete recipe:<autocomplete>` — Delete a recipe.
+- `/recipe edit recipe:<autocomplete>` — Open the edit flow for a recipe.
+- `/recipe search` — Filter recipes by `cuisine`, `difficulty` (easy/medium/hard), `tag` (dietary), `keyword`, and `max_prep_time`. All filters optional.
+- `/recipe favorite recipe:<autocomplete>` — Toggle favorite status (favorites sort first in autocomplete and lists).
+- `/recipe plan` — Start an interactive weekly meal-plan builder. Choose Pick mode or AI-suggested mode; collect 7 recipes + servings; persists to `meal_plans`.
+- `/recipe swap slot:<1-7>` — Swap a slot in the active meal plan with a different recipe.
+- `/recipe week` — Show the active meal plan for the current week.
+- `/recipe history` — Show past (archived) meal plans.
+- `/recipe preferences action:<choice> value:<string>` — Manage guild-level recipe preferences. Actions: `view`, `add_restriction`, `remove_restriction`, `add_exclusion`, `remove_exclusion`, `clear`.
+
+### Data Models
+
+- `recipes` — see [docs/backend/models/Recipe.md](../backend/models/Recipe.md)
+- `meal_plans` — see [docs/backend/models/MealPlan.md](../backend/models/MealPlan.md)
+- `recipe_preferences` — see [docs/backend/models/RecipePreferences.md](../backend/models/RecipePreferences.md)
+
+### Interactive Components
+
+Button / select-menu handlers live in `backend/utils/interactions/handlers/recipeHandlers.ts`. Notable custom IDs:
+
+- `recipe_view_full_<id>` — expand full recipe embed after add
+- `recipe_plan_*` — picking stage buttons/selects
+- `recipe_plan_confirm_*`, `recipe_plan_servings_*` — confirmation + servings collection stages
+
+Plan sessions are kept in an in-memory `Map<string, PlanSession>` keyed by `${guildId}:${userId}`, TTL 15 minutes.
+
+### Example
+
+```
+/recipe add link:"https://example.com/chicken-curry"
+/recipe view recipe:"Chicken Curry" servings:6
+/recipe plan
+/recipe swap slot:3
+```
+
+### Response
+
+- Rich embeds with badges for cuisine, difficulty, prep/cook time, dietary tags, and nutrition (per serving).
+- Favorites marked with ★ in autocomplete.
+- Provenance footer shows how many fields came from the source vs. were AI-researched.
+
+---
+
+## 10. Local Events - `/events`
+
+Discover local events or reconfigure the weekly announcement schedule. Events are AI-discovered via Gemini grounded on the configured location.
+
+Source: `backend/commands/events.ts`, service `backend/utils/eventsService.ts`, model `EventConfig`.
+
+### Options
+
+- `day` (optional, string) — Day name to set the announcement day (e.g., `"Monday"`, `"Friday"`). Parsed via `parseDayName()`.
+- `time` (optional, string) — 12-hour format time (e.g., `"2:30 PM"`). Parsed to 24-hour and stored.
+
+### Behavior
+
+- If either option is provided, `EventConfig.upsertConfig()` is called and the central scheduler is refreshed via `scheduler.addEventConfig(guildId)`.
+- If neither option is provided, `eventsService.discoverLocalEvents(location, start, end)` runs and the resulting embed is sent.
+
+### Environment Requirements
+
+- `LOCATION_ZIP_CODE` — location used for discovery.
+- `DEFAULT_REMINDER_CHANNEL` — channel where weekly announcements are posted.
+- `TIMEZONE` (via `config.settings.timezone`) — timezone used for schedule math.
+- `GEMINI_API_KEY` — required for AI discovery.
+
+### Data Model
+
+See [docs/backend/models/EventConfig.md](../backend/models/EventConfig.md).
+
+### Example
+
+```
+/events                     # preview upcoming events now
+/events day:Friday time:"6:00 PM"   # reschedule weekly announcement
+```
+
+---
+
+## 11. Make it a Quote - `/make-it-a-quote`
+
+Render a dramatic quote image from an existing Discord message.
+
+Source: `backend/commands/quote.ts`, image rendering in `backend/utils/imageService.ts` (skia-canvas).
+
+### Options
+
+- `message_link` (required, string) — A Discord message link (right-click → Copy Message Link) or a plain message ID for same-channel quoting.
+
+### Behavior
+
+1. Parse input: if a full link is provided, extract `guildId/channelId/messageId`; otherwise treat input as a message ID in the current channel.
+2. Fetch the target message (cross-channel support if linked).
+3. Resolve the author's guild-specific avatar (`member.displayAvatarURL({ extension: 'png', size: 512 })`).
+4. `ImageService.generateQuoteImage(avatarUrl, quoteText, username)` produces a PNG buffer.
+5. Reply with attachment `quote.png`.
+
+### Error Cases
+
+- Message not found / bot lacks channel access.
+- Cross-server link rejected.
+- Empty message content rejected.
+- `skia-canvas is not available` → user-facing message explaining the image library is missing for this platform.
+
+### Example
+
+```
+/make-it-a-quote message_link:"https://discord.com/channels/123/456/789"
+```
+
+### Data Model
+
+None — this command is stateless and writes no persistent data.
+
+---
+
+## 12. Sunset Announcements - `/sunset`
+
+Schedule a daily sunset announcement delivered N minutes before local sunset.
+
+Source: `backend/commands/sunset.ts`, service `backend/utils/sunsetService.ts`, model `SunsetConfig`.
+
+### Subcommands
+
+- `/sunset enable` — Enable daily announcements. Validates `LOCATION_ZIP_CODE` via `getCoordinatesFromZip()`, upserts a `SunsetConfig` row (defaults: `advance_minutes=60`, `timezone=config.settings.timezone`), and registers the job with the central scheduler (`scheduler.addSunsetConfig(guildId)`).
+- `/sunset disable` — Toggles `is_enabled=false` and removes the scheduled job.
+- `/sunset set minutes:<1-120>` — Update advance-notice minutes (how long before sunset the announcement fires). Refreshes scheduler.
+- `/sunset status` — Show current config, today's sunset time (fetched via `getSunsetTime()` from `api.sunrise-sunset.org`), and countdown.
+
+### Environment Requirements
+
+- `LOCATION_ZIP_CODE` — US ZIP code used for geocoding via `api.zippopotam.us`.
+- `DEFAULT_REMINDER_CHANNEL` — channel where the announcement is posted.
+- `TIMEZONE` (via `config.settings.timezone`) — timezone for display + scheduling.
+
+### Data Model
+
+See [docs/backend/models/SunsetConfig.md](../backend/models/SunsetConfig.md).
+
+### Example
+
+```
+/sunset enable
+/sunset set minutes:30
+/sunset status
+/sunset disable
+```
+
+### Response
+
+Embeds in sunset color (0xff6b35 when enabled, 0x808080/0xff0000 when disabled) with ZIP, advance notice, channel, today's sunset time, countdown, and last announcement timestamp.
+
+---
+
 ## Changelog
+
+**Version 2.1.0 (2026-04-15):**
+
+- Migrated storage from Sequelize/PostgreSQL to Supabase (PostgreSQL).
+- Added `/recipe` (13 subcommands): recipe ingestion, search, favorites, meal planning, preferences.
+- Added `/events`: AI-powered local event discovery + weekly announcement schedule.
+- Added `/make-it-a-quote`: dramatic quote image generator.
+- Added `/sunset`: daily sunset announcement scheduling.
+- Cross-references added to new backend model and service docs.
 
 **Version 2.0.0 (2026-01-11):**
 
@@ -1845,4 +2023,4 @@ DEFAULT_REMINDER_CHANNEL=your_channel_id_for_reminders
 
 ---
 
-\***Last Updated**: 2026-01-11
+**Last Updated:** 2026-04-15

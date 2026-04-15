@@ -2,6 +2,20 @@
 
 Comprehensive performance optimization guide for Bwaincell - maximizing speed, efficiency, and scalability.
 
+> **Supabase update (2026-04-15):** Sequelize-specific database guidance below (eager loading, `include`, `Op.like` patterns) is historical. The current equivalents:
+>
+> **Indexes** — Define in the same migration that introduces the column. Authoritative indexes live in `supabase/migrations/*.sql`. Key existing indexes: `idx_tasks_guild_completed`, `idx_reminders_next_trigger` (partial `WHERE active = TRUE`), `idx_meal_plans_guild_active` (unique partial for "one active plan per guild"), `idx_recipes_guild_favorite`.
+>
+> **Query depth / nested selects** — When using `supabase.from('x').select('... , related(...)')` with relationship expansion, keep the depth to 1–2 levels. Deep PostgREST selects are convenient but can mask N+1 at the client layer.
+>
+> **Pagination** — Prefer `.range(from, to)` with explicit ordering instead of OFFSET-based pagination when possible; PostgREST translates both cleanly but keyset pagination on an indexed column scales better.
+>
+> **Connection pooling** — In production, connect backend to Supabase through its built-in pooler (the `pgbouncer`-style connection string exposed by Supabase). For the self-hosted Pi stack this is `127.0.0.1:54322` + the pooler port described in `supabase status` output.
+>
+> **JSONB columns** — `lists.items`, `notes.tags`, `recipes.ingredients`, `recipes.instructions`, `recipes.dietary_tags`, `recipe_preferences.dietary_restrictions` are all JSONB. Queries that filter inside these columns should use `@>` / `?` operators and a `GIN` index if hot.
+>
+> **Gemini calls** — `geminiService.ts` is an external network hop. Cache canonicalized ingredients in the DB (already done for recipes) so reads don't re-invoke the model.
+
 ## Table of Contents
 
 1. [Database Performance](#database-performance)

@@ -1,6 +1,97 @@
 # Discord Bot Development Guide
 
-**Last Updated** 2026-01-12
+**Last Updated:** 2026-04-15
+
+> **Supabase update (2026-04-15):** Commands no longer use Sequelize. Use the typed model wrappers in `supabase/models/*.ts`. Any `Model.findAll` / `sequelize.sync()` patterns shown later in this file are historical.
+
+## Command inventory (12)
+
+`/budget`, `/events`, `/issues`, `/list`, `/note`, `/quote`, `/random`, `/recipe`, `/remind`, `/schedule`, `/sunset`, `/task`
+
+Each command file lives in `backend/commands/` and exports `data` (a `SlashCommandBuilder`) and `execute(interaction)`.
+
+## Data access pattern (current)
+
+```typescript
+// backend/commands/task.ts (illustrative)
+import { SlashCommandBuilder } from 'discord.js';
+import * as Task from '../../supabase/models/Task';
+
+export const data = new SlashCommandBuilder()
+  .setName('task')
+  .setDescription('Manage tasks');
+
+export async function execute(interaction) {
+  const guildId = interaction.guildId!;
+  const tasks = await Task.getGuildTasks(guildId);
+  await interaction.reply({
+    content: `You have ${tasks.length} tasks`,
+    ephemeral: true,
+  });
+}
+```
+
+## Feature command scaffolds
+
+### `/recipe`
+
+`backend/commands/recipe.ts` defines the top-level command. Button and select-menu interactions (add-from-url, favorite-toggle, view-details, meal-plan-slot-assign) are routed through **`backend/utils/interactions/handlers/recipeHandlers.ts`**, which exports handlers keyed by `customId` prefix.
+
+```typescript
+// backend/utils/interactions/handlers/recipeHandlers.ts (pattern)
+export async function handleButton(interaction: ButtonInteraction) {
+  const [scope, action, ...rest] = interaction.customId.split(':');
+  if (scope !== 'recipe') return false;
+
+  switch (action) {
+    case 'favorite': {
+      const recipeId = Number(rest[0]);
+      await Recipe.toggleFavorite(recipeId, interaction.guildId!);
+      await interaction.deferUpdate();
+      return true;
+    }
+    // ...
+  }
+  return false;
+}
+```
+
+Ingest pipeline helpers live in `backend/utils/`:
+
+- `recipeScraper.ts` — URL/video ingestion
+- `recipeIngestion.ts` — orchestrates scrape → normalize → persist
+- `recipeNormalize.ts` + `ingredientCanonical.ts` — ingredient canonicalization
+- `geminiService.ts` — `@google/genai` client
+- `shoppingList.ts` — AI consolidated shopping list from active meal plan
+
+### `/sunset`
+
+`backend/commands/sunset.ts` upserts the single per-guild row in `sunset_configs` via `supabase/models/SunsetConfig.ts`. The actual scheduling happens in `backend/utils/sunsetService.ts` on top of `node-cron`, with sunset imagery rendered by `imageService.ts` (skia-canvas).
+
+### `/events`
+
+`backend/commands/events.ts` configures `event_configs` (per-guild). `backend/utils/eventsService.ts` + `node-cron` runs the weekly announcement.
+
+### `/quote`
+
+`backend/commands/quote.ts` — quote storage + retrieval (uses `notes`-style patterns through a Supabase model wrapper).
+
+### `/random`
+
+Uses `geminiService.ts` + `LOCATION_ZIP_CODE` for location-aware suggestions.
+
+## Interaction handlers
+
+`backend/utils/interactions/handlers/` contains:
+
+- `listHandlers.ts`
+- `randomHandlers.ts`
+- `recipeHandlers.ts`
+- `reminderHandlers.ts`
+- `selectMenuHandlers.ts`
+- `taskHandlers.ts`
+
+Each exports named handlers that receive the raw `Interaction` and return a boolean indicating whether they consumed it; the central dispatcher in the bot's interaction-create listener fans out to them in order.
 **Target:** Contributors adding Discord slash commands and interactions
 
 ---

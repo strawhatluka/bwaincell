@@ -1,7 +1,7 @@
 # Getting Started with Bwaincell
 
-**Version:** 2.0.0
-**Last Updated** 2026-01-12
+**Version:** 2.1.2
+**Last Updated:** 2026-04-15
 
 ## Overview
 
@@ -11,9 +11,13 @@ Bwaincell is a unified monorepo productivity platform providing task management,
 
 - Node.js ≥ 18.0.0
 - npm ≥ 9.0.0
-- PostgreSQL 15 or higher
+- **Supabase CLI** ≥ 2.91 (provides local Postgres + PostgREST + Studio in Docker)
+- Docker (required by the Supabase local stack)
 - Discord Bot Token ([Discord Developer Portal](https://discord.com/developers/applications))
 - Google OAuth 2.0 Credentials ([Google Cloud Console](https://console.cloud.google.com))
+- Google Gemini API Key ([ai.google.dev](https://ai.google.dev/)) — required for `/random`, recipe normalization, and AI shopping-list
+
+You do **not** need to install PostgreSQL locally. The Supabase local stack provides its own Postgres.
 
 ## Installation
 
@@ -32,8 +36,23 @@ npm run build:shared
 cp .env.example .env
 
 # Edit .env with your credentials
-# Required: Discord bot token, Google OAuth credentials, PostgreSQL connection, JWT secret
+# Required: Discord bot token, Google OAuth, NextAuth, JWT_SECRET,
+# SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_DB_PASSWORD,
+# GEMINI_API_KEY, LOCATION_ZIP_CODE
 ```
+
+### Start the Supabase local stack
+
+```bash
+npm run supabase:start          # Boots local Postgres + PostgREST + Studio (Docker)
+npm run supabase:status         # Prints SUPABASE_URL, anon key, and service role key
+# Copy the printed keys into your .env file
+
+# Any time you want a clean DB with all migrations re-applied:
+npm run supabase:reset
+```
+
+When you are done: `npm run supabase:stop`.
 
 ## Project Structure
 
@@ -42,10 +61,17 @@ bwaincell/
 ├── backend/              # Discord bot + REST API (Express + Discord.js)
 │   ├── src/             # Source code (bot.ts, api/, types/)
 │   │   └── api/        # Express API (routes/, middleware/)
-│   ├── commands/        # Discord slash commands
-│   ├── database/        # Sequelize models, migrations, schema
-│   ├── utils/           # Utilities (logger, validators, interactions)
+│   ├── commands/        # 12 Discord slash commands
+│   ├── utils/           # Logger, validators, interactions, scheduler,
+│   │                    # sunsetService, eventsService, geminiService, shoppingList,
+│   │                    # recipeScraper, recipeIngestion, recipeNormalize, etc.
 │   └── tests/           # Backend tests
+├── supabase/             # Supabase configuration + schema + typed models
+│   ├── config.toml      # Supabase CLI configuration
+│   ├── init.sql         # Bootstrap SQL
+│   ├── migrations/      # Timestamped SQL migrations (authoritative schema)
+│   ├── models/          # 12 typed model wrappers
+│   └── supabase.ts      # Lazy-initialized Supabase client
 ├── frontend/            # Next.js 14.2+ PWA
 │   ├── app/            # App Router (dashboard/, api/)
 │   ├── components/     # React components
