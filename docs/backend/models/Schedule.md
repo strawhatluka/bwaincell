@@ -7,16 +7,16 @@ Calendar events with date + time, filterable by upcoming / past / all.
 
 ## Columns
 
-| Column        | Type         | Constraints                 |
-| ------------- | ------------ | --------------------------- |
-| `id`          | SERIAL       | PRIMARY KEY                 |
-| `event`       | VARCHAR(255) | NOT NULL                    |
-| `date`        | DATE         | NOT NULL                    |
-| `time`        | TIME         | NOT NULL                    |
-| `description` | TEXT         | nullable                    |
-| `user_id`     | VARCHAR(255) | NOT NULL (audit trail)      |
-| `guild_id`    | VARCHAR(255) | NOT NULL                    |
-| `created_at`  | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()`   |
+| Column        | Type         | Constraints               |
+| ------------- | ------------ | ------------------------- |
+| `id`          | SERIAL       | PRIMARY KEY               |
+| `event`       | VARCHAR(255) | NOT NULL                  |
+| `date`        | DATE         | NOT NULL                  |
+| `time`        | TIME         | NOT NULL                  |
+| `description` | TEXT         | nullable                  |
+| `user_id`     | VARCHAR(255) | NOT NULL (audit trail)    |
+| `guild_id`    | VARCHAR(255) | NOT NULL                  |
+| `created_at`  | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()` |
 
 Indexes: `idx_schedules_guild_id`, `idx_schedules_date`.
 
@@ -24,14 +24,14 @@ Indexes: `idx_schedules_guild_id`, `idx_schedules_date`.
 
 ## Static Methods
 
-| Method | Signature | Returns |
-| ------ | --------- | ------- |
-| `addEvent` | `(guildId, event, date, time, description=null, userId?)` | `Promise<ScheduleRow>` |
-| `getEvents` | `(guildId, filter: 'upcoming'\|'past'\|'all' = 'upcoming')` | `Promise<ScheduleRow[]>` |
-| `deleteEvent` | `(eventId, guildId)` | `Promise<boolean>` |
-| `getCountdown` | `(guildId, eventName)` | `Promise<{ event, timeLeft } \| null>` — ILIKE partial match, earliest by date+time |
-| `getTodaysEvents` | `(guildId)` | `Promise<ScheduleRow[]>` |
-| `getUpcomingEvents` | `(guildId, days=7)` | `Promise<ScheduleRow[]>` |
+| Method              | Signature                                                   | Returns                                                                             |
+| ------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `addEvent`          | `(guildId, event, date, time, description=null, userId?)`   | `Promise<ScheduleRow>`                                                              |
+| `getEvents`         | `(guildId, filter: 'upcoming'\|'past'\|'all' = 'upcoming')` | `Promise<ScheduleRow[]>`                                                            |
+| `deleteEvent`       | `(eventId, guildId)`                                        | `Promise<boolean>`                                                                  |
+| `getCountdown`      | `(guildId, eventName)`                                      | `Promise<{ event, timeLeft } \| null>` — ILIKE partial match, earliest by date+time |
+| `getTodaysEvents`   | `(guildId)`                                                 | `Promise<ScheduleRow[]>`                                                            |
+| `getUpcomingEvents` | `(guildId, days=7)`                                         | `Promise<ScheduleRow[]>`                                                            |
 
 ## Example
 

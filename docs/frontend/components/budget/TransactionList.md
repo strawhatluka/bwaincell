@@ -6,22 +6,25 @@ Lists transactions sorted by `date` descending, with an inline delete confirmati
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `transactions` | `Transaction[]` | yes | Source data. |
-| `onDelete` | `(id: number) => void` | yes | Called after confirm in the delete dialog. |
+| Name           | Type                   | Required | Description                                |
+| -------------- | ---------------------- | -------- | ------------------------------------------ |
+| `transactions` | `Transaction[]`        | yes      | Source data.                               |
+| `onDelete`     | `(id: number) => void` | yes      | Called after confirm in the delete dialog. |
 
 ### `Transaction`
 
 ```ts
 interface Transaction {
-  id: number; userId: string; guildId: string;
+  id: number;
+  userId: string;
+  guildId: string;
   amount: number;
   type: 'income' | 'expense';
   category: string;
   description: string;
   date: string;
-  createdAt: string; updatedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 

@@ -4,16 +4,16 @@ All routes are Express routers mounted under `/api` in `backend/src/api/server.t
 
 ## Route Files
 
-| File | Mount | Auth | Main purpose |
-| ---- | ----- | ---- | ------------ |
-| [oauth.md](./oauth.md) | `/api/auth` | None (mints/refreshes tokens) | Google Sign-In, JWT refresh, logout |
-| [health.md](./health.md) | `/api/health` | Bearer JWT | Auth probe |
-| [tasks.md](./tasks.md) | `/api/tasks` | Bearer JWT | CRUD + complete/uncomplete |
-| [lists.md](./lists.md) | `/api/lists` | Bearer JWT | List CRUD + item add/toggle/remove/clear |
-| [notes.md](./notes.md) | `/api/notes` | Bearer JWT | Note CRUD + tags endpoint |
-| [reminders.md](./reminders.md) | `/api/reminders` | Bearer JWT | List/create/delete reminders (PATCH stubbed) |
-| [schedule.md](./schedule.md) | `/api/schedule` | Bearer JWT | Event list/today/countdown/create/delete (PATCH stubbed) |
-| [budget.md](./budget.md) | `/api/budget` | Bearer JWT | Transactions, summary, categories, trends |
+| File                           | Mount            | Auth                          | Main purpose                                             |
+| ------------------------------ | ---------------- | ----------------------------- | -------------------------------------------------------- |
+| [oauth.md](./oauth.md)         | `/api/auth`      | None (mints/refreshes tokens) | Google Sign-In, JWT refresh, logout                      |
+| [health.md](./health.md)       | `/api/health`    | Bearer JWT                    | Auth probe                                               |
+| [tasks.md](./tasks.md)         | `/api/tasks`     | Bearer JWT                    | CRUD + complete/uncomplete                               |
+| [lists.md](./lists.md)         | `/api/lists`     | Bearer JWT                    | List CRUD + item add/toggle/remove/clear                 |
+| [notes.md](./notes.md)         | `/api/notes`     | Bearer JWT                    | Note CRUD + tags endpoint                                |
+| [reminders.md](./reminders.md) | `/api/reminders` | Bearer JWT                    | List/create/delete reminders (PATCH stubbed)             |
+| [schedule.md](./schedule.md)   | `/api/schedule`  | Bearer JWT                    | Event list/today/countdown/create/delete (PATCH stubbed) |
+| [budget.md](./budget.md)       | `/api/budget`    | Bearer JWT                    | Transactions, summary, categories, trends                |
 
 ## Response Envelope
 

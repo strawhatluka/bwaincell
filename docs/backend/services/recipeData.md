@@ -7,15 +7,18 @@ In-memory curated movie dataset used by the `/random movie` command. The filenam
 ## Exports
 
 ```ts
-export const movieData: Record<string, {
-  year: string;
-  genre: string;
-  rating: string; // IMDb rating string e.g. '9.3'
-  link: string;   // IMDb title URL
-}>;
+export const movieData: Record<
+  string,
+  {
+    year: string;
+    genre: string;
+    rating: string; // IMDb rating string e.g. '9.3'
+    link: string; // IMDb title URL
+  }
+>;
 ```
 
-Initial entries include: *The Shawshank Redemption*, *The Dark Knight*, *Inception*, *Pulp Fiction*, *Forrest Gump*, *The Matrix*, *Interstellar*, *The Godfather*.
+Initial entries include: _The Shawshank Redemption_, _The Dark Knight_, _Inception_, _Pulp Fiction_, _Forrest Gump_, _The Matrix_, _Interstellar_, _The Godfather_.
 
 ## Usage
 

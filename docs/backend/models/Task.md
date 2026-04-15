@@ -8,16 +8,16 @@ Guild-scoped to-do items with optional due dates and completion tracking.
 
 ## Columns
 
-| Column         | Type         | Constraints                |
-| -------------- | ------------ | -------------------------- |
-| `id`           | SERIAL       | PRIMARY KEY                |
-| `description`  | TEXT         | NOT NULL                   |
-| `due_date`     | TIMESTAMPTZ  | nullable                   |
-| `completed`    | BOOLEAN      | NOT NULL, DEFAULT FALSE    |
-| `created_at`   | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()`  |
-| `completed_at` | TIMESTAMPTZ  | nullable                   |
-| `user_id`      | VARCHAR(255) | NOT NULL (audit trail)     |
-| `guild_id`     | VARCHAR(255) | NOT NULL                   |
+| Column         | Type         | Constraints               |
+| -------------- | ------------ | ------------------------- |
+| `id`           | SERIAL       | PRIMARY KEY               |
+| `description`  | TEXT         | NOT NULL                  |
+| `due_date`     | TIMESTAMPTZ  | nullable                  |
+| `completed`    | BOOLEAN      | NOT NULL, DEFAULT FALSE   |
+| `created_at`   | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()` |
+| `completed_at` | TIMESTAMPTZ  | nullable                  |
+| `user_id`      | VARCHAR(255) | NOT NULL (audit trail)    |
+| `guild_id`     | VARCHAR(255) | NOT NULL                  |
 
 ## Indexes
 
@@ -27,13 +27,13 @@ Guild-scoped to-do items with optional due dates and completion tracking.
 
 ## Static Methods
 
-| Method | Signature | Returns |
-| ------ | --------- | ------- |
-| `createTask` | `(guildId, description, dueDate: Date\|null = null, userId?)` | `Promise<TaskRow>` |
-| `getUserTasks` | `(guildId, filter: 'all'\|'pending'\|'completed' = 'all')` | `Promise<TaskRow[]>` |
-| `completeTask` | `(taskId, guildId)` | `Promise<TaskRow \| null>` |
-| `deleteTask` | `(taskId, guildId)` | `Promise<boolean>` |
-| `editTask` | `(taskId, guildId, newDescription?, newDueDate?)` | `Promise<TaskRow \| null>` |
+| Method         | Signature                                                     | Returns                    |
+| -------------- | ------------------------------------------------------------- | -------------------------- |
+| `createTask`   | `(guildId, description, dueDate: Date\|null = null, userId?)` | `Promise<TaskRow>`         |
+| `getUserTasks` | `(guildId, filter: 'all'\|'pending'\|'completed' = 'all')`    | `Promise<TaskRow[]>`       |
+| `completeTask` | `(taskId, guildId)`                                           | `Promise<TaskRow \| null>` |
+| `deleteTask`   | `(taskId, guildId)`                                           | `Promise<boolean>`         |
+| `editTask`     | `(taskId, guildId, newDescription?, newDueDate?)`             | `Promise<TaskRow \| null>` |
 
 All reads/writes filter by `guild_id` for shared household access (WO-015). `user_id` defaults to `'system'` for audit-only storage.
 

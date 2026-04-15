@@ -9,7 +9,7 @@ Renders numeric quantities as culinary-friendly fractions (e.g., `1 1/2 cups` in
 Snap decimals to a fixed set of common culinary fractions within `SNAP_TOLERANCE = 0.02`. Fall back to a trimmed decimal string when no snap fits. Pre-formatted fraction strings pass through unchanged.
 
 ```ts
-const COMMON_FRACTIONS = [1/8, 1/4, 3/8, 1/3, 1/2, 5/8, 2/3, 3/4, 7/8];
+const COMMON_FRACTIONS = [1 / 8, 1 / 4, 3 / 8, 1 / 3, 1 / 2, 5 / 8, 2 / 3, 3 / 4, 7 / 8];
 ```
 
 ## Exported Functions
@@ -37,9 +37,9 @@ const COMMON_FRACTIONS = [1/8, 1/4, 3/8, 1/3, 1/2, 5/8, 2/3, 3/4, 7/8];
 ## Examples
 
 ```ts
-formatQuantity(1.5);     // "1 1/2"
-formatQuantity(0.5);     // "1/2"
-formatQuantity("1 1/2"); // "1 1/2"
-formatQuantity("0.5");   // "1/2"
-formatQuantity(null);    // ""
+formatQuantity(1.5); // "1 1/2"
+formatQuantity(0.5); // "1/2"
+formatQuantity('1 1/2'); // "1 1/2"
+formatQuantity('0.5'); // "1/2"
+formatQuantity(null); // ""
 ```

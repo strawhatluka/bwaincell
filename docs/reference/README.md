@@ -128,6 +128,7 @@ openssl rand -base64 32  # JWT_SECRET, NEXTAUTH_SECRET, SUPABASE_DB_PASSWORD
 - `skia-canvas` ^3.0.0 — Image generation (`imageService`)
 
 Note: `sequelize` and `pg` are still in `package.json` as a transitional dependency but the active database client is `@supabase/supabase-js`.
+
 ### Dev Tooling
 
 - `supabase` ^2.91.0 — Supabase CLI (runs local stack + migrations)

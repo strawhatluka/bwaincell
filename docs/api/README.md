@@ -424,7 +424,7 @@ Used by the PWA to broker requests from the browser to Supabase with NextAuth se
 - `frontend/app/api/schedule` (+ `[id]`)
 - `frontend/app/api/budget` (+ `transactions`, `[id]`)
 
-Recipes, MealPlans, Sunset-config, and Events-config are currently exposed **only through the Discord bot commands and Supabase model wrappers** (`supabase/models/`); there are no dedicated REST routes under `backend/src/api/routes/` for those features at the time of writing. Mutations happen through Discord interactions (`/recipe`, `/sunset`, `/events`) and direct Supabase model calls. 
+Recipes, MealPlans, Sunset-config, and Events-config are currently exposed **only through the Discord bot commands and Supabase model wrappers** (`supabase/models/`); there are no dedicated REST routes under `backend/src/api/routes/` for those features at the time of writing. Mutations happen through Discord interactions (`/recipe`, `/sunset`, `/events`) and direct Supabase model calls.
 
 ### Recipes (Supabase model wrapper: `supabase/models/Recipe.ts`)
 

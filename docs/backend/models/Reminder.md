@@ -7,20 +7,20 @@ Timezone-aware recurring/one-time reminders fired by the central scheduler.
 
 ## Columns
 
-| Column         | Type                   | Constraints                         |
-| -------------- | ---------------------- | ----------------------------------- |
-| `id`           | SERIAL                 | PRIMARY KEY                         |
-| `message`      | TEXT                   | NOT NULL                            |
-| `time`         | TIME                   | NOT NULL (`HH:MM`, 24-hour)         |
-| `frequency`    | `reminder_frequency`   | NOT NULL, DEFAULT `'once'`          |
-| `day_of_week`  | INTEGER                | nullable (0=Sun .. 6=Sat)           |
-| `day_of_month` | INTEGER                | nullable (1..31)                    |
-| `month`        | INTEGER                | nullable (1..12, yearly only)       |
-| `channel_id`   | VARCHAR(255)           | NOT NULL                            |
-| `user_id`      | VARCHAR(255)           | NOT NULL (audit trail)              |
-| `guild_id`     | VARCHAR(255)           | NOT NULL                            |
-| `active`       | BOOLEAN                | NOT NULL, DEFAULT TRUE              |
-| `next_trigger` | TIMESTAMPTZ            | nullable (computed)                 |
+| Column         | Type                 | Constraints                   |
+| -------------- | -------------------- | ----------------------------- |
+| `id`           | SERIAL               | PRIMARY KEY                   |
+| `message`      | TEXT                 | NOT NULL                      |
+| `time`         | TIME                 | NOT NULL (`HH:MM`, 24-hour)   |
+| `frequency`    | `reminder_frequency` | NOT NULL, DEFAULT `'once'`    |
+| `day_of_week`  | INTEGER              | nullable (0=Sun .. 6=Sat)     |
+| `day_of_month` | INTEGER              | nullable (1..31)              |
+| `month`        | INTEGER              | nullable (1..12, yearly only) |
+| `channel_id`   | VARCHAR(255)         | NOT NULL                      |
+| `user_id`      | VARCHAR(255)         | NOT NULL (audit trail)        |
+| `guild_id`     | VARCHAR(255)         | NOT NULL                      |
+| `active`       | BOOLEAN              | NOT NULL, DEFAULT TRUE        |
+| `next_trigger` | TIMESTAMPTZ          | nullable (computed)           |
 
 Enum `reminder_frequency`: `'once' | 'daily' | 'weekly' | 'monthly' | 'yearly'`.
 
@@ -28,15 +28,15 @@ Indexes: `idx_reminders_guild_id`, `idx_reminders_active`, `idx_reminders_next_t
 
 ## Static Methods
 
-| Method | Signature | Returns |
-| ------ | --------- | ------- |
-| `createReminder` | `(guildId, channelId, message, time, frequency='once', dayOfWeek=null, userId?, targetDate?, dayOfMonth?, month?)` | `Promise<ReminderRow>` |
-| `calculateNextTrigger` | `(time, frequency, dayOfWeek, targetDate?, dayOfMonth?, month?)` | `Date` — timezone-aware via Luxon (`TIMEZONE` env, default `America/Los_Angeles`) |
-| `getActiveReminders` | `()` | `Promise<ReminderRow[]>` (global — used by scheduler on boot) |
-| `getUserReminders` | `(guildId)` | `Promise<ReminderRow[]>` (active only) |
-| `deleteReminder` | `(reminderId, guildId)` | `Promise<boolean>` — soft-deletes by setting `active=false` |
-| `updateNextTrigger` | `(reminderId)` | `Promise<ReminderRow \| null>` — deactivates one-time reminders, recomputes for recurring |
-| `getTriggeredReminders` | `()` | `Promise<ReminderRow[]>` (active + `next_trigger <= now`) |
+| Method                  | Signature                                                                                                          | Returns                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `createReminder`        | `(guildId, channelId, message, time, frequency='once', dayOfWeek=null, userId?, targetDate?, dayOfMonth?, month?)` | `Promise<ReminderRow>`                                                                    |
+| `calculateNextTrigger`  | `(time, frequency, dayOfWeek, targetDate?, dayOfMonth?, month?)`                                                   | `Date` — timezone-aware via Luxon (`TIMEZONE` env, default `America/Los_Angeles`)         |
+| `getActiveReminders`    | `()`                                                                                                               | `Promise<ReminderRow[]>` (global — used by scheduler on boot)                             |
+| `getUserReminders`      | `(guildId)`                                                                                                        | `Promise<ReminderRow[]>` (active only)                                                    |
+| `deleteReminder`        | `(reminderId, guildId)`                                                                                            | `Promise<boolean>` — soft-deletes by setting `active=false`                               |
+| `updateNextTrigger`     | `(reminderId)`                                                                                                     | `Promise<ReminderRow \| null>` — deactivates one-time reminders, recomputes for recurring |
+| `getTriggeredReminders` | `()`                                                                                                               | `Promise<ReminderRow[]>` (active + `next_trigger <= now`)                                 |
 
 ## Scheduler Coupling
 

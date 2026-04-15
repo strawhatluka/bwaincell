@@ -616,7 +616,10 @@ ${JSON.stringify(expectedResponse)}
 
     it('throws on missing name', async () => {
       mockGenerateContent.mockResolvedValueOnce({
-        text: JSON.stringify({ ingredients: [{ name: 'x', quantity: 1, unit: '' }], instructions: ['a'] }),
+        text: JSON.stringify({
+          ingredients: [{ name: 'x', quantity: 1, unit: '' }],
+          instructions: ['a'],
+        }),
       });
       await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow('Invalid recipe');
     });
@@ -625,9 +628,7 @@ ${JSON.stringify(expectedResponse)}
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({ name: 'X', ingredients: [], instructions: ['a'] }),
       });
-      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow(
-        'Invalid recipe'
-      );
+      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow('Invalid recipe');
     });
 
     it('throws when an ingredient lacks a name', async () => {
@@ -763,9 +764,7 @@ ${JSON.stringify(expectedResponse)}
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({ selectedRecipeIds: [1, 2, 3], reasoning: 'partial' }),
       });
-      await expect(GeminiService.selectMealsForPlan(makeRecipes(7))).rejects.toThrow(
-        'exactly 7'
-      );
+      await expect(GeminiService.selectMealsForPlan(makeRecipes(7))).rejects.toThrow('exactly 7');
     });
 
     it('throws when selected id is not in input list', async () => {
@@ -861,20 +860,17 @@ ${JSON.stringify(expectedResponse)}
 
     it('filters gaps to allowed fields only', async () => {
       mockGenerateContent.mockResolvedValueOnce({ text: '{}' });
-      const result = await GeminiService.researchMissingFields(
-        basePartial,
-        null,
-        ['cuisine', 'not-a-real-field' as 'cuisine']
-      );
+      const result = await GeminiService.researchMissingFields(basePartial, null, [
+        'cuisine',
+        'not-a-real-field' as 'cuisine',
+      ]);
       expect(result).toEqual({});
     });
 
     it('returns {} when all filtered gaps are invalid', async () => {
-      const result = await GeminiService.researchMissingFields(
-        basePartial,
-        null,
-        ['bogus' as 'cuisine']
-      );
+      const result = await GeminiService.researchMissingFields(basePartial, null, [
+        'bogus' as 'cuisine',
+      ]);
       expect(result).toEqual({});
       expect(mockGenerateContent).not.toHaveBeenCalled();
     });

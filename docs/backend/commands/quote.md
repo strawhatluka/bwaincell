@@ -11,9 +11,9 @@ The slash command is `/make-it-a-quote` (SlashCommandBuilder `setName('make-it-a
 
 ## Options
 
-| Option | Type | Required | Description |
-| ------ | ---- | -------- | ----------- |
-| `message_link` | string | Yes | Discord message link (`https://discord.com/channels/<guild>/<channel>/<message>`) or a plain message ID. |
+| Option         | Type   | Required | Description                                                                                              |
+| -------------- | ------ | -------- | -------------------------------------------------------------------------------------------------------- |
+| `message_link` | string | Yes      | Discord message link (`https://discord.com/channels/<guild>/<channel>/<message>`) or a plain message ID. |
 
 ## Flow
 

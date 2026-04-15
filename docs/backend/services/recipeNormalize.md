@@ -6,11 +6,11 @@ Canonicalizes recipe metadata fields (cuisine, difficulty, dietary tags) to lowe
 
 ## Exported Functions
 
-| Function | Signature | Behavior |
-| -------- | --------- | -------- |
-| `normalizeCuisine` | `(v: string \| null \| undefined) => string \| null` | `trim().toLowerCase()`; returns `null` for empty/whitespace. |
-| `normalizeDifficulty` | `(v: string \| null \| undefined) => RecipeDifficulty \| null` | Accepts only `'easy' \| 'medium' \| 'hard'` after lowercasing; returns `null` otherwise. |
-| `normalizeDietaryTags` | `(v: string[] \| null \| undefined) => string[]` | Returns deduped, lowercased, trimmed string array. Non-string entries dropped. Never returns `null` — falls back to `[]`. |
+| Function               | Signature                                                      | Behavior                                                                                                                  |
+| ---------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `normalizeCuisine`     | `(v: string \| null \| undefined) => string \| null`           | `trim().toLowerCase()`; returns `null` for empty/whitespace.                                                              |
+| `normalizeDifficulty`  | `(v: string \| null \| undefined) => RecipeDifficulty \| null` | Accepts only `'easy' \| 'medium' \| 'hard'` after lowercasing; returns `null` otherwise.                                  |
+| `normalizeDietaryTags` | `(v: string[] \| null \| undefined) => string[]`               | Returns deduped, lowercased, trimmed string array. Non-string entries dropped. Never returns `null` — falls back to `[]`. |
 
 ## Unit Handling
 
@@ -19,12 +19,16 @@ This module does NOT normalize quantities/units. That's handled by [`ingredientC
 ## Example
 
 ```ts
-import { normalizeCuisine, normalizeDifficulty, normalizeDietaryTags } from '@/utils/recipeNormalize';
+import {
+  normalizeCuisine,
+  normalizeDifficulty,
+  normalizeDietaryTags,
+} from '@/utils/recipeNormalize';
 
-normalizeCuisine('  Italian ');        // 'italian'
-normalizeCuisine('');                  // null
-normalizeDifficulty('Hard');           // 'hard'
-normalizeDifficulty('impossible');     // null
+normalizeCuisine('  Italian '); // 'italian'
+normalizeCuisine(''); // null
+normalizeDifficulty('Hard'); // 'hard'
+normalizeDifficulty('impossible'); // null
 normalizeDietaryTags(['Vegan', 'vegan', ' GF ']); // ['vegan', 'gf']
 ```
 

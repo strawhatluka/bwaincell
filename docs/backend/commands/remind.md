@@ -10,15 +10,15 @@ Manage one-time and recurring reminders. Announcements go to `settings.defaultRe
 
 ## Subcommands
 
-| Subcommand | Required options | Frequency |
-|---|---|---|
-| `me` | `message`, `time` (12h); optional `date` (`MM-DD-YYYY` or `tomorrow`) | `once` |
-| `daily` | `message`, `time` | `daily` |
-| `weekly` | `message`, `day` (choice 0–6 = Sun–Sat), `time` | `weekly` |
-| `monthly` | `message`, `day` (1–31), `time` | `monthly` |
-| `yearly` | `message`, `month` (choice 1–12), `day` (1–31), `time` | `yearly` |
-| `list` | — | Lists reminders with ID / message / frequency / next trigger. |
-| `delete` | `reminder_id` (autocomplete) | Deletes reminder. |
+| Subcommand | Required options                                                      | Frequency                                                     |
+| ---------- | --------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `me`       | `message`, `time` (12h); optional `date` (`MM-DD-YYYY` or `tomorrow`) | `once`                                                        |
+| `daily`    | `message`, `time`                                                     | `daily`                                                       |
+| `weekly`   | `message`, `day` (choice 0–6 = Sun–Sat), `time`                       | `weekly`                                                      |
+| `monthly`  | `message`, `day` (1–31), `time`                                       | `monthly`                                                     |
+| `yearly`   | `message`, `month` (choice 1–12), `day` (1–31), `time`                | `yearly`                                                      |
+| `list`     | —                                                                     | Lists reminders with ID / message / frequency / next trigger. |
+| `delete`   | `reminder_id` (autocomplete)                                          | Deletes reminder.                                             |
 
 ## Time / Date Parsing
 

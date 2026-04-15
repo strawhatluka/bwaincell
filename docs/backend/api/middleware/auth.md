@@ -13,8 +13,16 @@ Legacy HTTP Basic auth middleware for the dashboard. The active auth path is OAu
 
    ```ts
    const USERS = {
-     strawhatluka: { password: STRAWHATLUKA_PASSWORD, discordId: STRAWHATLUKA_DISCORD_ID, guildId: GUILD_ID },
-     dandelion:    { password: DANDELION_PASSWORD,   discordId: DANDELION_DISCORD_ID,   guildId: GUILD_ID },
+     strawhatluka: {
+       password: STRAWHATLUKA_PASSWORD,
+       discordId: STRAWHATLUKA_DISCORD_ID,
+       guildId: GUILD_ID,
+     },
+     dandelion: {
+       password: DANDELION_PASSWORD,
+       discordId: DANDELION_DISCORD_ID,
+       guildId: GUILD_ID,
+     },
    };
    ```
 
@@ -44,12 +52,12 @@ Note: the OAuth variant of `AuthenticatedRequest` in `oauth.ts` has a different 
 
 ## Failure Modes
 
-| Condition | Status | Body |
-| --------- | ------ | ---- |
-| Missing / malformed `Authorization` header | 401 | `Unauthorized - Basic authentication required` |
-| Unknown user or wrong password | 401 | `Invalid credentials` |
-| User exists but env vars not set | 500 | `Server configuration error` |
-| Exception during parsing | 500 | `Authentication failed` |
+| Condition                                  | Status | Body                                           |
+| ------------------------------------------ | ------ | ---------------------------------------------- |
+| Missing / malformed `Authorization` header | 401    | `Unauthorized - Basic authentication required` |
+| Unknown user or wrong password             | 401    | `Invalid credentials`                          |
+| User exists but env vars not set           | 500    | `Server configuration error`                   |
+| Exception during parsing                   | 500    | `Authentication failed`                        |
 
 ## Downstream Assumptions
 

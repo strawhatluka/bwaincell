@@ -63,10 +63,7 @@ router.get('/', authenticateToken, async (req, res, next) => {
 
 router.post('/favorite/:id', authenticateToken, async (req, res, next) => {
   try {
-    const updated = await Recipe.toggleFavorite(
-      Number(req.params.id),
-      req.user.guildId
-    );
+    const updated = await Recipe.toggleFavorite(Number(req.params.id), req.user.guildId);
     res.json({ success: true, data: updated });
   } catch (err) {
     next(err);

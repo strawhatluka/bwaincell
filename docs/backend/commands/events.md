@@ -8,10 +8,10 @@ Preview AI-discovered local events on demand, or reconfigure the weekly announce
 
 ## Options
 
-| Option | Type | Required | Description |
-| ------ | ---- | -------- | ----------- |
-| `day` | string | No | Day name (`Monday`, `Friday`, ...), parsed by `parseDayName()` in `backend/utils/dateHelpers.ts`. |
-| `time` | string | No | 12-hour time (`2:30 PM`). Parsed to 24-hour via local regex `/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)$/`. |
+| Option | Type   | Required | Description                                                                                       |
+| ------ | ------ | -------- | ------------------------------------------------------------------------------------------------- | --- | --- | ------- |
+| `day`  | string | No       | Day name (`Monday`, `Friday`, ...), parsed by `parseDayName()` in `backend/utils/dateHelpers.ts`. |
+| `time` | string | No       | 12-hour time (`2:30 PM`). Parsed to 24-hour via local regex `/^(\d{1,2}):(\d{2})\s\*(AM           | PM  | am  | pm)$/`. |
 
 ## Behaviors
 

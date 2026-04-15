@@ -16,12 +16,12 @@ None.
 
 ```ts
 const navigation = [
-  { name: 'Dashboard',  href: '/dashboard',            icon: Home },
-  { name: 'Tasks',      href: '/dashboard/tasks',      icon: CheckSquare },
-  { name: 'Lists',      href: '/dashboard/lists',      icon: List },
-  { name: 'Notes',      href: '/dashboard/notes',      icon: StickyNote },
-  { name: 'Reminders',  href: '/dashboard/reminders',  icon: Bell },
-  { name: 'Budget',     href: '/dashboard/budget',     icon: DollarSign },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Tasks', href: '/dashboard/tasks', icon: CheckSquare },
+  { name: 'Lists', href: '/dashboard/lists', icon: List },
+  { name: 'Notes', href: '/dashboard/notes', icon: StickyNote },
+  { name: 'Reminders', href: '/dashboard/reminders', icon: Bell },
+  { name: 'Budget', href: '/dashboard/budget', icon: DollarSign },
 ];
 ```
 

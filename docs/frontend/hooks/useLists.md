@@ -23,14 +23,25 @@ function useLists(): {
   isTogglingItem: boolean;
   isClearingCompleted: boolean;
   isDeleting: boolean;
-}
+};
 ```
 
 ## Types
 
 ```ts
-interface ListItem { text: string; completed: boolean; added_at: string; }
-interface List { id: number; userId: string; guildId: string; name: string; items: ListItem[]; createdAt: string; }
+interface ListItem {
+  text: string;
+  completed: boolean;
+  added_at: string;
+}
+interface List {
+  id: number;
+  userId: string;
+  guildId: string;
+  name: string;
+  items: ListItem[];
+  createdAt: string;
+}
 ```
 
 ## React Query Keys
@@ -40,15 +51,15 @@ interface List { id: number; userId: string; guildId: string; name: string; item
 
 ## API Endpoints
 
-| Operation | Method / Path |
-|---|---|
-| List | `GET /lists` |
-| Create | `POST /lists` |
-| Add item | `POST /lists/{encodeURIComponent(listName)}/items` |
-| Remove item | `DELETE /lists/{listName}/items/{itemText}` (both encoded) |
-| Toggle item | `PATCH /lists/{listName}/items/{itemText}/toggle` |
-| Clear completed | `POST /lists/{listName}/clear-completed` |
-| Delete list | `DELETE /lists/{listName}` |
+| Operation       | Method / Path                                              |
+| --------------- | ---------------------------------------------------------- |
+| List            | `GET /lists`                                               |
+| Create          | `POST /lists`                                              |
+| Add item        | `POST /lists/{encodeURIComponent(listName)}/items`         |
+| Remove item     | `DELETE /lists/{listName}/items/{itemText}` (both encoded) |
+| Toggle item     | `PATCH /lists/{listName}/items/{itemText}/toggle`          |
+| Clear completed | `POST /lists/{listName}/clear-completed`                   |
+| Delete list     | `DELETE /lists/{listName}`                                 |
 
 All path segments are `encodeURIComponent`-wrapped.
 

@@ -27,13 +27,13 @@ Non-guild interactions reply ephemeral `"❌ This command can only be used in a 
 
 ## customId Patterns
 
-| customId | Action |
-|---|---|
-| `random_movie_reroll` | Random `movieData` pick; re-renders embed with IMDb link and reroll button. |
-| `random_recipe_reroll` | `Recipe.getRandom(guildId)` — same embed shape as `/random recipe`. |
-| `random_date_reroll` | `GeminiService.generateDateIdea(zip)` with `process.env.LOCATION_ZIP_CODE ?? '90210'`; falls back to `dateIdeas` on failure. |
-| `random_question_reroll` | `GeminiService.generateQuestion()`; level colors: 1=green, 2=blue, 3=purple; fallback to `conversationStarters`. |
-| `random_coin_flip` | `Math.random() < 0.5 ? 'Heads' : 'Tails'`. |
+| customId                 | Action                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `random_movie_reroll`    | Random `movieData` pick; re-renders embed with IMDb link and reroll button.                                                  |
+| `random_recipe_reroll`   | `Recipe.getRandom(guildId)` — same embed shape as `/random recipe`.                                                          |
+| `random_date_reroll`     | `GeminiService.generateDateIdea(zip)` with `process.env.LOCATION_ZIP_CODE ?? '90210'`; falls back to `dateIdeas` on failure. |
+| `random_question_reroll` | `GeminiService.generateQuestion()`; level colors: 1=green, 2=blue, 3=purple; fallback to `conversationStarters`.             |
+| `random_coin_flip`       | `Math.random() < 0.5 ? 'Heads' : 'Tails'`.                                                                                   |
 
 ## Error Handling
 

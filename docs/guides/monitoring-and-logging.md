@@ -11,6 +11,7 @@ Comprehensive guide for monitoring and logging in Bwaincell - ensuring observabi
 > **Retention:** Self-hosted Supabase retains logs per its own Postgres log-retention settings; tune via `supabase/config.toml` or Postgres parameters. Winston backend logs retain per the existing volume-rotation policy.
 >
 > **Recommended alerting additions:**
+>
 > - Alarm on `supabase-js` errors emitted via Winston (`logger.error('Supabase connection failed', ...)` in `supabase/supabase.ts`).
 > - Alarm on `sunsetService` / `eventsService` cron failures.
 > - Alarm on Gemini quota errors (`geminiService.ts`).

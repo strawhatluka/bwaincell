@@ -23,14 +23,14 @@ One row per guild storing household-level dietary restrictions and excluded cuis
 
 ## Static Methods
 
-| Method | Signature | Returns |
-| ------ | --------- | ------- |
-| `getPreferences` | `(guildId)` | `Promise<RecipePreferencesRow \| null>` |
-| `upsertPreferences` | `(guildId, userId, { dietary_restrictions?, excluded_cuisines? })` | `Promise<RecipePreferencesRow>` — upsert on `guild_id` |
-| `addDietaryRestriction` | `(guildId, userId, restriction)` | `Promise<RecipePreferencesRow>` (dedupes) |
-| `removeDietaryRestriction` | `(guildId, userId, restriction)` | `Promise<RecipePreferencesRow>` |
-| `addExcludedCuisine` | `(guildId, userId, cuisine)` | `Promise<RecipePreferencesRow>` |
-| `removeExcludedCuisine` | `(guildId, userId, cuisine)` | `Promise<RecipePreferencesRow>` |
+| Method                     | Signature                                                          | Returns                                                |
+| -------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------ |
+| `getPreferences`           | `(guildId)`                                                        | `Promise<RecipePreferencesRow \| null>`                |
+| `upsertPreferences`        | `(guildId, userId, { dietary_restrictions?, excluded_cuisines? })` | `Promise<RecipePreferencesRow>` — upsert on `guild_id` |
+| `addDietaryRestriction`    | `(guildId, userId, restriction)`                                   | `Promise<RecipePreferencesRow>` (dedupes)              |
+| `removeDietaryRestriction` | `(guildId, userId, restriction)`                                   | `Promise<RecipePreferencesRow>`                        |
+| `addExcludedCuisine`       | `(guildId, userId, cuisine)`                                       | `Promise<RecipePreferencesRow>`                        |
+| `removeExcludedCuisine`    | `(guildId, userId, cuisine)`                                       | `Promise<RecipePreferencesRow>`                        |
 
 Each add/remove helper reads current state, mutates the array, and calls `upsertPreferences`.
 

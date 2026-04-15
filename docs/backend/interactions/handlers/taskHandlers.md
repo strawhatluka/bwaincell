@@ -20,15 +20,15 @@ Non-guild interactions reply (or `followUp` if already acknowledged) with `"❌ 
 
 ## customId Patterns
 
-| Pattern | Action |
-|---|---|
-| `task_add_new` | Opens `task_add_modal` with fields `task_description` (required, max 200), `task_due_date` (optional, placeholder `10-03-2025`). |
-| `task_done_{id}` | Marks `Task.completeTask(id, guildId)`. |
-| `task_edit_{id}` | Opens edit modal pre-filled with current description / due date. |
-| `task_delete_{id}` | Deletes via `Task.deleteTask(id, guildId)`. |
-| `task_list_all` / `task_list_pending` | Re-renders the list view. |
-| `task_refresh` | Re-fetches current filter. |
-| `task_quick_complete` | Bulk-complete pending tasks flow. |
+| Pattern                               | Action                                                                                                                           |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `task_add_new`                        | Opens `task_add_modal` with fields `task_description` (required, max 200), `task_due_date` (optional, placeholder `10-03-2025`). |
+| `task_done_{id}`                      | Marks `Task.completeTask(id, guildId)`.                                                                                          |
+| `task_edit_{id}`                      | Opens edit modal pre-filled with current description / due date.                                                                 |
+| `task_delete_{id}`                    | Deletes via `Task.deleteTask(id, guildId)`.                                                                                      |
+| `task_list_all` / `task_list_pending` | Re-renders the list view.                                                                                                        |
+| `task_refresh`                        | Re-fetches current filter.                                                                                                       |
+| `task_quick_complete`                 | Bulk-complete pending tasks flow.                                                                                                |
 
 ## State Transitions
 

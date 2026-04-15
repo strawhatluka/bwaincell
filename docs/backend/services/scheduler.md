@@ -14,15 +14,15 @@ Singleton accessed via `Scheduler.getInstance(client?)`. The first call must pas
 
 ### Public Methods
 
-| Method | Purpose |
-| ------ | ------- |
-| `Scheduler.getInstance(client?)` | Returns (and lazily creates) the singleton. Returns `null` if called without `client` before initialization. |
-| `initialize()` | Loads reminders, event configs, sunset configs from Supabase and registers cron jobs. Swallows per-section errors with logging. |
-| `addReminder(reminderId)` | Add a new reminder to the running scheduler. |
-| `addEventConfig(guildId)` | Register/refresh a guild's weekly event announcement job. |
-| `addSunsetConfig(guildId)` | Register/refresh a guild's daily sunset announcement job. |
-| `removeSunsetConfig(guildId)` | Stop + remove the guild's sunset job. |
-| `removeEventConfig(guildId)` | Stop + remove the guild's event job. |
+| Method                           | Purpose                                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `Scheduler.getInstance(client?)` | Returns (and lazily creates) the singleton. Returns `null` if called without `client` before initialization.                    |
+| `initialize()`                   | Loads reminders, event configs, sunset configs from Supabase and registers cron jobs. Swallows per-section errors with logging. |
+| `addReminder(reminderId)`        | Add a new reminder to the running scheduler.                                                                                    |
+| `addEventConfig(guildId)`        | Register/refresh a guild's weekly event announcement job.                                                                       |
+| `addSunsetConfig(guildId)`       | Register/refresh a guild's daily sunset announcement job.                                                                       |
+| `removeSunsetConfig(guildId)`    | Stop + remove the guild's sunset job.                                                                                           |
+| `removeEventConfig(guildId)`     | Stop + remove the guild's event job.                                                                                            |
 
 (Exported accessor: `getScheduler()` in the command files returns the singleton or `null`.)
 
@@ -42,13 +42,13 @@ Logs `'Scheduler initialized successfully'` on completion.
 
 `getCronExpression(reminder)` maps frequency to node-cron:
 
-| Frequency | Expression |
-| --------- | ---------- |
-| `daily` | `<min> <hour> * * *` |
-| `weekly` | `<min> <hour> * * <day_of_week>` |
-| `monthly` | `<min> <hour> <day_of_month> * *` |
-| `yearly` | `<min> <hour> <day_of_month> <month> *` |
-| `once` | handled separately via `setTimeout` |
+| Frequency | Expression                              |
+| --------- | --------------------------------------- |
+| `daily`   | `<min> <hour> * * *`                    |
+| `weekly`  | `<min> <hour> * * <day_of_week>`        |
+| `monthly` | `<min> <hour> <day_of_month> * *`       |
+| `yearly`  | `<min> <hour> <day_of_month> <month> *` |
+| `once`    | handled separately via `setTimeout`     |
 
 One-time reminders are scheduled via `scheduleOneTimeReminder` which calls `setTimeout(...)`, executes, calls `Reminder.deleteReminder`, and removes the job.
 
@@ -57,17 +57,18 @@ Event announcements use `buildCronExpression(minute, hour, dayOfWeek)` from `bac
 ## Reminder Execution
 
 `executeReminder(reminder, Reminder)`:
+
 1. `client.channels.fetch(channel_id)`.
 2. If `TextChannel`, send `` `<@${user_id}> ⏰ Reminder: **${message}**` ``.
 3. If recurring (`frequency !== 'once'`), `Reminder.updateNextTrigger(reminder.id)`.
 
 ## Coordination with Models
 
-| Model | Source-of-truth method used by scheduler |
-| ----- | ---------------------------------------- |
-| [Reminder](../models/Reminder.md) | `getActiveReminders()`, `updateNextTrigger()`, `deleteReminder()` |
-| [EventConfig](../models/EventConfig.md) | `getEnabledConfigs()`, `updateLastAnnouncement()` |
-| [SunsetConfig](../models/SunsetConfig.md) | `getEnabledConfigs()`, `updateLastAnnouncement()` |
+| Model                                     | Source-of-truth method used by scheduler                          |
+| ----------------------------------------- | ----------------------------------------------------------------- |
+| [Reminder](../models/Reminder.md)         | `getActiveReminders()`, `updateNextTrigger()`, `deleteReminder()` |
+| [EventConfig](../models/EventConfig.md)   | `getEnabledConfigs()`, `updateLastAnnouncement()`                 |
+| [SunsetConfig](../models/SunsetConfig.md) | `getEnabledConfigs()`, `updateLastAnnouncement()`                 |
 
 ## Related
 

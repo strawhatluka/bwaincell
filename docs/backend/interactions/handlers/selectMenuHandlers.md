@@ -28,11 +28,11 @@ Logs `warn` with `{ userId, customId }` and replies ephemeral `"❌ This command
 
 ## customIds Handled
 
-| customId | Behavior |
-|---|---|
-| `recipe_*` | → `handleRecipeSelect` |
-| `task_quick_action` | View selected task |
-| `list_select_view` | Open selected list view |
+| customId                | Behavior                 |
+| ----------------------- | ------------------------ |
+| `recipe_*`              | → `handleRecipeSelect`   |
+| `task_quick_action`     | View selected task       |
+| `list_select_view`      | Open selected list view  |
 | `reminder_quick_delete` | Delete selected reminder |
 
 ## Error Handling

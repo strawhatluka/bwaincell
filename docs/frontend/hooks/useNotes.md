@@ -17,16 +17,21 @@ function useNotes(searchQuery?: string): {
   isCreating: boolean;
   isUpdating: boolean;
   isDeleting: boolean;
-}
+};
 ```
 
 ## Note Type
 
 ```ts
 interface Note {
-  id: number; userId: string; guildId: string;
-  title: string; content: string; tags: string[];
-  createdAt: string; updatedAt: string;
+  id: number;
+  userId: string;
+  guildId: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
@@ -42,12 +47,12 @@ interface Note {
 
 ## API Endpoints
 
-| Operation | Method / Path |
-|---|---|
+| Operation     | Method / Path                               |
+| ------------- | ------------------------------------------- |
 | List / Search | `GET /notes` or `GET /notes?search={query}` |
-| Create | `POST /notes` |
-| Update | `PATCH /notes/:id` |
-| Delete | `DELETE /notes/:id` |
+| Create        | `POST /notes`                               |
+| Update        | `PATCH /notes/:id`                          |
+| Delete        | `DELETE /notes/:id`                         |
 
 `searchQuery` is `encodeURIComponent`-wrapped.
 

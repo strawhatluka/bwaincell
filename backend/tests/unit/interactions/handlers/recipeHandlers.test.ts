@@ -395,9 +395,8 @@ describe('Recipe modal dispatcher', () => {
 
 describe('Recipe servings-select flow', () => {
   it('handleOpenServingsSelect no longer opens a modal (opens a select instead)', async () => {
-    const { handleRecipeButton } = await import(
-      '../../../../utils/interactions/handlers/recipeHandlers'
-    );
+    const { handleRecipeButton } =
+      await import('../../../../utils/interactions/handlers/recipeHandlers');
     expect(typeof handleRecipeButton).toBe('function');
   });
 });
@@ -408,11 +407,7 @@ describe('Recipe servings-select flow', () => {
 // finalizePlan edges).
 // ---------------------------------------------------------------------------
 
-import {
-  planSessions,
-  planSessionKey,
-  PlanSession,
-} from '../../../../commands/recipe';
+import { planSessions, planSessionKey, PlanSession } from '../../../../commands/recipe';
 
 function seedSession(overrides: Partial<PlanSession> = {}): PlanSession {
   const session: PlanSession = {
@@ -480,9 +475,7 @@ describe('Plan-flow handlers', () => {
       await handleRecipeButton(interaction);
 
       expect(mockGeminiService.selectMealsForPlan).toHaveBeenCalled();
-      expect(planSessions.get('guild-123:user-1')?.aiSuggestions).toEqual([
-        1, 2, 3, 4, 5, 6, 7,
-      ]);
+      expect(planSessions.get('guild-123:user-1')?.aiSuggestions).toEqual([1, 2, 3, 4, 5, 6, 7]);
     });
 
     it('deletes session and shows error when Gemini throws', async () => {
@@ -847,10 +840,7 @@ describe('handleEditModal additional validation branches', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('rejects invalid difficulty', async () => {
-    const interaction = makeModalInteraction(
-      'recipe_edit_modal_5_difficulty',
-      'spicy'
-    );
+    const interaction = makeModalInteraction('recipe_edit_modal_5_difficulty', 'spicy');
     await handleRecipeModal(interaction);
     expect(mockRecipe.updateRecipe).not.toHaveBeenCalled();
     expect(interaction.editReply).toHaveBeenCalledWith(
@@ -859,10 +849,7 @@ describe('handleEditModal additional validation branches', () => {
   });
 
   it('rejects prep_time_minutes > 10000', async () => {
-    const interaction = makeModalInteraction(
-      'recipe_edit_modal_5_prep_time_minutes',
-      '999999'
-    );
+    const interaction = makeModalInteraction('recipe_edit_modal_5_prep_time_minutes', '999999');
     await handleRecipeModal(interaction);
     expect(mockRecipe.updateRecipe).not.toHaveBeenCalled();
   });

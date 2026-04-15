@@ -21,7 +21,7 @@
 > ```
 >
 > CI uses the same pattern via `supabase/setup-cli` — see [ci-cd-pipeline.md](ci-cd-pipeline.md).
-**Target:** Contributors implementing features with comprehensive test coverage
+> **Target:** Contributors implementing features with comprehensive test coverage
 
 ---
 

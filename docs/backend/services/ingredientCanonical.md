@@ -7,11 +7,11 @@ Free-text ingredient names from JSON-LD or Gemini carry a lot of noise (parenthe
 
 ## Exported Functions
 
-| Function | Signature | Purpose |
-| -------- | --------- | ------- |
-| `normalizeUnit` | `(unit: string \| null \| undefined) => string` | Lowercase + trim + strip trailing period + map via `UNIT_SYNONYMS`. Returns `''` for nullish/empty. |
-| `canonicalizeName` | `(name: string \| null \| undefined) => string` | Multi-pass name canonicalization (see below). |
-| `canonicalizeIngredient` | `(name, unit) => { canonicalName, canonicalUnit }` | Convenience wrapper used by the shopping-list aggregator. |
+| Function                 | Signature                                          | Purpose                                                                                             |
+| ------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `normalizeUnit`          | `(unit: string \| null \| undefined) => string`    | Lowercase + trim + strip trailing period + map via `UNIT_SYNONYMS`. Returns `''` for nullish/empty. |
+| `canonicalizeName`       | `(name: string \| null \| undefined) => string`    | Multi-pass name canonicalization (see below).                                                       |
+| `canonicalizeIngredient` | `(name, unit) => { canonicalName, canonicalUnit }` | Convenience wrapper used by the shopping-list aggregator.                                           |
 
 ## Unit Synonyms (abridged)
 

@@ -28,9 +28,9 @@ const { data: session, status } = useSession();
 
 value = {
   isAuthenticated: status === 'authenticated',
-  isLoading:       status === 'loading',
-  username:        session?.user?.name  || null,
-  email:           session?.user?.email || null,
+  isLoading: status === 'loading',
+  username: session?.user?.name || null,
+  email: session?.user?.email || null,
   logout,
 };
 ```

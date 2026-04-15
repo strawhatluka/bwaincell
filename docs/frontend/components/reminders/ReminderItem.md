@@ -6,21 +6,23 @@ Renders one reminder row with type badge, next-trigger time, and a delete action
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `reminder` | `Reminder` | yes | See shape below. |
-| `onDelete` | `(id: number) => void` | yes | Called after user confirms the delete dialog. |
+| Name       | Type                   | Required | Description                                   |
+| ---------- | ---------------------- | -------- | --------------------------------------------- |
+| `reminder` | `Reminder`             | yes      | See shape below.                              |
+| `onDelete` | `(id: number) => void` | yes      | Called after user confirms the delete dialog. |
 
 ### `Reminder`
 
 ```ts
 interface Reminder {
-  id: number; userId: string; guildId: string;
+  id: number;
+  userId: string;
+  guildId: string;
   message: string;
   frequency: 'once' | 'daily' | 'weekly';
   time: string;
   dayOfWeek?: number;
-  nextTrigger: string;  // ISO
+  nextTrigger: string; // ISO
   createdAt?: string;
   updatedAt?: string;
 }

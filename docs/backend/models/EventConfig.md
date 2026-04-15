@@ -27,16 +27,16 @@ Index: `idx_event_configs_is_enabled`.
 
 ## Static Methods
 
-| Method | Signature | Returns |
-| ------ | --------- | ------- |
-| `upsertConfig` | `(guildId, userId, location, channelId, options?)` | `Promise<EventConfigRow>` — upsert on `guild_id`. Defaults: `scheduleDay=1`, `scheduleHour=12`, `scheduleMinute=0`. |
-| `getGuildConfig` | `(guildId)` | `Promise<EventConfigRow \| null>` |
-| `getEnabledConfigs` | `()` | `Promise<EventConfigRow[]>` |
-| `updateSchedule` | `(guildId, scheduleDay, scheduleHour, scheduleMinute)` | `Promise<EventConfigRow \| null>` |
-| `toggleEnabled` | `(guildId, enabled)` | `Promise<EventConfigRow \| null>` |
-| `updateLastAnnouncement` | `(guildId)` | `Promise<void>` |
-| `getNextRunTime` | `(config)` | `Date` — next occurrence of `scheduleDay/hour/minute` in `config.timezone` (Luxon) |
-| `formatSchedule` | `(config)` | `string` — e.g. `"Mondays at 12:00 PM (America/Los_Angeles)"` |
+| Method                   | Signature                                              | Returns                                                                                                             |
+| ------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `upsertConfig`           | `(guildId, userId, location, channelId, options?)`     | `Promise<EventConfigRow>` — upsert on `guild_id`. Defaults: `scheduleDay=1`, `scheduleHour=12`, `scheduleMinute=0`. |
+| `getGuildConfig`         | `(guildId)`                                            | `Promise<EventConfigRow \| null>`                                                                                   |
+| `getEnabledConfigs`      | `()`                                                   | `Promise<EventConfigRow[]>`                                                                                         |
+| `updateSchedule`         | `(guildId, scheduleDay, scheduleHour, scheduleMinute)` | `Promise<EventConfigRow \| null>`                                                                                   |
+| `toggleEnabled`          | `(guildId, enabled)`                                   | `Promise<EventConfigRow \| null>`                                                                                   |
+| `updateLastAnnouncement` | `(guildId)`                                            | `Promise<void>`                                                                                                     |
+| `getNextRunTime`         | `(config)`                                             | `Date` — next occurrence of `scheduleDay/hour/minute` in `config.timezone` (Luxon)                                  |
+| `formatSchedule`         | `(config)`                                             | `string` — e.g. `"Mondays at 12:00 PM (America/Los_Angeles)"`                                                       |
 
 ## Example
 
@@ -44,7 +44,7 @@ Index: `idx_event_configs_is_enabled`.
 import EventConfig from '@database/models/EventConfig';
 
 await EventConfig.upsertConfig(guildId, userId, '97330', channelId, {
-  scheduleDay: 5,  // Friday
+  scheduleDay: 5, // Friday
   scheduleHour: 18,
   scheduleMinute: 0,
   timezone: 'America/Los_Angeles',

@@ -22,7 +22,7 @@
 >
 > **Q: Can I access recipes or meal plans from the PWA?**
 > A: Not yet. Recipe/MealPlan/SunsetConfig/EventConfig are currently only exposed through the Discord bot and the Supabase model wrappers. REST/Next.js-API integration is tracked for future work.
-**Last Updated** 2026-01-12
+> **Last Updated** 2026-01-12
 
 Complete FAQ covering installation, Discord bot, development, deployment, and troubleshooting for Bwaincell productivity platform.
 

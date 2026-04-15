@@ -212,48 +212,48 @@ Extensions enabled: `uuid-ossp`, `pg_trgm`.
 
 Authenticated users (Google OAuth) with Discord-ID mapping.
 
-| Column          | Type           | Constraints                                 |
-| --------------- | -------------- | ------------------------------------------- |
-| `id`            | `SERIAL`       | `PRIMARY KEY`                               |
-| `google_id`     | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                        |
-| `email`         | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                        |
-| `name`          | `VARCHAR(255)` | `NOT NULL`                                  |
-| `picture`       | `VARCHAR(255)` |                                             |
-| `discord_id`    | `VARCHAR(255)` | `NOT NULL`                                  |
-| `guild_id`      | `VARCHAR(255)` | `NOT NULL`                                  |
-| `refresh_token` | `TEXT`         |                                             |
-| `created_at`    | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
-| `updated_at`    | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
+| Column          | Type           | Constraints                 |
+| --------------- | -------------- | --------------------------- |
+| `id`            | `SERIAL`       | `PRIMARY KEY`               |
+| `google_id`     | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`        |
+| `email`         | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`        |
+| `name`          | `VARCHAR(255)` | `NOT NULL`                  |
+| `picture`       | `VARCHAR(255)` |                             |
+| `discord_id`    | `VARCHAR(255)` | `NOT NULL`                  |
+| `guild_id`      | `VARCHAR(255)` | `NOT NULL`                  |
+| `refresh_token` | `TEXT`         |                             |
+| `created_at`    | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()` |
+| `updated_at`    | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()` |
 
 **Indexes:** `idx_users_email`, `idx_users_google_id`.
 
 ### 2. tasks
 
-| Column         | Type           | Constraints                                 |
-| -------------- | -------------- | ------------------------------------------- |
-| `id`           | `SERIAL`       | `PRIMARY KEY`                               |
-| `description`  | `TEXT`         | `NOT NULL`                                  |
-| `due_date`     | `TIMESTAMPTZ`  |                                             |
-| `completed`    | `BOOLEAN`      | `NOT NULL`, `DEFAULT FALSE`                 |
-| `created_at`   | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
-| `completed_at` | `TIMESTAMPTZ`  |                                             |
-| `user_id`      | `VARCHAR(255)` | `NOT NULL`                                  |
-| `guild_id`     | `VARCHAR(255)` | `NOT NULL`                                  |
+| Column         | Type           | Constraints                 |
+| -------------- | -------------- | --------------------------- |
+| `id`           | `SERIAL`       | `PRIMARY KEY`               |
+| `description`  | `TEXT`         | `NOT NULL`                  |
+| `due_date`     | `TIMESTAMPTZ`  |                             |
+| `completed`    | `BOOLEAN`      | `NOT NULL`, `DEFAULT FALSE` |
+| `created_at`   | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()` |
+| `completed_at` | `TIMESTAMPTZ`  |                             |
+| `user_id`      | `VARCHAR(255)` | `NOT NULL`                  |
+| `guild_id`     | `VARCHAR(255)` | `NOT NULL`                  |
 
 **Indexes:** `idx_tasks_guild_id`, `idx_tasks_completed`, `idx_tasks_guild_completed`.
 
 ### 3. notes
 
-| Column       | Type           | Constraints                          |
-| ------------ | -------------- | ------------------------------------ |
-| `id`         | `SERIAL`       | `PRIMARY KEY`                        |
-| `title`      | `VARCHAR(255)` | `NOT NULL`                           |
-| `content`    | `TEXT`         | `NOT NULL`                           |
-| `tags`       | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb`    |
-| `created_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
-| `updated_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
-| `user_id`    | `VARCHAR(255)` | `NOT NULL`                           |
-| `guild_id`   | `VARCHAR(255)` | `NOT NULL`                           |
+| Column       | Type           | Constraints                       |
+| ------------ | -------------- | --------------------------------- |
+| `id`         | `SERIAL`       | `PRIMARY KEY`                     |
+| `title`      | `VARCHAR(255)` | `NOT NULL`                        |
+| `content`    | `TEXT`         | `NOT NULL`                        |
+| `tags`       | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb` |
+| `created_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`       |
+| `updated_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`       |
+| `user_id`    | `VARCHAR(255)` | `NOT NULL`                        |
+| `guild_id`   | `VARCHAR(255)` | `NOT NULL`                        |
 
 **Indexes:** `idx_notes_guild_id`.
 
@@ -261,63 +261,63 @@ Authenticated users (Google OAuth) with Discord-ID mapping.
 
 Items stored as JSONB array.
 
-| Column       | Type           | Constraints                          |
-| ------------ | -------------- | ------------------------------------ |
-| `id`         | `SERIAL`       | `PRIMARY KEY`                        |
-| `name`       | `VARCHAR(255)` | `NOT NULL`                           |
-| `items`      | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb`    |
-| `user_id`    | `VARCHAR(255)` | `NOT NULL`                           |
-| `guild_id`   | `VARCHAR(255)` | `NOT NULL`                           |
-| `created_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
+| Column       | Type           | Constraints                       |
+| ------------ | -------------- | --------------------------------- |
+| `id`         | `SERIAL`       | `PRIMARY KEY`                     |
+| `name`       | `VARCHAR(255)` | `NOT NULL`                        |
+| `items`      | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb` |
+| `user_id`    | `VARCHAR(255)` | `NOT NULL`                        |
+| `guild_id`   | `VARCHAR(255)` | `NOT NULL`                        |
+| `created_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`       |
 
 **Indexes:** `idx_lists_guild_id`.
 
 ### 5. reminders
 
-| Column         | Type                   | Constraints                             |
-| -------------- | ---------------------- | --------------------------------------- |
-| `id`           | `SERIAL`               | `PRIMARY KEY`                           |
-| `message`      | `TEXT`                 | `NOT NULL`                              |
-| `time`         | `TIME`                 | `NOT NULL`                              |
-| `frequency`    | `reminder_frequency`   | `NOT NULL`, `DEFAULT 'once'`            |
-| `day_of_week`  | `INTEGER`              |                                         |
-| `day_of_month` | `INTEGER`              |                                         |
-| `month`        | `INTEGER`              |                                         |
-| `channel_id`   | `VARCHAR(255)`         | `NOT NULL`                              |
-| `user_id`      | `VARCHAR(255)`         | `NOT NULL`                              |
-| `guild_id`     | `VARCHAR(255)`         | `NOT NULL`                              |
-| `active`       | `BOOLEAN`              | `NOT NULL`, `DEFAULT TRUE`              |
-| `next_trigger` | `TIMESTAMPTZ`          |                                         |
+| Column         | Type                 | Constraints                  |
+| -------------- | -------------------- | ---------------------------- |
+| `id`           | `SERIAL`             | `PRIMARY KEY`                |
+| `message`      | `TEXT`               | `NOT NULL`                   |
+| `time`         | `TIME`               | `NOT NULL`                   |
+| `frequency`    | `reminder_frequency` | `NOT NULL`, `DEFAULT 'once'` |
+| `day_of_week`  | `INTEGER`            |                              |
+| `day_of_month` | `INTEGER`            |                              |
+| `month`        | `INTEGER`            |                              |
+| `channel_id`   | `VARCHAR(255)`       | `NOT NULL`                   |
+| `user_id`      | `VARCHAR(255)`       | `NOT NULL`                   |
+| `guild_id`     | `VARCHAR(255)`       | `NOT NULL`                   |
+| `active`       | `BOOLEAN`            | `NOT NULL`, `DEFAULT TRUE`   |
+| `next_trigger` | `TIMESTAMPTZ`        |                              |
 
 **Indexes:** `idx_reminders_guild_id`, `idx_reminders_active`, `idx_reminders_next_trigger` (partial `WHERE active = TRUE`).
 
 ### 6. budgets
 
-| Column        | Type           | Constraints                          |
-| ------------- | -------------- | ------------------------------------ |
-| `id`          | `SERIAL`       | `PRIMARY KEY`                        |
-| `type`        | `budget_type`  | `NOT NULL`                           |
-| `category`    | `VARCHAR(255)` |                                      |
-| `amount`      | `DECIMAL(10,2)`| `NOT NULL`                           |
-| `description` | `TEXT`         |                                      |
-| `date`        | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
-| `user_id`     | `VARCHAR(255)` | `NOT NULL`                           |
-| `guild_id`    | `VARCHAR(255)` | `NOT NULL`                           |
+| Column        | Type            | Constraints                 |
+| ------------- | --------------- | --------------------------- |
+| `id`          | `SERIAL`        | `PRIMARY KEY`               |
+| `type`        | `budget_type`   | `NOT NULL`                  |
+| `category`    | `VARCHAR(255)`  |                             |
+| `amount`      | `DECIMAL(10,2)` | `NOT NULL`                  |
+| `description` | `TEXT`          |                             |
+| `date`        | `TIMESTAMPTZ`   | `NOT NULL`, `DEFAULT NOW()` |
+| `user_id`     | `VARCHAR(255)`  | `NOT NULL`                  |
+| `guild_id`    | `VARCHAR(255)`  | `NOT NULL`                  |
 
 **Indexes:** `idx_budgets_guild_id`, `idx_budgets_type`, `idx_budgets_date`.
 
 ### 7. schedules
 
-| Column        | Type           | Constraints                          |
-| ------------- | -------------- | ------------------------------------ |
-| `id`          | `SERIAL`       | `PRIMARY KEY`                        |
-| `event`       | `VARCHAR(255)` | `NOT NULL`                           |
-| `date`        | `DATE`         | `NOT NULL`                           |
-| `time`        | `TIME`         | `NOT NULL`                           |
-| `description` | `TEXT`         |                                      |
-| `user_id`     | `VARCHAR(255)` | `NOT NULL`                           |
-| `guild_id`    | `VARCHAR(255)` | `NOT NULL`                           |
-| `created_at`  | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
+| Column        | Type           | Constraints                 |
+| ------------- | -------------- | --------------------------- |
+| `id`          | `SERIAL`       | `PRIMARY KEY`               |
+| `event`       | `VARCHAR(255)` | `NOT NULL`                  |
+| `date`        | `DATE`         | `NOT NULL`                  |
+| `time`        | `TIME`         | `NOT NULL`                  |
+| `description` | `TEXT`         |                             |
+| `user_id`     | `VARCHAR(255)` | `NOT NULL`                  |
+| `guild_id`    | `VARCHAR(255)` | `NOT NULL`                  |
+| `created_at`  | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()` |
 
 **Indexes:** `idx_schedules_guild_id`, `idx_schedules_date`.
 
@@ -325,21 +325,21 @@ Items stored as JSONB array.
 
 Per-guild local-events discovery + announcement scheduling.
 
-| Column                     | Type           | Constraints                                              |
-| -------------------------- | -------------- | -------------------------------------------------------- |
-| `id`                       | `SERIAL`       | `PRIMARY KEY`                                            |
-| `guild_id`                 | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                                     |
-| `user_id`                  | `VARCHAR(255)` | `NOT NULL`                                               |
-| `location`                 | `VARCHAR(255)` | `NOT NULL`                                               |
-| `announcement_channel_id`  | `VARCHAR(255)` | `NOT NULL`                                               |
-| `schedule_day`             | `INTEGER`      | `NOT NULL`, `DEFAULT 1`                                  |
-| `schedule_hour`            | `INTEGER`      | `NOT NULL`, `DEFAULT 12`                                 |
-| `schedule_minute`          | `INTEGER`      | `NOT NULL`, `DEFAULT 0`                                  |
-| `timezone`                 | `VARCHAR(255)` | `NOT NULL`, `DEFAULT 'America/Los_Angeles'`              |
-| `is_enabled`               | `BOOLEAN`      | `NOT NULL`, `DEFAULT TRUE`                               |
-| `last_announcement`        | `TIMESTAMPTZ`  |                                                          |
-| `created_at`               | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                              |
-| `updated_at`               | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                              |
+| Column                    | Type           | Constraints                                 |
+| ------------------------- | -------------- | ------------------------------------------- |
+| `id`                      | `SERIAL`       | `PRIMARY KEY`                               |
+| `guild_id`                | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                        |
+| `user_id`                 | `VARCHAR(255)` | `NOT NULL`                                  |
+| `location`                | `VARCHAR(255)` | `NOT NULL`                                  |
+| `announcement_channel_id` | `VARCHAR(255)` | `NOT NULL`                                  |
+| `schedule_day`            | `INTEGER`      | `NOT NULL`, `DEFAULT 1`                     |
+| `schedule_hour`           | `INTEGER`      | `NOT NULL`, `DEFAULT 12`                    |
+| `schedule_minute`         | `INTEGER`      | `NOT NULL`, `DEFAULT 0`                     |
+| `timezone`                | `VARCHAR(255)` | `NOT NULL`, `DEFAULT 'America/Los_Angeles'` |
+| `is_enabled`              | `BOOLEAN`      | `NOT NULL`, `DEFAULT TRUE`                  |
+| `last_announcement`       | `TIMESTAMPTZ`  |                                             |
+| `created_at`              | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
+| `updated_at`              | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
 
 **Indexes:** `idx_event_configs_is_enabled`.
 
@@ -347,19 +347,19 @@ Per-guild local-events discovery + announcement scheduling.
 
 Per-guild sunset announcement settings.
 
-| Column               | Type           | Constraints                                    |
-| -------------------- | -------------- | ---------------------------------------------- |
-| `id`                 | `SERIAL`       | `PRIMARY KEY`                                  |
-| `guild_id`           | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                           |
-| `user_id`            | `VARCHAR(255)` | `NOT NULL`                                     |
-| `advance_minutes`    | `INTEGER`      | `NOT NULL`, `DEFAULT 60`                       |
-| `channel_id`         | `VARCHAR(255)` | `NOT NULL`                                     |
-| `zip_code`           | `VARCHAR(255)` | `NOT NULL`                                     |
-| `timezone`           | `VARCHAR(255)` | `NOT NULL`, `DEFAULT 'America/Los_Angeles'`    |
-| `is_enabled`         | `BOOLEAN`      | `NOT NULL`, `DEFAULT TRUE`                     |
-| `last_announcement`  | `TIMESTAMPTZ`  |                                                |
-| `created_at`         | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                    |
-| `updated_at`         | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                    |
+| Column              | Type           | Constraints                                 |
+| ------------------- | -------------- | ------------------------------------------- |
+| `id`                | `SERIAL`       | `PRIMARY KEY`                               |
+| `guild_id`          | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                        |
+| `user_id`           | `VARCHAR(255)` | `NOT NULL`                                  |
+| `advance_minutes`   | `INTEGER`      | `NOT NULL`, `DEFAULT 60`                    |
+| `channel_id`        | `VARCHAR(255)` | `NOT NULL`                                  |
+| `zip_code`          | `VARCHAR(255)` | `NOT NULL`                                  |
+| `timezone`          | `VARCHAR(255)` | `NOT NULL`, `DEFAULT 'America/Los_Angeles'` |
+| `is_enabled`        | `BOOLEAN`      | `NOT NULL`, `DEFAULT TRUE`                  |
+| `last_announcement` | `TIMESTAMPTZ`  |                                             |
+| `created_at`        | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
+| `updated_at`        | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
 
 **Indexes:** `idx_sunset_configs_is_enabled`.
 
@@ -367,28 +367,28 @@ Per-guild sunset announcement settings.
 
 Recipes are shared per guild (household-level access). `user_id` is an audit trail of who added it.
 
-| Column               | Type                 | Constraints                                                           |
-| -------------------- | -------------------- | --------------------------------------------------------------------- |
-| `id`                 | `SERIAL`             | `PRIMARY KEY`                                                         |
-| `name`               | `VARCHAR(255)`       | `NOT NULL`                                                            |
-| `source_url`         | `TEXT`               |                                                                       |
-| `source_type`        | `recipe_source_type` | `NOT NULL`, `DEFAULT 'manual'`                                        |
-| `ingredients`        | `JSONB`              | `NOT NULL` — `[{ name, quantity, unit, category }]`                   |
-| `instructions`       | `JSONB`              | `NOT NULL` — `string[]`                                               |
-| `servings`           | `INTEGER`            |                                                                       |
-| `prep_time_minutes`  | `INTEGER`            |                                                                       |
-| `cook_time_minutes`  | `INTEGER`            |                                                                       |
-| `nutrition`          | `JSONB`              | `{ calories, protein, carbs, fat, fiber, sugar, sodium }`             |
-| `cuisine`            | `VARCHAR(100)`       |                                                                       |
-| `difficulty`         | `recipe_difficulty`  |                                                                       |
-| `dietary_tags`       | `JSONB`              | `NOT NULL`, `DEFAULT '[]'::jsonb` — e.g. `["vegetarian", "gluten-free"]` |
-| `image_url`          | `TEXT`               |                                                                       |
-| `notes`              | `TEXT`               |                                                                       |
-| `is_favorite`        | `BOOLEAN`            | `NOT NULL`, `DEFAULT FALSE`                                           |
-| `created_at`         | `TIMESTAMPTZ`        | `NOT NULL`, `DEFAULT NOW()`                                           |
-| `updated_at`         | `TIMESTAMPTZ`        | `NOT NULL`, `DEFAULT NOW()`                                           |
-| `user_id`            | `VARCHAR(255)`       | `NOT NULL` (audit)                                                    |
-| `guild_id`           | `VARCHAR(255)`       | `NOT NULL`                                                            |
+| Column              | Type                 | Constraints                                                              |
+| ------------------- | -------------------- | ------------------------------------------------------------------------ |
+| `id`                | `SERIAL`             | `PRIMARY KEY`                                                            |
+| `name`              | `VARCHAR(255)`       | `NOT NULL`                                                               |
+| `source_url`        | `TEXT`               |                                                                          |
+| `source_type`       | `recipe_source_type` | `NOT NULL`, `DEFAULT 'manual'`                                           |
+| `ingredients`       | `JSONB`              | `NOT NULL` — `[{ name, quantity, unit, category }]`                      |
+| `instructions`      | `JSONB`              | `NOT NULL` — `string[]`                                                  |
+| `servings`          | `INTEGER`            |                                                                          |
+| `prep_time_minutes` | `INTEGER`            |                                                                          |
+| `cook_time_minutes` | `INTEGER`            |                                                                          |
+| `nutrition`         | `JSONB`              | `{ calories, protein, carbs, fat, fiber, sugar, sodium }`                |
+| `cuisine`           | `VARCHAR(100)`       |                                                                          |
+| `difficulty`        | `recipe_difficulty`  |                                                                          |
+| `dietary_tags`      | `JSONB`              | `NOT NULL`, `DEFAULT '[]'::jsonb` — e.g. `["vegetarian", "gluten-free"]` |
+| `image_url`         | `TEXT`               |                                                                          |
+| `notes`             | `TEXT`               |                                                                          |
+| `is_favorite`       | `BOOLEAN`            | `NOT NULL`, `DEFAULT FALSE`                                              |
+| `created_at`        | `TIMESTAMPTZ`        | `NOT NULL`, `DEFAULT NOW()`                                              |
+| `updated_at`        | `TIMESTAMPTZ`        | `NOT NULL`, `DEFAULT NOW()`                                              |
+| `user_id`           | `VARCHAR(255)`       | `NOT NULL` (audit)                                                       |
+| `guild_id`          | `VARCHAR(255)`       | `NOT NULL`                                                               |
 
 **Indexes:** `idx_recipes_guild_id`, `idx_recipes_guild_favorite`, `idx_recipes_cuisine`, `idx_recipes_difficulty`.
 
@@ -396,17 +396,17 @@ Recipes are shared per guild (household-level access). `user_id` is an audit tra
 
 Exactly one active plan per guild (partial unique index). `recipe_ids` and `servings_per_recipe` are parallel 7-element arrays.
 
-| Column                  | Type             | Constraints                              |
-| ----------------------- | ---------------- | ---------------------------------------- |
-| `id`                    | `SERIAL`         | `PRIMARY KEY`                            |
-| `recipe_ids`            | `INTEGER[]`      | `NOT NULL` (length 7)                    |
-| `servings_per_recipe`   | `INTEGER[]`      | `NOT NULL` (length 7, parallel)          |
-| `week_start`            | `DATE`           | `NOT NULL`                               |
-| `archived`              | `BOOLEAN`        | `NOT NULL`, `DEFAULT FALSE`              |
-| `created_at`            | `TIMESTAMPTZ`    | `NOT NULL`, `DEFAULT NOW()`              |
-| `updated_at`            | `TIMESTAMPTZ`    | `NOT NULL`, `DEFAULT NOW()`              |
-| `user_id`               | `VARCHAR(255)`   | `NOT NULL` (audit)                       |
-| `guild_id`              | `VARCHAR(255)`   | `NOT NULL`                               |
+| Column                | Type           | Constraints                     |
+| --------------------- | -------------- | ------------------------------- |
+| `id`                  | `SERIAL`       | `PRIMARY KEY`                   |
+| `recipe_ids`          | `INTEGER[]`    | `NOT NULL` (length 7)           |
+| `servings_per_recipe` | `INTEGER[]`    | `NOT NULL` (length 7, parallel) |
+| `week_start`          | `DATE`         | `NOT NULL`                      |
+| `archived`            | `BOOLEAN`      | `NOT NULL`, `DEFAULT FALSE`     |
+| `created_at`          | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`     |
+| `updated_at`          | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`     |
+| `user_id`             | `VARCHAR(255)` | `NOT NULL` (audit)              |
+| `guild_id`            | `VARCHAR(255)` | `NOT NULL`                      |
 
 **Indexes:**
 
@@ -417,15 +417,15 @@ Exactly one active plan per guild (partial unique index). `recipe_ids` and `serv
 
 Per-guild recipe preferences.
 
-| Column                  | Type           | Constraints                                |
-| ----------------------- | -------------- | ------------------------------------------ |
-| `id`                    | `SERIAL`       | `PRIMARY KEY`                              |
-| `guild_id`              | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                       |
-| `dietary_restrictions`  | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb`          |
-| `excluded_cuisines`     | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb`          |
-| `created_at`            | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                |
-| `updated_at`            | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                |
-| `user_id`               | `VARCHAR(255)` | `NOT NULL` (audit)                         |
+| Column                 | Type           | Constraints                       |
+| ---------------------- | -------------- | --------------------------------- |
+| `id`                   | `SERIAL`       | `PRIMARY KEY`                     |
+| `guild_id`             | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`              |
+| `dietary_restrictions` | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb` |
+| `excluded_cuisines`    | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb` |
+| `created_at`           | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`       |
+| `updated_at`           | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`       |
+| `user_id`              | `VARCHAR(255)` | `NOT NULL` (audit)                |
 
 ---
 

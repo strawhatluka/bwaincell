@@ -24,7 +24,7 @@ Siblings of `<AuthProvider>` under the query provider:
 new QueryClient({
   defaultOptions: {
     queries: {
-      refetchInterval: 15000,       // poll every 15s
+      refetchInterval: 15000, // poll every 15s
       refetchOnWindowFocus: true,
       retry: 1,
     },

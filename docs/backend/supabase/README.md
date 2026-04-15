@@ -19,11 +19,11 @@ supabase/
 
 ## Docs in This Directory
 
-| Doc | Topic |
-|---|---|
-| [client.md](./client.md) | Client initialization, env vars, lazy Proxy, `verifyConnection`. |
-| [config.md](./config.md) | Per-key explanation of `supabase/config.toml`. |
-| [migrations.md](./migrations.md) | Migration authoring workflow, naming, `init.sql`, reset. |
+| Doc                              | Topic                                                            |
+| -------------------------------- | ---------------------------------------------------------------- |
+| [client.md](./client.md)         | Client initialization, env vars, lazy Proxy, `verifyConnection`. |
+| [config.md](./config.md)         | Per-key explanation of `supabase/config.toml`.                   |
+| [migrations.md](./migrations.md) | Migration authoring workflow, naming, `init.sql`, reset.         |
 
 ## Relationship: Models ↔ Migrations
 

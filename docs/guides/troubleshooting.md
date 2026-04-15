@@ -20,7 +20,7 @@
 > **Gemini errors** — `GEMINI_API_KEY` missing / quota exhausted / network issue. Recipe ingestion will store the raw ingredient text without normalization. `/random date` and AI shopping-list will fail outright.
 >
 > **Sunset announcement didn't fire** — Check `sunset_configs.is_enabled`, `channel_id` validity, bot channel permissions, and that the Pi was online at the computed trigger time (`sunset - advance_minutes`).
-**Last Updated** 2026-01-12
+> **Last Updated** 2026-01-12
 
 Comprehensive troubleshooting guide for common issues in Bwaincell's Discord bot, database, authentication, API, frontend, and deployment.
 

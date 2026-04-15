@@ -275,15 +275,13 @@ describe('mapRecipeNode extra branches', () => {
     expect(mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'Easy weeknight' }).difficulty).toBe(
       'easy'
     );
-    expect(
-      mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'advanced dish' }).difficulty
-    ).toBe('hard');
-    expect(
-      mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'intermediate' }).difficulty
-    ).toBe('medium');
-    expect(
-      mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'American' }).difficulty
-    ).toBeNull();
+    expect(mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'advanced dish' }).difficulty).toBe(
+      'hard'
+    );
+    expect(mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'intermediate' }).difficulty).toBe(
+      'medium'
+    );
+    expect(mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'American' }).difficulty).toBeNull();
   });
 
   it('extracts suitableForDiet URIs into lowercase tags', () => {
@@ -374,7 +372,9 @@ describe('scrapeRecipeFromUrl error handling', () => {
 
   it('returns empty result when fetch throws a network error', async () => {
     const { scrapeRecipeFromUrl } = await import('../../../utils/recipeScraper');
-    global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED')) as unknown as typeof fetch;
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new Error('ECONNREFUSED')) as unknown as typeof fetch;
     const result = await scrapeRecipeFromUrl('https://down.example.com');
     expect(result.extractor).toBe('empty');
     expect(result.recipe.name).toBeNull();

@@ -6,19 +6,24 @@ Card preview of a single note. Clicking the card opens a view dialog with Edit /
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `note` | `Note` | yes | See shape below. |
-| `onEdit` | `(note: Note) => void` | yes | Invoked when user clicks Edit in the view dialog. |
-| `onDelete` | `(id: number) => void` | yes | Invoked after user confirms the delete dialog. |
+| Name       | Type                   | Required | Description                                       |
+| ---------- | ---------------------- | -------- | ------------------------------------------------- |
+| `note`     | `Note`                 | yes      | See shape below.                                  |
+| `onEdit`   | `(note: Note) => void` | yes      | Invoked when user clicks Edit in the view dialog. |
+| `onDelete` | `(id: number) => void` | yes      | Invoked after user confirms the delete dialog.    |
 
 ### `Note`
 
 ```ts
 interface Note {
-  id: number; userId: string; guildId: string;
-  title: string; content: string; tags: string[];
-  createdAt: string; updatedAt: string;
+  id: number;
+  userId: string;
+  guildId: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 

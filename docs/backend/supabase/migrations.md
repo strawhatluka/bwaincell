@@ -4,10 +4,10 @@
 
 ## Current Migrations
 
-| File | Purpose |
-|---|---|
-| `supabase/init.sql` | Bootstrap SQL run against brand-new environments (mirror of migrations for first-time setup). |
-| `supabase/migrations/20260413000000_initial_schema.sql` | Initial schema — `users`, `tasks`, `lists`, `notes`, `reminders`, `schedule`, `budget`. |
+| File                                                    | Purpose                                                                                                            |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `supabase/init.sql`                                     | Bootstrap SQL run against brand-new environments (mirror of migrations for first-time setup).                      |
+| `supabase/migrations/20260413000000_initial_schema.sql` | Initial schema — `users`, `tasks`, `lists`, `notes`, `reminders`, `schedule`, `budget`.                            |
 | `supabase/migrations/20260414000000_recipes_schema.sql` | Recipe-management tables — `recipes`, `recipe_preferences`, `meal_plans`, plus `event_config` and `sunset_config`. |
 
 ## Naming Convention

@@ -6,10 +6,10 @@ Inline form for creating a new task. Controlled component — owns its own local
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `onCreate` | `(data: { description: string; dueDate?: string }) => void` | yes | Invoked with trimmed description and optional ISO due-date string. |
-| `isCreating` | `boolean` | yes | Disables inputs and button, changes label to `"Creating..."`. |
+| Name         | Type                                                        | Required | Description                                                        |
+| ------------ | ----------------------------------------------------------- | -------- | ------------------------------------------------------------------ |
+| `onCreate`   | `(data: { description: string; dueDate?: string }) => void` | yes      | Invoked with trimmed description and optional ISO due-date string. |
+| `isCreating` | `boolean`                                                   | yes      | Disables inputs and button, changes label to `"Creating..."`.      |
 
 ## Local State
 

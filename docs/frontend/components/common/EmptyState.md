@@ -6,13 +6,13 @@ Centered empty-state component with gradient-chip icon, title, description, and 
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `icon` | `LucideIcon` | yes | A lucide-react icon component (rendered as `<Icon />`). |
-| `title` | `string` | yes | |
-| `description` | `string` | yes | |
-| `actionLabel` | `string` | no | Renders a `Button` when **both** `actionLabel` and `onAction` are provided. |
-| `onAction` | `() => void` | no | Click handler for the action button. |
+| Name          | Type         | Required | Description                                                                 |
+| ------------- | ------------ | -------- | --------------------------------------------------------------------------- |
+| `icon`        | `LucideIcon` | yes      | A lucide-react icon component (rendered as `<Icon />`).                     |
+| `title`       | `string`     | yes      |                                                                             |
+| `description` | `string`     | yes      |                                                                             |
+| `actionLabel` | `string`     | no       | Renders a `Button` when **both** `actionLabel` and `onAction` are provided. |
+| `onAction`    | `() => void` | no       | Click handler for the action button.                                        |
 
 ## Rendering
 

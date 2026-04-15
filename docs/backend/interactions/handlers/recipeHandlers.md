@@ -32,24 +32,25 @@ Internal:
 
 The file exports button, select, and modal entry-points (imported by dispatcher in `selectMenuHandlers` and the main interaction router). They handle customIds matching:
 
-| Pattern | Surface | Purpose |
-|---|---|---|
-| `recipe_plan_start` | Button | Kick off plan session; present mode choice. |
-| `recipe_plan_mode_pick` / `recipe_plan_mode_auto` | Buttons | "Pick Myself" vs "Bwaincell Chooses". |
-| `recipe_plan_pick_{page}` | StringSelect | Multi-select from paginated recipe list (up to 7 total). `maxValues` is clamped to `max(1, min(remaining, sliceLength))`. |
-| `recipe_plan_next_page_{page}` / `recipe_plan_prev_page_{page}` | Buttons | Page navigation for pick-myself. |
-| `recipe_plan_confirm` | Button | Moves to servings-collection step. |
-| `recipe_plan_servings_modal_{recipeId}` | Modal | Collects desired servings per selected recipe. |
-| `recipe_plan_finalize` | Button | Writes `MealPlan` record, renders shopping list via `generateShoppingList`, sends TXT attachment, clears session. |
-| `recipe_plan_cancel` | Button | Clears session and ends flow. |
-| `recipe_view_{id}`, `recipe_edit_{id}`, `recipe_delete_{id}`, `recipe_favorite_{id}` | Buttons | Standard per-recipe actions. |
-| `recipe_swap_{slot}` | Button | Swap a recipe inside an existing meal plan. |
-| `recipe_week_{offset}` | Button | Navigate between weekly meal plans. |
-| `recipe_history_*` | Button | History browsing. |
+| Pattern                                                                              | Surface      | Purpose                                                                                                                   |
+| ------------------------------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `recipe_plan_start`                                                                  | Button       | Kick off plan session; present mode choice.                                                                               |
+| `recipe_plan_mode_pick` / `recipe_plan_mode_auto`                                    | Buttons      | "Pick Myself" vs "Bwaincell Chooses".                                                                                     |
+| `recipe_plan_pick_{page}`                                                            | StringSelect | Multi-select from paginated recipe list (up to 7 total). `maxValues` is clamped to `max(1, min(remaining, sliceLength))`. |
+| `recipe_plan_next_page_{page}` / `recipe_plan_prev_page_{page}`                      | Buttons      | Page navigation for pick-myself.                                                                                          |
+| `recipe_plan_confirm`                                                                | Button       | Moves to servings-collection step.                                                                                        |
+| `recipe_plan_servings_modal_{recipeId}`                                              | Modal        | Collects desired servings per selected recipe.                                                                            |
+| `recipe_plan_finalize`                                                               | Button       | Writes `MealPlan` record, renders shopping list via `generateShoppingList`, sends TXT attachment, clears session.         |
+| `recipe_plan_cancel`                                                                 | Button       | Clears session and ends flow.                                                                                             |
+| `recipe_view_{id}`, `recipe_edit_{id}`, `recipe_delete_{id}`, `recipe_favorite_{id}` | Buttons      | Standard per-recipe actions.                                                                                              |
+| `recipe_swap_{slot}`                                                                 | Button       | Swap a recipe inside an existing meal plan.                                                                               |
+| `recipe_week_{offset}`                                                               | Button       | Navigate between weekly meal plans.                                                                                       |
+| `recipe_history_*`                                                                   | Button       | History browsing.                                                                                                         |
 
 ## Select Menu Option Construction
 
 For pick-myself pages, each option:
+
 - label: `(★ if favorite)name`, truncated to 100 chars
 - value: `String(recipe.id)`
 - description: `cuisine • difficulty` (if present)

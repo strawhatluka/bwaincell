@@ -10,13 +10,13 @@ Controls local Supabase CLI behavior (`supabase start`, `supabase db reset`, etc
 
 ## `[api]`
 
-| Key | Value | Meaning |
-|---|---|---|
-| `enabled` | `true` | PostgREST is exposed. |
-| `port` | `54321` | Local API port. |
-| `schemas` | `["public", "graphql_public"]` | Schemas auto-exposed by PostgREST. |
-| `extra_search_path` | `["public", "extensions"]` | SQL `search_path` for PostgREST. |
-| `max_rows` | `1000` | Cap on rows returned per request. |
+| Key                 | Value                          | Meaning                            |
+| ------------------- | ------------------------------ | ---------------------------------- |
+| `enabled`           | `true`                         | PostgREST is exposed.              |
+| `port`              | `54321`                        | Local API port.                    |
+| `schemas`           | `["public", "graphql_public"]` | Schemas auto-exposed by PostgREST. |
+| `extra_search_path` | `["public", "extensions"]`     | SQL `search_path` for PostgREST.   |
+| `max_rows`          | `1000`                         | Cap on rows returned per request.  |
 
 ### `[api.tls]`
 
@@ -24,12 +24,12 @@ Controls local Supabase CLI behavior (`supabase start`, `supabase db reset`, etc
 
 ## `[db]`
 
-| Key | Value | Meaning |
-|---|---|---|
-| `port` | `5433` | Local Postgres port (avoids conflict with a local `postgres` on 5432). |
-| `shadow_port` | `54320` | Shadow DB used during migration diffing. |
-| `health_timeout` | `"2m"` | CLI startup wait. |
-| `major_version` | `15` | Postgres 15. |
+| Key              | Value   | Meaning                                                                |
+| ---------------- | ------- | ---------------------------------------------------------------------- |
+| `port`           | `5433`  | Local Postgres port (avoids conflict with a local `postgres` on 5432). |
+| `shadow_port`    | `54320` | Shadow DB used during migration diffing.                               |
+| `health_timeout` | `"2m"`  | CLI startup wait.                                                      |
+| `major_version`  | `15`    | Postgres 15.                                                           |
 
 ### `[db.pooler]` (disabled)
 

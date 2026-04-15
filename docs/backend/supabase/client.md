@@ -6,11 +6,11 @@ Lazy-initialized singleton `SupabaseClient` used by every model wrapper in `supa
 
 ## Environment Variables
 
-| Var | Required | Notes |
-|---|---|---|
-| `SUPABASE_URL` | yes | Project URL. |
-| `SUPABASE_SERVICE_ROLE_KEY` | preferred | Used first when present. |
-| `SUPABASE_ANON_KEY` | fallback | Used if service role key is not set. |
+| Var                         | Required  | Notes                                |
+| --------------------------- | --------- | ------------------------------------ |
+| `SUPABASE_URL`              | yes       | Project URL.                         |
+| `SUPABASE_SERVICE_ROLE_KEY` | preferred | Used first when present.             |
+| `SUPABASE_ANON_KEY`         | fallback  | Used if service role key is not set. |
 
 Missing both of the keys throws at first access: `"SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) environment variables are required"`.
 
@@ -37,7 +37,7 @@ Using a `Proxy` means `import supabase from './supabase'` **never** triggers cli
 ```ts
 createClient(url, key, {
   auth: { autoRefreshToken: false, persistSession: false },
-  db:   { schema: 'public' },
+  db: { schema: 'public' },
 });
 ```
 
@@ -57,10 +57,7 @@ Uses `backend/shared/utils/logger.createLogger('Database')` when available; fall
 ```ts
 import supabase from '../../supabase/supabase';
 
-const { data, error } = await supabase
-  .from('tasks')
-  .select('*')
-  .eq('guild_id', guildId);
+const { data, error } = await supabase.from('tasks').select('*').eq('guild_id', guildId);
 ```
 
 Model wrappers (`supabase/models/Task.ts`, etc.) encapsulate these queries as static methods (`Task.createTask`, `Task.getUserTasks`, …).

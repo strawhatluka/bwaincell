@@ -8,24 +8,32 @@ Manage dated events with optional descriptions and countdowns.
 
 ## Subcommands
 
-| Subcommand | Options | Purpose |
-|---|---|---|
-| `add` | `event` (required), `date` (`MM-DD-YYYY`, required), `time` (12h, required), `description` (optional) | Adds an event. Date stored as `YYYY-MM-DD`. |
-| `list` | `filter` (`upcoming` / `past` / `all`, default `upcoming`) | Shows up to 10 events. |
-| `delete` | `event_id` (integer, required) | Deletes event. |
-| `countdown` | `event` (partial match, autocomplete) | Returns matched event with time remaining via `Schedule.getCountdown`. |
-| `today` | — | Events scheduled for today. |
-| `week` | — | Next 7 days, grouped by date with day-of-week label in `settings.timezone`. |
+| Subcommand  | Options                                                                                               | Purpose                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `add`       | `event` (required), `date` (`MM-DD-YYYY`, required), `time` (12h, required), `description` (optional) | Adds an event. Date stored as `YYYY-MM-DD`.                                 |
+| `list`      | `filter` (`upcoming` / `past` / `all`, default `upcoming`)                                            | Shows up to 10 events.                                                      |
+| `delete`    | `event_id` (integer, required)                                                                        | Deletes event.                                                              |
+| `countdown` | `event` (partial match, autocomplete)                                                                 | Returns matched event with time remaining via `Schedule.getCountdown`.      |
+| `today`     | —                                                                                                     | Events scheduled for today.                                                 |
+| `week`      | —                                                                                                     | Next 7 days, grouped by date with day-of-week label in `settings.timezone`. |
 
 ## Local Types
 
 ```ts
 interface ScheduleEvent {
-  id: number; user_id: string; guild_id: string;
-  event: string; date: string; time: string;
-  description?: string | null; created_at: string;
+  id: number;
+  user_id: string;
+  guild_id: string;
+  event: string;
+  date: string;
+  time: string;
+  description?: string | null;
+  created_at: string;
 }
-interface CountdownResult { event: ScheduleEvent; timeLeft: string; }
+interface CountdownResult {
+  event: ScheduleEvent;
+  timeLeft: string;
+}
 ```
 
 ## Helpers

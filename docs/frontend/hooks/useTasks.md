@@ -17,7 +17,7 @@ function useTasks(): {
   isCreating: boolean;
   isUpdating: boolean;
   isDeleting: boolean;
-}
+};
 ```
 
 ## Task Type
@@ -42,12 +42,12 @@ interface Task {
 
 ## Queries / Mutations
 
-| Operation | Method / Path |
-|---|---|
-| List | `GET /tasks` (via `api.get<Task[]>('/tasks')`) |
-| Create | `POST /tasks` |
-| Update | `PATCH /tasks/:id` |
-| Delete | `DELETE /tasks/:id` |
+| Operation | Method / Path                                  |
+| --------- | ---------------------------------------------- |
+| List      | `GET /tasks` (via `api.get<Task[]>('/tasks')`) |
+| Create    | `POST /tasks`                                  |
+| Update    | `PATCH /tasks/:id`                             |
+| Delete    | `DELETE /tasks/:id`                            |
 
 Polling: `refetchInterval: 15000` on the list query.
 

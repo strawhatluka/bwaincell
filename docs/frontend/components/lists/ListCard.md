@@ -6,17 +6,25 @@ Card representation of a single list: header, items (checkbox + text + remove), 
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `list` | `List` | yes | See shape below. |
+| Name   | Type   | Required | Description      |
+| ------ | ------ | -------- | ---------------- |
+| `list` | `List` | yes      | See shape below. |
 
 ### `List` / `ListItem`
 
 ```ts
-interface ListItem { text: string; completed: boolean; added_at: string; }
+interface ListItem {
+  text: string;
+  completed: boolean;
+  added_at: string;
+}
 interface List {
-  id: number; userId: string; guildId: string;
-  name: string; items: ListItem[]; createdAt: string;
+  id: number;
+  userId: string;
+  guildId: string;
+  name: string;
+  items: ListItem[];
+  createdAt: string;
 }
 ```
 

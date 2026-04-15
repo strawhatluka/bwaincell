@@ -9,12 +9,14 @@
 ### `GET /api/budget/transactions`
 
 Recent transactions (income + expense).
+
 - **Query:** `limit` — clamped to `[1, 100]`, default 10.
 - **Returns:** `200 { success, data: BudgetRow[] }`.
 
 ### `GET /api/budget/summary`
 
 Monthly summary with income, expenses, balance, and per-category breakdown.
+
 - **Query:** `month` — integer `1-12`. Omit for current month.
 - **Returns:** `200 { success, data: BudgetSummary }` — see [Budget model](../../models/Budget.md).
 - **Errors:** `400` if month out of range.
@@ -22,11 +24,13 @@ Monthly summary with income, expenses, balance, and per-category breakdown.
 ### `GET /api/budget/categories`
 
 Expense totals grouped by category (sorted desc).
+
 - **Returns:** `200 { success, data: CategoryResult[] }`.
 
 ### `GET /api/budget/trends`
 
 Monthly trends for the last N months.
+
 - **Query:** `months` — clamped to `[1, 12]`, default 6.
 - **Returns:** `200 { success, data: MonthlyTrend[] }` (chronological).
 
@@ -46,6 +50,7 @@ Create a transaction (expense or income).
 ### `DELETE /api/budget/transactions/:id`
 
 Delete a transaction.
+
 - **Returns:** `200 { success, message }`.
 - **Errors:** `404` if not found.
 

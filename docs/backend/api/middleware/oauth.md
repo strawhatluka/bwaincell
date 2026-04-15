@@ -6,13 +6,13 @@ Google Sign-In + JWT middleware used by the REST API. Issues and verifies short-
 
 ## Exports
 
-| Symbol | Signature | Purpose |
-| ------ | --------- | ------- |
-| `AuthenticatedRequest` | interface extending `express.Request` | Adds `user: { googleId, email, name, discordId, guildId }` |
-| `verifyGoogleToken` | `(token: string) => Promise<{ googleId, email, name, picture } \| null>` | Verifies a Google ID token via `google-auth-library` |
-| `generateAccessToken` | `(user: { googleId, email, discordId, guildId }) => string` | Signs a JWT, `expiresIn: '1h'` |
-| `generateRefreshToken` | `(googleId: string) => string` | Signs a JWT, `expiresIn: '7d'` |
-| `authenticateToken` | `(req, res, next): Promise<void>` | Express middleware — verifies Bearer JWT, attaches `req.user` |
+| Symbol                 | Signature                                                                | Purpose                                                       |
+| ---------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `AuthenticatedRequest` | interface extending `express.Request`                                    | Adds `user: { googleId, email, name, discordId, guildId }`    |
+| `verifyGoogleToken`    | `(token: string) => Promise<{ googleId, email, name, picture } \| null>` | Verifies a Google ID token via `google-auth-library`          |
+| `generateAccessToken`  | `(user: { googleId, email, discordId, guildId }) => string`              | Signs a JWT, `expiresIn: '1h'`                                |
+| `generateRefreshToken` | `(googleId: string) => string`                                           | Signs a JWT, `expiresIn: '7d'`                                |
+| `authenticateToken`    | `(req, res, next): Promise<void>`                                        | Express middleware — verifies Bearer JWT, attaches `req.user` |
 
 ## `verifyGoogleToken` Flow
 
@@ -33,11 +33,11 @@ Google Sign-In + JWT middleware used by the REST API. Issues and verifies short-
 
 ## Environment Variables
 
-| Var | Purpose |
-| --- | ------- |
-| `GOOGLE_CLIENT_ID` | Google OAuth client, also the audience for `verifyIdToken` |
-| `ALLOWED_GOOGLE_EMAILS` | Comma-separated email whitelist |
-| `JWT_SECRET` | HS256 secret for access + refresh tokens; validated at module load |
+| Var                     | Purpose                                                            |
+| ----------------------- | ------------------------------------------------------------------ |
+| `GOOGLE_CLIENT_ID`      | Google OAuth client, also the audience for `verifyIdToken`         |
+| `ALLOWED_GOOGLE_EMAILS` | Comma-separated email whitelist                                    |
+| `JWT_SECRET`            | HS256 secret for access + refresh tokens; validated at module load |
 
 ## Token Shape
 

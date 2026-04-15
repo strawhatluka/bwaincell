@@ -6,13 +6,13 @@ Create/edit dialog for notes. Handles title, multiline content, and chip-style t
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `note` | `Note \| null` | no | When provided, pre-fills fields and switches the dialog title to `"Edit Note"`. |
-| `isOpen` | `boolean` | yes | Controlled dialog open state. |
-| `onClose` | `() => void` | yes | Called from the Dialog's `onOpenChange` handler and Cancel button. |
-| `onSave` | `(data: { title: string; content: string; tags: string[] }, noteId?: number) => void` | yes | Invoked on valid submit. When editing, `noteId = note.id`. |
-| `isSaving` | `boolean` | yes | Disables inputs / button and flips label to `"Saving..."`. |
+| Name       | Type                                                                                  | Required | Description                                                                     |
+| ---------- | ------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------- |
+| `note`     | `Note \| null`                                                                        | no       | When provided, pre-fills fields and switches the dialog title to `"Edit Note"`. |
+| `isOpen`   | `boolean`                                                                             | yes      | Controlled dialog open state.                                                   |
+| `onClose`  | `() => void`                                                                          | yes      | Called from the Dialog's `onOpenChange` handler and Cancel button.              |
+| `onSave`   | `(data: { title: string; content: string; tags: string[] }, noteId?: number) => void` | yes      | Invoked on valid submit. When editing, `noteId = note.id`.                      |
+| `isSaving` | `boolean`                                                                             | yes      | Disables inputs / button and flips label to `"Saving..."`.                      |
 
 ## Local State
 

@@ -7,30 +7,30 @@ Income and expense tracking with monthly summaries, category breakdowns, and mul
 
 ## Columns
 
-| Column        | Type             | Constraints                |
-| ------------- | ---------------- | -------------------------- |
-| `id`          | SERIAL           | PRIMARY KEY                |
-| `type`        | `budget_type`    | NOT NULL (`'expense'\|'income'`) |
-| `category`    | VARCHAR(255)     | nullable                   |
-| `amount`      | DECIMAL(10, 2)   | NOT NULL                   |
-| `description` | TEXT             | nullable                   |
-| `date`        | TIMESTAMPTZ      | NOT NULL, DEFAULT `NOW()`  |
-| `user_id`     | VARCHAR(255)     | NOT NULL (audit trail)     |
-| `guild_id`    | VARCHAR(255)     | NOT NULL                   |
+| Column        | Type           | Constraints                      |
+| ------------- | -------------- | -------------------------------- |
+| `id`          | SERIAL         | PRIMARY KEY                      |
+| `type`        | `budget_type`  | NOT NULL (`'expense'\|'income'`) |
+| `category`    | VARCHAR(255)   | nullable                         |
+| `amount`      | DECIMAL(10, 2) | NOT NULL                         |
+| `description` | TEXT           | nullable                         |
+| `date`        | TIMESTAMPTZ    | NOT NULL, DEFAULT `NOW()`        |
+| `user_id`     | VARCHAR(255)   | NOT NULL (audit trail)           |
+| `guild_id`    | VARCHAR(255)   | NOT NULL                         |
 
 Indexes: `idx_budgets_guild_id`, `idx_budgets_type`, `idx_budgets_date`.
 
 ## Static Methods
 
-| Method | Signature | Returns |
-| ------ | --------- | ------- |
-| `addExpense` | `(guildId, category, amount, description=null, userId?)` | `Promise<BudgetRow>` |
-| `addIncome` | `(guildId, amount, description=null, userId?)` | `Promise<BudgetRow>` — category is hard-coded `'Income'` |
-| `getSummary` | `(guildId, month=null)` | `Promise<BudgetSummary>` — income/expenses/balance (as strings) + category breakdown |
-| `getCategories` | `(guildId)` | `Promise<CategoryResult[]>` — expense totals grouped in JS |
-| `getRecentEntries` | `(guildId, limit=10)` | `Promise<BudgetRow[]>` (newest first) |
-| `getMonthlyTrend` | `(guildId, months=6)` | `Promise<MonthlyTrend[]>` — one row per month, chronological |
-| `deleteEntry` | `(entryId, guildId)` | `Promise<boolean>` |
+| Method             | Signature                                                | Returns                                                                              |
+| ------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `addExpense`       | `(guildId, category, amount, description=null, userId?)` | `Promise<BudgetRow>`                                                                 |
+| `addIncome`        | `(guildId, amount, description=null, userId?)`           | `Promise<BudgetRow>` — category is hard-coded `'Income'`                             |
+| `getSummary`       | `(guildId, month=null)`                                  | `Promise<BudgetSummary>` — income/expenses/balance (as strings) + category breakdown |
+| `getCategories`    | `(guildId)`                                              | `Promise<CategoryResult[]>` — expense totals grouped in JS                           |
+| `getRecentEntries` | `(guildId, limit=10)`                                    | `Promise<BudgetRow[]>` (newest first)                                                |
+| `getMonthlyTrend`  | `(guildId, months=6)`                                    | `Promise<MonthlyTrend[]>` — one row per month, chronological                         |
+| `deleteEntry`      | `(entryId, guildId)`                                     | `Promise<boolean>`                                                                   |
 
 All monetary values returned from summary/trend are pre-formatted decimal strings (`toFixed(2)`).
 
@@ -43,10 +43,10 @@ All monetary values returned from summary/trend are pre-formatted decimal string
 ```ts
 import Budget from '@database/models/Budget';
 
-await Budget.addExpense(guildId, 'Groceries', 52.30, 'Whole Foods');
-await Budget.addIncome(guildId, 2500.00, 'Paycheck');
+await Budget.addExpense(guildId, 'Groceries', 52.3, 'Whole Foods');
+await Budget.addIncome(guildId, 2500.0, 'Paycheck');
 
-const summary = await Budget.getSummary(guildId);          // current month
+const summary = await Budget.getSummary(guildId); // current month
 const april = await Budget.getSummary(guildId, 4);
 const trend = await Budget.getMonthlyTrend(guildId, 12);
 ```

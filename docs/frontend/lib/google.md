@@ -8,11 +8,11 @@ Google integration helpers used by the frontend. The directory supports the Next
 
 Environment variables (server-side) — shared with the NextAuth route:
 
-| Var | Purpose |
-|---|---|
+| Var                            | Purpose                   |
+| ------------------------------ | ------------------------- |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | OAuth client id (public). |
-| `GOOGLE_CLIENT_SECRET` | OAuth client secret. |
-| `NEXTAUTH_SECRET` | JWT signing secret. |
+| `GOOGLE_CLIENT_SECRET`         | OAuth client secret.      |
+| `NEXTAUTH_SECRET`              | JWT signing secret.       |
 
 The Google OAuth consent screen is configured in the Google Cloud Console; the redirect URI must match the Next.js route `/api/auth/callback/google`.
 

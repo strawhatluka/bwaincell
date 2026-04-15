@@ -6,10 +6,10 @@ Dialog-triggered form for recording a new income or expense transaction.
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `onCreate` | `(data: { amount: number; type: 'income' \| 'expense'; category: string; description: string; date: string }) => void` | yes | Invoked on valid submit. |
-| `isCreating` | `boolean` | yes | Disables all inputs and flips button label to `"Adding..."`. |
+| Name         | Type                                                                                                                   | Required | Description                                                  |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------ |
+| `onCreate`   | `(data: { amount: number; type: 'income' \| 'expense'; category: string; description: string; date: string }) => void` | yes      | Invoked on valid submit.                                     |
+| `isCreating` | `boolean`                                                                                                              | yes      | Disables all inputs and flips button label to `"Adding..."`. |
 
 ## Local State
 

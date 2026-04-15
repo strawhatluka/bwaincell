@@ -9,6 +9,7 @@
 ### `GET /api/reminders`
 
 Return active reminders for the guild (`Reminder.getUserReminders`).
+
 - **Returns:** `200 { success, data: ReminderRow[] }`.
 
 ### `POST /api/reminders`
@@ -31,6 +32,7 @@ NOT YET IMPLEMENTED. Always returns `400 'Reminder updates not yet implemented. 
 ### `DELETE /api/reminders/:id`
 
 Soft-delete (sets `active=false`) via `Reminder.deleteReminder`.
+
 - **Returns:** `200 { success, message: 'Reminder deleted successfully' }`.
 - **Errors:** `404` if not found.
 

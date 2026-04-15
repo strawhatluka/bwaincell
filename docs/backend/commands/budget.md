@@ -7,14 +7,14 @@ Track income and expenses per guild.
 
 ## Subcommands
 
-| Subcommand | Options | Purpose |
-|---|---|---|
-| `add` | `category` (required), `amount` (number, required, >0), `description` (optional) | Records expense. |
-| `income` | `amount` (number, required, >0), `description` (optional) | Records income. |
-| `summary` | `month` (integer 1–12, optional) | Shows income/expenses/balance and top 5 categories for given or current month. |
-| `categories` | — | Lists top 15 categories with amount, transaction count, and visual bar (`█` per $100). |
-| `recent` | `limit` (1–25, default 10) | Recent transactions list. |
-| `trend` | `months` (1–12, default 6) | Monthly income/expenses/balance trend. |
+| Subcommand   | Options                                                                          | Purpose                                                                                |
+| ------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `add`        | `category` (required), `amount` (number, required, >0), `description` (optional) | Records expense.                                                                       |
+| `income`     | `amount` (number, required, >0), `description` (optional)                        | Records income.                                                                        |
+| `summary`    | `month` (integer 1–12, optional)                                                 | Shows income/expenses/balance and top 5 categories for given or current month.         |
+| `categories` | —                                                                                | Lists top 15 categories with amount, transaction count, and visual bar (`█` per $100). |
+| `recent`     | `limit` (1–25, default 10)                                                       | Recent transactions list.                                                              |
+| `trend`      | `months` (1–12, default 6)                                                       | Monthly income/expenses/balance trend.                                                 |
 
 ## Local Types
 
@@ -27,8 +27,17 @@ interface BudgetSummary {
   entryCount: number;
 }
 
-interface CategoryData { category: string; total: string; count: number; }
-interface MonthlyTrend { month: string; income: string; expenses: string; balance: string; }
+interface CategoryData {
+  category: string;
+  total: string;
+  count: number;
+}
+interface MonthlyTrend {
+  month: string;
+  income: string;
+  expenses: string;
+  balance: string;
+}
 ```
 
 ## Model Methods Used

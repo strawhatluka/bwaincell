@@ -39,11 +39,11 @@ There is no persisted cron expression. On each daily pass, the scheduler recompu
 
 ## Environment Variables
 
-| Var | Use |
-| --- | --- |
-| `LOCATION_ZIP_CODE` | US ZIP for geocoding |
-| `DEFAULT_REMINDER_CHANNEL` | Discord channel to post announcement |
-| `TIMEZONE` (via `config.settings.timezone`) | Display + scheduling timezone |
+| Var                                         | Use                                  |
+| ------------------------------------------- | ------------------------------------ |
+| `LOCATION_ZIP_CODE`                         | US ZIP for geocoding                 |
+| `DEFAULT_REMINDER_CHANNEL`                  | Discord channel to post announcement |
+| `TIMEZONE` (via `config.settings.timezone`) | Display + scheduling timezone        |
 
 ## Error Responses
 

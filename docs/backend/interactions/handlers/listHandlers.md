@@ -19,14 +19,14 @@ Non-guild interactions reply with ephemeral `"❌ This command can only be used 
 
 ## customId Patterns
 
-| Pattern | Action |
-|---|---|
-| `list_add_{name}` | Opens modal `list_add_item_modal_{encodeURIComponent(name)}` with single `list_item` input (max 100). |
-| `list_view_{name}` | Renders the list via `List.getList(guildId, name)`; shows "not found" when null. |
-| `list_mark_complete_{name}` | Opens modal to choose items to mark complete. |
-| `list_clear_completed_{name}` | Calls `List.clearCompleted(guildId, name)`. |
-| `list_delete_confirm_{name}` | Calls `List.deleteList(guildId, name)`. |
-| `list_delete_cancel` | Dismisses the confirm UI. |
+| Pattern                       | Action                                                                                                |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `list_add_{name}`             | Opens modal `list_add_item_modal_{encodeURIComponent(name)}` with single `list_item` input (max 100). |
+| `list_view_{name}`            | Renders the list via `List.getList(guildId, name)`; shows "not found" when null.                      |
+| `list_mark_complete_{name}`   | Opens modal to choose items to mark complete.                                                         |
+| `list_clear_completed_{name}` | Calls `List.clearCompleted(guildId, name)`.                                                           |
+| `list_delete_confirm_{name}`  | Calls `List.deleteList(guildId, name)`.                                                               |
+| `list_delete_cancel`          | Dismisses the confirm UI.                                                                             |
 
 ## Encoding
 

@@ -13,17 +13,19 @@ function useReminders(): {
   error: Error | null;
   deleteReminder: (id: number) => void;
   isDeleting: boolean;
-}
+};
 ```
 
 ## Reminder Type
 
 ```ts
 interface Reminder {
-  id: number; userId: string; guildId: string;
+  id: number;
+  userId: string;
+  guildId: string;
   message: string;
   frequency: 'once' | 'daily' | 'weekly';
-  time: string;              // HH:MM (normalized by API)
+  time: string; // HH:MM (normalized by API)
   dayOfWeek?: number;
   nextTrigger: string;
   createdAt?: string;
@@ -41,10 +43,10 @@ Note: the backend model also supports `monthly`/`yearly`, but this hook's local 
 
 ## API Endpoints
 
-| Operation | Method / Path |
-|---|---|
-| List | `GET /reminders` |
-| Delete | `DELETE /reminders/:id` |
+| Operation | Method / Path           |
+| --------- | ----------------------- |
+| List      | `GET /reminders`        |
+| Delete    | `DELETE /reminders/:id` |
 
 ## Side-effects
 

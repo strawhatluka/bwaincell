@@ -17,16 +17,21 @@ function useSchedule(): {
   isCreating: boolean;
   isUpdating: boolean;
   isDeleting: boolean;
-}
+};
 ```
 
 ## Event Type
 
 ```ts
 interface Event {
-  id: number; userId: string; guildId: string;
-  title: string; description: string; datetime: string;
-  createdAt: string; updatedAt: string;
+  id: number;
+  userId: string;
+  guildId: string;
+  title: string;
+  description: string;
+  datetime: string;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
@@ -40,12 +45,12 @@ Note: the backend `Schedule` model splits date/time into `event` (name), `date`,
 
 ## API Endpoints
 
-| Operation | Method / Path |
-|---|---|
-| List | `GET /schedule` |
-| Create | `POST /schedule` |
-| Update | `PATCH /schedule/:id` |
-| Delete | `DELETE /schedule/:id` |
+| Operation | Method / Path          |
+| --------- | ---------------------- |
+| List      | `GET /schedule`        |
+| Create    | `POST /schedule`       |
+| Update    | `PATCH /schedule/:id`  |
+| Delete    | `DELETE /schedule/:id` |
 
 ## Side-effects
 

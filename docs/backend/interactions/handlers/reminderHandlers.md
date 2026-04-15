@@ -19,12 +19,12 @@ Non-guild interactions receive ephemeral "❌ This command can only be used in a
 
 ## customId Patterns
 
-| Pattern | Action |
-|---|---|
-| `reminder_delete_{id}` | `Reminder.deleteReminder(id, guildId)`. Acknowledges with ephemeral 🗑️ confirmation or "not found" error. |
-| `reminder_add_new`, `reminder_add_another` | Shows frequency-picker embed (once/daily/weekly/monthly/yearly buttons). |
-| `reminder_create_daily`, `reminder_create_weekly`, `reminder_create_once` | Opens the corresponding modal (`reminder_modal_{frequency}`). |
-| `reminder_list`, `reminder_refresh` | Re-renders the list view. |
+| Pattern                                                                   | Action                                                                                                    |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `reminder_delete_{id}`                                                    | `Reminder.deleteReminder(id, guildId)`. Acknowledges with ephemeral 🗑️ confirmation or "not found" error. |
+| `reminder_add_new`, `reminder_add_another`                                | Shows frequency-picker embed (once/daily/weekly/monthly/yearly buttons).                                  |
+| `reminder_create_daily`, `reminder_create_weekly`, `reminder_create_once` | Opens the corresponding modal (`reminder_modal_{frequency}`).                                             |
+| `reminder_list`, `reminder_refresh`                                       | Re-renders the list view.                                                                                 |
 
 ## ID Parsing
 

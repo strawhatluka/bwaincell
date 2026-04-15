@@ -5,42 +5,42 @@
 
 > **Supabase update (2026-04-15):** Tables below that list `backend/database/` as a file location are stale. Replace them as follows:
 >
-> | Old path | New path |
-> | --- | --- |
-> | `backend/database/models/` | `supabase/models/` |
-> | `backend/database/migrations/` | `supabase/migrations/` |
-> | `backend/database/index.ts` | `supabase/supabase.ts` |
-> | `backend/database/config.js` | `supabase/config.toml` + `.env` (`SUPABASE_*`) |
+> | Old path                       | New path                                       |
+> | ------------------------------ | ---------------------------------------------- |
+> | `backend/database/models/`     | `supabase/models/`                             |
+> | `backend/database/migrations/` | `supabase/migrations/`                         |
+> | `backend/database/index.ts`    | `supabase/supabase.ts`                         |
+> | `backend/database/config.js`   | `supabase/config.toml` + `.env` (`SUPABASE_*`) |
 
 ## Discord Commands (12)
 
-| Command | Purpose |
-| --- | --- |
-| `/budget` | Track expenses and income |
-| `/events` | Configure weekly local-events announcements (per guild) |
-| `/issues` | File GitHub issues directly from Discord |
-| `/list` | Manage named lists (shopping, checklists, etc.) |
-| `/note` | Create and search notes |
-| `/quote` | Store and retrieve quotes |
-| `/random` | AI-powered random suggestions (Gemini) |
-| `/recipe` | Capture recipes, manage weekly meal plan, get AI shopping list |
-| `/remind` | Schedule one-time or recurring reminders |
-| `/schedule` | Calendar events |
-| `/sunset` | Configure daily sunset announcements (per guild) |
-| `/task` | Task management |
+| Command     | Purpose                                                        |
+| ----------- | -------------------------------------------------------------- |
+| `/budget`   | Track expenses and income                                      |
+| `/events`   | Configure weekly local-events announcements (per guild)        |
+| `/issues`   | File GitHub issues directly from Discord                       |
+| `/list`     | Manage named lists (shopping, checklists, etc.)                |
+| `/note`     | Create and search notes                                        |
+| `/quote`    | Store and retrieve quotes                                      |
+| `/random`   | AI-powered random suggestions (Gemini)                         |
+| `/recipe`   | Capture recipes, manage weekly meal plan, get AI shopping list |
+| `/remind`   | Schedule one-time or recurring reminders                       |
+| `/schedule` | Calendar events                                                |
+| `/sunset`   | Configure daily sunset announcements (per guild)               |
+| `/task`     | Task management                                                |
 
 ## Backend Express REST API
 
-| Endpoint group | Path | Source |
-| --- | --- | --- |
-| Health | `GET /health` | `backend/src/api/routes/health.ts` |
-| Auth | `/api/auth/*` | `backend/src/api/routes/oauth.ts` |
-| Tasks | `/api/tasks` | `backend/src/api/routes/tasks.ts` |
-| Lists | `/api/lists` (+ items, clear-completed, toggle) | `backend/src/api/routes/lists.ts` |
-| Notes | `/api/notes` (+ search) | `backend/src/api/routes/notes.ts` |
-| Reminders | `/api/reminders` | `backend/src/api/routes/reminders.ts` |
-| Budget | `/api/budget` (+ summary, transactions) | `backend/src/api/routes/budget.ts` |
-| Schedule | `/api/schedule` | `backend/src/api/routes/schedule.ts` |
+| Endpoint group | Path                                            | Source                                |
+| -------------- | ----------------------------------------------- | ------------------------------------- |
+| Health         | `GET /health`                                   | `backend/src/api/routes/health.ts`    |
+| Auth           | `/api/auth/*`                                   | `backend/src/api/routes/oauth.ts`     |
+| Tasks          | `/api/tasks`                                    | `backend/src/api/routes/tasks.ts`     |
+| Lists          | `/api/lists` (+ items, clear-completed, toggle) | `backend/src/api/routes/lists.ts`     |
+| Notes          | `/api/notes` (+ search)                         | `backend/src/api/routes/notes.ts`     |
+| Reminders      | `/api/reminders`                                | `backend/src/api/routes/reminders.ts` |
+| Budget         | `/api/budget` (+ summary, transactions)         | `backend/src/api/routes/budget.ts`    |
+| Schedule       | `/api/schedule`                                 | `backend/src/api/routes/schedule.ts`  |
 
 (Recipes / MealPlans / Sunset config / Events config are Discord-only today; see [../api/README.md](../api/README.md).)
 
@@ -50,29 +50,29 @@ Under `frontend/app/api/`: `auth/[...nextauth]`, `tasks`, `lists`, `notes`, `rem
 
 ## npm Scripts (Supabase-specific)
 
-| Script | Purpose |
-| --- | --- |
-| `npm run supabase:start` | Start local Supabase stack (Docker) |
-| `npm run supabase:stop` | Stop local Supabase stack |
-| `npm run supabase:status` | Print local URLs + anon/service-role keys |
-| `npm run supabase:reset` | `supabase db reset` — replays `init.sql` + migrations |
+| Script                    | Purpose                                               |
+| ------------------------- | ----------------------------------------------------- |
+| `npm run supabase:start`  | Start local Supabase stack (Docker)                   |
+| `npm run supabase:stop`   | Stop local Supabase stack                             |
+| `npm run supabase:status` | Print local URLs + anon/service-role keys             |
+| `npm run supabase:reset`  | `supabase db reset` — replays `init.sql` + migrations |
 
 ## Key File Locations
 
-| Concern | Location |
-| --- | --- |
-| Supabase client | `supabase/supabase.ts` |
-| Schema (authoritative) | `supabase/migrations/*.sql` |
-| Bootstrap SQL | `supabase/init.sql` |
-| Model wrappers (12) | `supabase/models/*.ts` |
-| Supabase CLI config | `supabase/config.toml` |
-| Discord commands (12) | `backend/commands/*.ts` |
-| Interaction handlers | `backend/utils/interactions/handlers/*.ts` |
-| Schedulers | `backend/utils/scheduler.ts`, `sunsetService.ts`, `eventsService.ts` |
-| AI integration | `backend/utils/geminiService.ts`, `shoppingList.ts`, `recipeNormalize.ts` |
-| Recipe ingest | `backend/utils/recipeScraper.ts`, `recipeIngestion.ts`, `ingredientCanonical.ts` |
-| REST routes | `backend/src/api/routes/*.ts` |
-| Next.js API routes | `frontend/app/api/**/route.ts` |
+| Concern                | Location                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| Supabase client        | `supabase/supabase.ts`                                                           |
+| Schema (authoritative) | `supabase/migrations/*.sql`                                                      |
+| Bootstrap SQL          | `supabase/init.sql`                                                              |
+| Model wrappers (12)    | `supabase/models/*.ts`                                                           |
+| Supabase CLI config    | `supabase/config.toml`                                                           |
+| Discord commands (12)  | `backend/commands/*.ts`                                                          |
+| Interaction handlers   | `backend/utils/interactions/handlers/*.ts`                                       |
+| Schedulers             | `backend/utils/scheduler.ts`, `sunsetService.ts`, `eventsService.ts`             |
+| AI integration         | `backend/utils/geminiService.ts`, `shoppingList.ts`, `recipeNormalize.ts`        |
+| Recipe ingest          | `backend/utils/recipeScraper.ts`, `recipeIngestion.ts`, `ingredientCanonical.ts` |
+| REST routes            | `backend/src/api/routes/*.ts`                                                    |
+| Next.js API routes     | `frontend/app/api/**/route.ts`                                                   |
 
 Fast reference guide for common commands, Discord bot commands, API endpoints, environment variables, and troubleshooting quick fixes.
 

@@ -6,10 +6,10 @@ On bot startup, posts a release-notes embed to the configured announcement chann
 
 ## Paths
 
-| Constant | Value | Purpose |
-|---|---|---|
-| `VERSION_FILE` | `../../data/.last-announced-version` (relative to `__dirname`) | Persisted via Docker volume mount. |
-| `PACKAGE_JSON` | `../../package.json` | Source of current version. |
+| Constant         | Value                                                                                                                                | Purpose                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| `VERSION_FILE`   | `../../data/.last-announced-version` (relative to `__dirname`)                                                                       | Persisted via Docker volume mount. |
+| `PACKAGE_JSON`   | `../../package.json`                                                                                                                 | Source of current version.         |
 | `CHANGELOG_PATH` | `findChangelog()` — walks up from `__dirname` up to 5 levels looking for `CHANGELOG.md`, else falls back to `../../../CHANGELOG.md`. |
 
 ## Constants

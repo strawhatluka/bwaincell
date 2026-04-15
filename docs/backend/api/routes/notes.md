@@ -19,16 +19,19 @@ List notes, optionally filtered.
 ### `GET /api/notes/tags`
 
 Return all unique tags across the guild's notes. Routes match before `:id` so `tags` is not interpreted as an ID.
+
 - **Returns:** `200 { success, data: string[] }`.
 
 ### `GET /api/notes/:id`
 
 Fetch a note by integer ID.
+
 - **Errors:** `400` invalid ID; `404` not found.
 
 ### `POST /api/notes`
 
 Create a note.
+
 - **Body:**
   - `title` (string, required, non-empty)
   - `content` (string, required, non-empty)
@@ -39,12 +42,14 @@ Create a note.
 ### `PATCH /api/notes/:id`
 
 Update a note. At least one of `title`, `content`, `tags` must be provided; empty strings are rejected.
+
 - **Returns:** `200 { success, data: NoteRow }`.
 - **Errors:** `400` invalid payload; `404` note not found.
 
 ### `DELETE /api/notes/:id`
 
 Delete a note.
+
 - **Returns:** `200 { success, message }`.
 - **Errors:** `404` if not found.
 

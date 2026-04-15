@@ -1,6 +1,7 @@
 # Dashboard Shell and Home
 
 **Sources:**
+
 - `frontend/app/dashboard/layout.tsx`
 - `frontend/app/dashboard/page.tsx`
 

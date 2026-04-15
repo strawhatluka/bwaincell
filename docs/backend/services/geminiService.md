@@ -8,8 +8,8 @@ Centralized Gemini API client. Lazy-initialized on first use; if `GEMINI_API_KEY
 
 ## Environment
 
-| Var | Purpose |
-| --- | ------- |
+| Var              | Purpose                              |
+| ---------------- | ------------------------------------ |
 | `GEMINI_API_KEY` | Required. Logs a warning if missing. |
 
 ## Exported Types
@@ -26,21 +26,21 @@ Supported file MIME types for `parseRecipeFromFile`: `image/png`, `image/jpeg`, 
 
 ## Exported `GeminiService` Methods
 
-| Method | Signature | Purpose |
-| ------ | --------- | ------- |
-| `generateDateIdea` | `(zipCode: string) => Promise<DateIdeaResponse>` | Used by `/random date`. |
-| `generateQuestion` | `() => Promise<WNRSQuestionResponse>` | Used by `/random question`. |
-| `parseRecipeFromUrl` | `(url: string) => Promise<ParsedRecipe>` | YouTube detection: passes URL as `fileData` (`mimeType: 'video/*'`); else `googleSearch` grounded. |
-| `parseRecipeFromFile` | `(fileBuffer: Buffer, mimeType: string, filename: string) => Promise<ParsedRecipe>` | Multimodal file parse. Throws on unsupported MIME type. |
-| `researchMissingFields` | `(partial, sourceUrl, gaps: ResearchableField[]) => Promise<Partial<ResearchedFields>>` | Fills ONLY the requested fields. Used in Pass 2 of ingestion. |
-| `suggestDietaryTags` | `(ingredients: RecipeIngredient[]) => Promise<string[]>` | Rules-based AI heuristic for tag suggestions. |
-| `sanitizeShoppingList` | `(items: SanitizerInputItem[]) => Promise<SanitizedShoppingList>` | Post-aggregation dedupe + cleanup. |
+| Method                  | Signature                                                                               | Purpose                                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `generateDateIdea`      | `(zipCode: string) => Promise<DateIdeaResponse>`                                        | Used by `/random date`.                                                                            |
+| `generateQuestion`      | `() => Promise<WNRSQuestionResponse>`                                                   | Used by `/random question`.                                                                        |
+| `parseRecipeFromUrl`    | `(url: string) => Promise<ParsedRecipe>`                                                | YouTube detection: passes URL as `fileData` (`mimeType: 'video/*'`); else `googleSearch` grounded. |
+| `parseRecipeFromFile`   | `(fileBuffer: Buffer, mimeType: string, filename: string) => Promise<ParsedRecipe>`     | Multimodal file parse. Throws on unsupported MIME type.                                            |
+| `researchMissingFields` | `(partial, sourceUrl, gaps: ResearchableField[]) => Promise<Partial<ResearchedFields>>` | Fills ONLY the requested fields. Used in Pass 2 of ingestion.                                      |
+| `suggestDietaryTags`    | `(ingredients: RecipeIngredient[]) => Promise<string[]>`                                | Rules-based AI heuristic for tag suggestions.                                                      |
+| `sanitizeShoppingList`  | `(items: SanitizerInputItem[]) => Promise<SanitizedShoppingList>`                       | Post-aggregation dedupe + cleanup.                                                                 |
 
 All methods throw `Error('Gemini API not configured')` when `GEMINI_API_KEY` is missing; other errors (network, malformed JSON) are logged and rethrown.
 
 ## Prompting
 
-- Recipe parsing: uses strict JSON-only instructions; the response handler strips ```` ```json ...` ```` fences before `JSON.parse`.
+- Recipe parsing: uses strict JSON-only instructions; the response handler strips `` ```json ...` `` fences before `JSON.parse`.
 - URL parses are YouTube-aware (video vs. web grounding).
 - Research prompts restrict output fields to the requested gaps.
 
@@ -55,7 +55,12 @@ import { GeminiService } from '@/utils/geminiService';
 
 const parsed = await GeminiService.parseRecipeFromUrl('https://example.com/curry');
 const filled = await GeminiService.researchMissingFields(
-  { name: parsed.name, ingredients: parsed.ingredients, instructions: parsed.instructions, servings: parsed.servings },
+  {
+    name: parsed.name,
+    ingredients: parsed.ingredients,
+    instructions: parsed.instructions,
+    servings: parsed.servings,
+  },
   'https://example.com/curry',
   ['cuisine', 'difficulty']
 );

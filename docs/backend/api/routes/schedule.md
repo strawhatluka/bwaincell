@@ -19,11 +19,13 @@ List events.
 ### `GET /api/schedule/today`
 
 Today's events (timezone-aware via Luxon + `TIMEZONE` env).
+
 - **Returns:** `200 { success, data: ScheduleRow[] }`.
 
 ### `GET /api/schedule/countdown/:eventName`
 
 Return earliest matching upcoming event plus `timeLeft` string.
+
 - **Params:** `eventName` URL-decoded, partial case-insensitive match.
 - **Returns:** `200 { success, data: { event: ScheduleRow, timeLeft: string } }`.
 - **Errors:** `404` if no match.

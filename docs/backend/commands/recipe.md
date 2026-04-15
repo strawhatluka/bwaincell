@@ -7,19 +7,19 @@ Recipe ingestion, search, favorites, AI meal planning, and shopping-list generat
 
 ## Subcommands
 
-| Subcommand | Options | Purpose |
-| ---------- | ------- | ------- |
-| `add` | `link` (string, required) | Ingest a recipe via [recipeIngestion](../services/recipeIngestion.md) — scrape → AI fill → persist. |
-| `view` | `recipe` (string, required, autocomplete); `servings` (integer, required, 1..50) | Display the recipe scaled to the given serving count using `scaleIngredient()`. |
-| `delete` | `recipe` (string, required, autocomplete) | Delete the recipe via `Recipe.deleteRecipe`. |
-| `edit` | `recipe` (string, required, autocomplete) | Enter the recipe edit interaction flow. |
-| `search` | `cuisine`, `difficulty` (`easy`/`medium`/`hard`), `tag`, `keyword`, `max_prep_time` — all optional | Calls `Recipe.searchByFilters` then renders results. |
-| `favorite` | `recipe` (string, required, autocomplete) | `Recipe.toggleFavorite(id, guildId)`. |
-| `plan` | — | Start the interactive meal-plan builder. |
-| `swap` | `slot` (integer, required, 1..7) | `MealPlan.swapMeal(...)` on the active plan. |
-| `week` | — | Show the active `MealPlan.getActivePlan(guildId)`. |
-| `history` | — | `MealPlan.getArchivedPlans(guildId, 10)`. |
-| `preferences` | `action` (`view`, `add_restriction`, `remove_restriction`, `add_exclusion`, `remove_exclusion`, `clear`); `value` (string, optional) | Delegates to `RecipePreferences` methods. |
+| Subcommand    | Options                                                                                                                              | Purpose                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `add`         | `link` (string, required)                                                                                                            | Ingest a recipe via [recipeIngestion](../services/recipeIngestion.md) — scrape → AI fill → persist. |
+| `view`        | `recipe` (string, required, autocomplete); `servings` (integer, required, 1..50)                                                     | Display the recipe scaled to the given serving count using `scaleIngredient()`.                     |
+| `delete`      | `recipe` (string, required, autocomplete)                                                                                            | Delete the recipe via `Recipe.deleteRecipe`.                                                        |
+| `edit`        | `recipe` (string, required, autocomplete)                                                                                            | Enter the recipe edit interaction flow.                                                             |
+| `search`      | `cuisine`, `difficulty` (`easy`/`medium`/`hard`), `tag`, `keyword`, `max_prep_time` — all optional                                   | Calls `Recipe.searchByFilters` then renders results.                                                |
+| `favorite`    | `recipe` (string, required, autocomplete)                                                                                            | `Recipe.toggleFavorite(id, guildId)`.                                                               |
+| `plan`        | —                                                                                                                                    | Start the interactive meal-plan builder.                                                            |
+| `swap`        | `slot` (integer, required, 1..7)                                                                                                     | `MealPlan.swapMeal(...)` on the active plan.                                                        |
+| `week`        | —                                                                                                                                    | Show the active `MealPlan.getActivePlan(guildId)`.                                                  |
+| `history`     | —                                                                                                                                    | `MealPlan.getArchivedPlans(guildId, 10)`.                                                           |
+| `preferences` | `action` (`view`, `add_restriction`, `remove_restriction`, `add_exclusion`, `remove_exclusion`, `clear`); `value` (string, optional) | Delegates to `RecipePreferences` methods.                                                           |
 
 ## Autocomplete
 

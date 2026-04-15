@@ -10,7 +10,7 @@ Comprehensive guide to Bwaincell's continuous integration and deployment pipelin
 > - name: Start Supabase
 >   run: supabase start
 > - name: Apply migrations
->   run: supabase db reset    # replays supabase/migrations/*.sql
+>   run: supabase db reset # replays supabase/migrations/*.sql
 > - name: Run tests
 >   env:
 >     SUPABASE_URL: http://127.0.0.1:54321
@@ -19,6 +19,7 @@ Comprehensive guide to Bwaincell's continuous integration and deployment pipelin
 > ```
 >
 > Deployment jobs in `.github/workflows/deploy.yml` (triggered on release) are:
+>
 > - **deploy** — SSH to the Pi, `git pull`, `docker compose up -d --build`, `supabase db push` against the Pi's self-hosted Supabase
 > - **deploy-vercel** — frontend to Vercel via `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`
 >

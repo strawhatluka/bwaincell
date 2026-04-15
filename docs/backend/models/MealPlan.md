@@ -8,17 +8,17 @@ Weekly meal plans. Exactly one active plan per guild, enforced by a partial uniq
 
 ## Columns
 
-| Column                | Type         | Constraints                    |
-| --------------------- | ------------ | ------------------------------ |
-| `id`                  | SERIAL       | PRIMARY KEY                    |
-| `recipe_ids`          | INTEGER[]    | NOT NULL — length 7            |
-| `servings_per_recipe` | INTEGER[]    | NOT NULL — length 7, parallel  |
-| `week_start`          | DATE         | NOT NULL                       |
-| `archived`            | BOOLEAN      | NOT NULL, DEFAULT FALSE        |
-| `created_at`          | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()`      |
-| `updated_at`          | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()`      |
-| `user_id`             | VARCHAR(255) | NOT NULL (last-editor audit)   |
-| `guild_id`            | VARCHAR(255) | NOT NULL                       |
+| Column                | Type         | Constraints                   |
+| --------------------- | ------------ | ----------------------------- |
+| `id`                  | SERIAL       | PRIMARY KEY                   |
+| `recipe_ids`          | INTEGER[]    | NOT NULL — length 7           |
+| `servings_per_recipe` | INTEGER[]    | NOT NULL — length 7, parallel |
+| `week_start`          | DATE         | NOT NULL                      |
+| `archived`            | BOOLEAN      | NOT NULL, DEFAULT FALSE       |
+| `created_at`          | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()`     |
+| `updated_at`          | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()`     |
+| `user_id`             | VARCHAR(255) | NOT NULL (last-editor audit)  |
+| `guild_id`            | VARCHAR(255) | NOT NULL                      |
 
 ### Indexes
 
@@ -31,14 +31,14 @@ Weekly meal plans. Exactly one active plan per guild, enforced by a partial uniq
 
 ## Static Methods
 
-| Method | Signature | Returns |
-| ------ | --------- | ------- |
-| `getActivePlan` | `(guildId)` | `Promise<MealPlanRow \| null>` |
-| `upsertPlan` | `({ recipeIds, servingsPerRecipe, weekStart, userId, guildId })` | `Promise<MealPlanRow>` — archives existing active plan(s) first, then inserts. |
-| `swapMeal` | `(guildId, slotIndex, newRecipeId, newServings)` | `Promise<MealPlanRow \| null>` |
-| `updateServings` | `(guildId, slotIndex, servings)` | `Promise<MealPlanRow \| null>` |
-| `getArchivedPlans` | `(guildId, limit=10)` | `Promise<MealPlanRow[]>` (newest first) |
-| `getPlanById` | `(id, guildId)` | `Promise<MealPlanRow \| null>` |
+| Method             | Signature                                                        | Returns                                                                        |
+| ------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `getActivePlan`    | `(guildId)`                                                      | `Promise<MealPlanRow \| null>`                                                 |
+| `upsertPlan`       | `({ recipeIds, servingsPerRecipe, weekStart, userId, guildId })` | `Promise<MealPlanRow>` — archives existing active plan(s) first, then inserts. |
+| `swapMeal`         | `(guildId, slotIndex, newRecipeId, newServings)`                 | `Promise<MealPlanRow \| null>`                                                 |
+| `updateServings`   | `(guildId, slotIndex, servings)`                                 | `Promise<MealPlanRow \| null>`                                                 |
+| `getArchivedPlans` | `(guildId, limit=10)`                                            | `Promise<MealPlanRow[]>` (newest first)                                        |
+| `getPlanById`      | `(id, guildId)`                                                  | `Promise<MealPlanRow \| null>`                                                 |
 
 ## Guild Isolation
 

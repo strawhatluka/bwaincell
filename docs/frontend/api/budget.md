@@ -1,6 +1,7 @@
 # /api/budget
 
 **Sources:**
+
 - `frontend/app/api/budget/route.ts`
 - `frontend/app/api/budget/transactions/route.ts`
 - `frontend/app/api/budget/transactions/[id]/route.ts`

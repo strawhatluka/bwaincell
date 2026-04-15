@@ -5,18 +5,18 @@
 
 ## Exported Functions
 
-| Function | Signature | Purpose |
-| -------- | --------- | ------- |
-| `getCoordinatesFromZip` | `(zipCode: string) => Promise<{ lat: number; lng: number }>` | Checks local cache, then hits `https://api.zippopotam.us/us/<zip>`. Throws on lookup failure. |
-| `getSunsetTime` | `(lat: number, lng: number, date?: string) => Promise<Date>` | Calls `https://api.sunrise-sunset.org/json?lat=...&lng=...&date=...&formatted=0`. Throws on `status !== 'OK'` or missing `results.sunset`. Default `date='today'`. |
-| `formatSunsetEmbed` | `(sunsetTime: Date, timezone: string) => EmbedBuilder` | Returns a Discord embed with title "🌅 Sunset Announcement", description "The sun will set today at **h:mm a**", field "🕐 Sunset Time" with short-offset time, color `0xff6b35`. |
+| Function                | Signature                                                    | Purpose                                                                                                                                                                           |
+| ----------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getCoordinatesFromZip` | `(zipCode: string) => Promise<{ lat: number; lng: number }>` | Checks local cache, then hits `https://api.zippopotam.us/us/<zip>`. Throws on lookup failure.                                                                                     |
+| `getSunsetTime`         | `(lat: number, lng: number, date?: string) => Promise<Date>` | Calls `https://api.sunrise-sunset.org/json?lat=...&lng=...&date=...&formatted=0`. Throws on `status !== 'OK'` or missing `results.sunset`. Default `date='today'`.                |
+| `formatSunsetEmbed`     | `(sunsetTime: Date, timezone: string) => EmbedBuilder`       | Returns a Discord embed with title "🌅 Sunset Announcement", description "The sun will set today at **h:mm a**", field "🕐 Sunset Time" with short-offset time, color `0xff6b35`. |
 
 ## External APIs
 
-| API | Purpose | Auth |
-| --- | ------- | ---- |
-| `api.zippopotam.us` | Free geocoding (US ZIP → lat/lng) | None |
-| `api.sunrise-sunset.org` | Daily sunrise/sunset | None |
+| API                      | Purpose                           | Auth |
+| ------------------------ | --------------------------------- | ---- |
+| `api.zippopotam.us`      | Free geocoding (US ZIP → lat/lng) | None |
+| `api.sunrise-sunset.org` | Daily sunrise/sunset              | None |
 
 Local in-memory cache (`ZIP_COORDINATES`) prevents repeated geocoding of the same ZIP within a process lifetime.
 

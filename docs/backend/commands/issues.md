@@ -7,11 +7,11 @@ Creates a GitHub issue in the configured repository from within Discord.
 
 ## Options
 
-| Option | Type | Required | Constraints |
-| ------ | ---- | -------- | ----------- |
-| `title` | string | Yes | `setMaxLength(100)` |
-| `description` | string | Yes | `setMaxLength(2000)` |
-| `type` | string | No | Choices: `Bug Report` (`bug`), `Feature Request` (`feature`), `Question` (`question`), `Documentation` (`documentation`). Defaults to `'general'` if omitted. |
+| Option        | Type   | Required | Constraints                                                                                                                                                   |
+| ------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`       | string | Yes      | `setMaxLength(100)`                                                                                                                                           |
+| `description` | string | Yes      | `setMaxLength(2000)`                                                                                                                                          |
+| `type`        | string | No       | Choices: `Bug Report` (`bug`), `Feature Request` (`feature`), `Question` (`question`), `Documentation` (`documentation`). Defaults to `'general'` if omitted. |
 
 ## Flow
 
@@ -45,11 +45,11 @@ Creates a GitHub issue in the configured repository from within Discord.
 
 `githubService` reads configuration from environment:
 
-| Var | Purpose |
-| --- | ------- |
-| `GITHUB_TOKEN` | Personal access token with `repo` scope |
-| `GITHUB_REPO_OWNER` | Owner (user or org) |
-| `GITHUB_REPO_NAME` | Repo name (e.g. `Bwaincell`) |
+| Var                 | Purpose                                 |
+| ------------------- | --------------------------------------- |
+| `GITHUB_TOKEN`      | Personal access token with `repo` scope |
+| `GITHUB_REPO_OWNER` | Owner (user or org)                     |
+| `GITHUB_REPO_NAME`  | Repo name (e.g. `Bwaincell`)            |
 
 All three must be present for `isConfigured()` to return true.
 

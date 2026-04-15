@@ -6,10 +6,12 @@
 ## Pipeline
 
 **Pass 1 — Deterministic source extraction:**
+
 - URL input: `scrapeRecipeFromUrl()` tries JSON-LD → microdata → Open Graph.
 - File input: `GeminiService.parseRecipeFromFile(buffer, mimeType, filename)` (no reliable deterministic alternative).
 
 **Pass 2 — Targeted AI research:**
+
 - For each required field still missing after Pass 1, `GeminiService.researchMissingFields(...)` is called with Google Search grounding to research ONLY that field. Source-provided fields are NEVER overwritten.
 
 Each field's provenance (`'source' | 'researched' | 'unknown'`) is returned so callers can display which values were verified.
@@ -37,11 +39,11 @@ interface IngestionResult {
 
 ## Exported Functions
 
-| Function | Signature | Purpose |
-| -------- | --------- | ------- |
-| `ingestRecipeFromUrl` | `(url: string) => Promise<IngestionResult>` | Full pipeline for website/YouTube URLs. |
-| `ingestRecipeFromFile` | `(buffer: Buffer, mimeType: string, filename: string) => Promise<IngestionResult>` | Full pipeline for uploaded files. |
-| `summarizeProvenance` | `(prov: Record<string, FieldProvenance>) => { sourceCount, researchedCount, unknownCount }` | UI helper for the provenance footer. |
+| Function               | Signature                                                                                   | Purpose                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `ingestRecipeFromUrl`  | `(url: string) => Promise<IngestionResult>`                                                 | Full pipeline for website/YouTube URLs. |
+| `ingestRecipeFromFile` | `(buffer: Buffer, mimeType: string, filename: string) => Promise<IngestionResult>`          | Full pipeline for uploaded files.       |
+| `summarizeProvenance`  | `(prov: Record<string, FieldProvenance>) => { sourceCount, researchedCount, unknownCount }` | UI helper for the provenance footer.    |
 
 ## Flow (`ingestRecipeFromUrl`)
 

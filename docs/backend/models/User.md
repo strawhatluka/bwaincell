@@ -8,18 +8,18 @@ Links Google OAuth identity to a Discord user/guild pairing for the web dashboar
 
 ## Columns
 
-| Column          | Type         | Constraints                |
-| --------------- | ------------ | -------------------------- |
-| `id`            | SERIAL       | PRIMARY KEY                |
-| `google_id`     | VARCHAR(255) | NOT NULL, UNIQUE           |
-| `email`         | VARCHAR(255) | NOT NULL, UNIQUE           |
-| `name`          | VARCHAR(255) | NOT NULL                   |
-| `picture`       | VARCHAR(255) | nullable                   |
-| `discord_id`    | VARCHAR(255) | NOT NULL                   |
-| `guild_id`      | VARCHAR(255) | NOT NULL                   |
-| `refresh_token` | TEXT         | nullable                   |
-| `created_at`    | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()`  |
-| `updated_at`    | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()`  |
+| Column          | Type         | Constraints               |
+| --------------- | ------------ | ------------------------- |
+| `id`            | SERIAL       | PRIMARY KEY               |
+| `google_id`     | VARCHAR(255) | NOT NULL, UNIQUE          |
+| `email`         | VARCHAR(255) | NOT NULL, UNIQUE          |
+| `name`          | VARCHAR(255) | NOT NULL                  |
+| `picture`       | VARCHAR(255) | nullable                  |
+| `discord_id`    | VARCHAR(255) | NOT NULL                  |
+| `guild_id`      | VARCHAR(255) | NOT NULL                  |
+| `refresh_token` | TEXT         | nullable                  |
+| `created_at`    | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()` |
+| `updated_at`    | TIMESTAMPTZ  | NOT NULL, DEFAULT `NOW()` |
 
 ## Indexes
 
@@ -47,12 +47,12 @@ Row / Insert / Update types (`UserRow`, `UserInsert`, `UserUpdate`) are exported
 
 ## Static Methods
 
-| Method | Signature | Returns | Notes |
-| ------ | --------- | ------- | ----- |
-| `findByGoogleId` | `(googleId: string)` | `Promise<UserRow \| null>` | Returns `null` when no row found (PGRST116). |
-| `findByEmail` | `(email: string)` | `Promise<UserRow \| null>` | Same null-on-missing behavior. |
-| `create` | `(userData: UserInsert)` | `Promise<UserRow>` | Throws on error. |
-| `update` | `(id: number, userData: UserUpdate)` | `Promise<UserRow \| null>` | Automatically sets `updated_at` to `new Date().toISOString()`. |
+| Method           | Signature                            | Returns                    | Notes                                                          |
+| ---------------- | ------------------------------------ | -------------------------- | -------------------------------------------------------------- |
+| `findByGoogleId` | `(googleId: string)`                 | `Promise<UserRow \| null>` | Returns `null` when no row found (PGRST116).                   |
+| `findByEmail`    | `(email: string)`                    | `Promise<UserRow \| null>` | Same null-on-missing behavior.                                 |
+| `create`         | `(userData: UserInsert)`             | `Promise<UserRow>`         | Throws on error.                                               |
+| `update`         | `(id: number, userData: UserUpdate)` | `Promise<UserRow \| null>` | Automatically sets `updated_at` to `new Date().toISOString()`. |
 
 ## Guild / User Isolation
 

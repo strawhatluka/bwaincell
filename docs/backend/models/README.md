@@ -4,20 +4,20 @@ One file per Supabase-backed model. All models live in `supabase/models/*.ts` an
 
 ## Index
 
-| Model | Table | Primary Key | Isolation | Related Commands |
-| ----- | ----- | ----------- | --------- | ---------------- |
-| [User](./User.md) | `users` | `id` (SERIAL), `google_id` UNIQUE, `email` UNIQUE | Global (OAuth identity) | Web dashboard login |
-| [Task](./Task.md) | `tasks` | `id` | `guild_id` | `/task` |
-| [List](./List.md) | `lists` | `id` | `guild_id` (case-insensitive `name`) | `/list` |
-| [Note](./Note.md) | `notes` | `id` | `guild_id` | `/note` |
-| [Reminder](./Reminder.md) | `reminders` | `id` | `guild_id` | `/remind` |
-| [Schedule](./Schedule.md) | `schedules` | `id` | `guild_id` | `/schedule` |
-| [Budget](./Budget.md) | `budgets` | `id` | `guild_id` | `/budget` |
-| [Recipe](./Recipe.md) | `recipes` | `id` | `guild_id` | `/recipe` |
-| [MealPlan](./MealPlan.md) | `meal_plans` | `id` (one active per guild) | `guild_id` | `/recipe plan` / `/recipe week` |
-| [RecipePreferences](./RecipePreferences.md) | `recipe_preferences` | `id`, UNIQUE `guild_id` | `guild_id` | `/recipe preferences` |
-| [SunsetConfig](./SunsetConfig.md) | `sunset_configs` | `id`, UNIQUE `guild_id` | `guild_id` | `/sunset` |
-| [EventConfig](./EventConfig.md) | `event_configs` | `id`, UNIQUE `guild_id` | `guild_id` | `/events` |
+| Model                                       | Table                | Primary Key                                       | Isolation                            | Related Commands                |
+| ------------------------------------------- | -------------------- | ------------------------------------------------- | ------------------------------------ | ------------------------------- |
+| [User](./User.md)                           | `users`              | `id` (SERIAL), `google_id` UNIQUE, `email` UNIQUE | Global (OAuth identity)              | Web dashboard login             |
+| [Task](./Task.md)                           | `tasks`              | `id`                                              | `guild_id`                           | `/task`                         |
+| [List](./List.md)                           | `lists`              | `id`                                              | `guild_id` (case-insensitive `name`) | `/list`                         |
+| [Note](./Note.md)                           | `notes`              | `id`                                              | `guild_id`                           | `/note`                         |
+| [Reminder](./Reminder.md)                   | `reminders`          | `id`                                              | `guild_id`                           | `/remind`                       |
+| [Schedule](./Schedule.md)                   | `schedules`          | `id`                                              | `guild_id`                           | `/schedule`                     |
+| [Budget](./Budget.md)                       | `budgets`            | `id`                                              | `guild_id`                           | `/budget`                       |
+| [Recipe](./Recipe.md)                       | `recipes`            | `id`                                              | `guild_id`                           | `/recipe`                       |
+| [MealPlan](./MealPlan.md)                   | `meal_plans`         | `id` (one active per guild)                       | `guild_id`                           | `/recipe plan` / `/recipe week` |
+| [RecipePreferences](./RecipePreferences.md) | `recipe_preferences` | `id`, UNIQUE `guild_id`                           | `guild_id`                           | `/recipe preferences`           |
+| [SunsetConfig](./SunsetConfig.md)           | `sunset_configs`     | `id`, UNIQUE `guild_id`                           | `guild_id`                           | `/sunset`                       |
+| [EventConfig](./EventConfig.md)             | `event_configs`      | `id`, UNIQUE `guild_id`                           | `guild_id`                           | `/events`                       |
 
 ## Cross-cutting conventions
 

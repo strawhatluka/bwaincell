@@ -5,6 +5,7 @@ Comprehensive guide to Docker development for Bwaincell - containerized developm
 > **Supabase update (2026-04-15):** The **database is no longer a `postgres` service in `docker-compose.yml`**. Postgres (plus PostgREST, GoTrue, Studio) is provisioned and orchestrated by the **Supabase CLI** as a separate container stack started via `npm run supabase:start` (local dev) or `supabase start` on the production Pi. `docker-compose.yml` now only concerns the **backend** (Discord bot + Express API) and, optionally, the **frontend** container for Pi deployments.
 >
 > Practical consequences:
+>
 > - Any section below that references a `postgres` or `db` service inside `docker-compose.yml` is **stale** and should be read as "the Supabase CLI now handles that container stack separately".
 > - `DATABASE_URL` is no longer used; the backend reads `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`.
 > - Start order in local dev: `npm run supabase:start` first, then `npm run dev` (or `docker compose up -d` for containerized runs).

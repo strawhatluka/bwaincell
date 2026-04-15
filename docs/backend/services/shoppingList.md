@@ -36,16 +36,17 @@ Category is taken from the ingredient's explicit `category` field if valid; othe
 
 ## Exported Functions
 
-| Function | Signature | Purpose |
-| -------- | --------- | ------- |
-| `parseQuantity` | `(qty: string \| number) => number \| null` | Parses numbers, mixed fractions (`"1 1/2"`), simple fractions (`"1/2"`), and decimal strings. |
-| `categorizeIngredient` | `(ingredient: { name, category? }) => string` | See Categories above. |
-| `aggregateIngredients` | `(meals: RecipeWithServings[]) => AggregatedIngredient[]` | Core aggregator. |
-| `calculateWeeklyNutrition` | `(meals: RecipeWithServings[]) => WeeklyNutrition` | Scales each recipe's `nutrition` to target servings and sums. |
+| Function                   | Signature                                                 | Purpose                                                                                       |
+| -------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `parseQuantity`            | `(qty: string \| number) => number \| null`               | Parses numbers, mixed fractions (`"1 1/2"`), simple fractions (`"1/2"`), and decimal strings. |
+| `categorizeIngredient`     | `(ingredient: { name, category? }) => string`             | See Categories above.                                                                         |
+| `aggregateIngredients`     | `(meals: RecipeWithServings[]) => AggregatedIngredient[]` | Core aggregator.                                                                              |
+| `calculateWeeklyNutrition` | `(meals: RecipeWithServings[]) => WeeklyNutrition`        | Scales each recipe's `nutrition` to target servings and sums.                                 |
 
 ## Aggregation Algorithm
 
 For each `(recipe, targetServings)` pair:
+
 1. `scale = targetServings / recipe.servings` (defaults to `1` if `servings` is 0 or null).
 2. For every ingredient: `key = ${canonicalName}|${canonicalUnit}` via `canonicalizeIngredient()`.
 3. Parse quantity via `parseQuantity`; multiply by `scale`.

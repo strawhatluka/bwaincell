@@ -17,9 +17,7 @@ Each command file lives in `backend/commands/` and exports `data` (a `SlashComma
 import { SlashCommandBuilder } from 'discord.js';
 import * as Task from '../../supabase/models/Task';
 
-export const data = new SlashCommandBuilder()
-  .setName('task')
-  .setDescription('Manage tasks');
+export const data = new SlashCommandBuilder().setName('task').setDescription('Manage tasks');
 
 export async function execute(interaction) {
   const guildId = interaction.guildId!;

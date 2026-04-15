@@ -17,7 +17,8 @@ GoogleProvider({
       prompt: 'consent',
       access_type: 'offline',
       response_type: 'code',
-      scope: 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+      scope:
+        'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
     },
   },
 });
@@ -58,14 +59,14 @@ Copies `googleAccessToken`, `googleRefreshToken`, and user fields from the JWT o
 
 ## Environment Variables
 
-| Var | Purpose |
-|---|---|
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | OAuth client id (public) |
-| `GOOGLE_CLIENT_SECRET` | OAuth client secret |
-| `NEXTAUTH_SECRET` | JWT signing secret |
-| `GUILD_ID` | Default guild id for new users |
-| `STRAWHATLUKA_EMAIL`, `STRAWHATLUKA_DISCORD_ID` | Hard mapping for primary user |
-| `DANDELION_EMAIL`, `DANDELION_DISCORD_ID` | Hard mapping for secondary user |
+| Var                                             | Purpose                         |
+| ----------------------------------------------- | ------------------------------- |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`                  | OAuth client id (public)        |
+| `GOOGLE_CLIENT_SECRET`                          | OAuth client secret             |
+| `NEXTAUTH_SECRET`                               | JWT signing secret              |
+| `GUILD_ID`                                      | Default guild id for new users  |
+| `STRAWHATLUKA_EMAIL`, `STRAWHATLUKA_DISCORD_ID` | Hard mapping for primary user   |
+| `DANDELION_EMAIL`, `DANDELION_DISCORD_ID`       | Hard mapping for secondary user |
 
 ## Link to Backend
 

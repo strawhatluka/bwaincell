@@ -6,21 +6,24 @@ Renders one task with toggle/edit/delete. Includes inline edit dialog and delete
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `task` | `Task` | yes | See shape below. |
-| `onUpdate` | `(id: number, data: Partial<Task>) => void` | yes | Called with `{ completed }` on checkbox toggle and `{ description, dueDate }` on edit save. |
-| `onDelete` | `(id: number) => void` | yes | Called after the user confirms in the delete dialog. |
+| Name       | Type                                        | Required | Description                                                                                 |
+| ---------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| `task`     | `Task`                                      | yes      | See shape below.                                                                            |
+| `onUpdate` | `(id: number, data: Partial<Task>) => void` | yes      | Called with `{ completed }` on checkbox toggle and `{ description, dueDate }` on edit save. |
+| `onDelete` | `(id: number) => void`                      | yes      | Called after the user confirms in the delete dialog.                                        |
 
 ### `Task`
 
 ```ts
 interface Task {
-  id: number; userId: string; guildId: string;
+  id: number;
+  userId: string;
+  guildId: string;
   description: string;
   dueDate: string | null;
   completed: boolean;
-  createdAt: string; updatedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 

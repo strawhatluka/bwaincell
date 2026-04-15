@@ -2,19 +2,19 @@
 
 **Source:** `frontend/hooks/`
 
-| Hook | Query Keys | API Endpoints | Purpose |
-|---|---|---|---|
-| [useAuth](./useAuth.md) | — | — | Legacy `localStorage`/`sessionStorage` credentials. |
-| [useTasks](./useTasks.md) | `['tasks']` | `/tasks`, `/tasks/:id` | Tasks CRUD with 15s polling. |
-| [useLists](./useLists.md) | `['lists']` | `/lists` + nested item routes | Lists and list-items. |
-| [useNotes](./useNotes.md) | `['notes', searchQuery]` | `/notes`, `/notes/:id` | Notes CRUD + search. |
-| [useReminders](./useReminders.md) | `['reminders']` | `/reminders`, `/reminders/:id` | List + delete only (create via `/remind`). |
-| [useSchedule](./useSchedule.md) | `['events']` | `/schedule`, `/schedule/:id` | Schedule events CRUD. |
-| [useBudget](./useBudget.md) | `['transactions']` | `/budget/transactions`, `/budget/transactions/:id` | Transactions CRUD. |
-| [useDarkMode](./useDarkMode.md) | — | — | Context + toggle for dark class on `<html>`. |
-| [useInstallPrompt](./useInstallPrompt.md) | — | — | Captures PWA `beforeinstallprompt`. |
-| [useOnlineStatus](./useOnlineStatus.md) | — | — | Boolean online status. |
-| [use-toast](./use-toast.md) | — | — | shadcn/ui toast store (limit 1). |
+| Hook                                      | Query Keys               | API Endpoints                                      | Purpose                                             |
+| ----------------------------------------- | ------------------------ | -------------------------------------------------- | --------------------------------------------------- |
+| [useAuth](./useAuth.md)                   | —                        | —                                                  | Legacy `localStorage`/`sessionStorage` credentials. |
+| [useTasks](./useTasks.md)                 | `['tasks']`              | `/tasks`, `/tasks/:id`                             | Tasks CRUD with 15s polling.                        |
+| [useLists](./useLists.md)                 | `['lists']`              | `/lists` + nested item routes                      | Lists and list-items.                               |
+| [useNotes](./useNotes.md)                 | `['notes', searchQuery]` | `/notes`, `/notes/:id`                             | Notes CRUD + search.                                |
+| [useReminders](./useReminders.md)         | `['reminders']`          | `/reminders`, `/reminders/:id`                     | List + delete only (create via `/remind`).          |
+| [useSchedule](./useSchedule.md)           | `['events']`             | `/schedule`, `/schedule/:id`                       | Schedule events CRUD.                               |
+| [useBudget](./useBudget.md)               | `['transactions']`       | `/budget/transactions`, `/budget/transactions/:id` | Transactions CRUD.                                  |
+| [useDarkMode](./useDarkMode.md)           | —                        | —                                                  | Context + toggle for dark class on `<html>`.        |
+| [useInstallPrompt](./useInstallPrompt.md) | —                        | —                                                  | Captures PWA `beforeinstallprompt`.                 |
+| [useOnlineStatus](./useOnlineStatus.md)   | —                        | —                                                  | Boolean online status.                              |
+| [use-toast](./use-toast.md)               | —                        | —                                                  | shadcn/ui toast store (limit 1).                    |
 
 ## Patterns
 

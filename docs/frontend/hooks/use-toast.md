@@ -25,7 +25,9 @@ type Action =
   | { type: 'DISMISS_TOAST'; toastId?: string }
   | { type: 'REMOVE_TOAST'; toastId?: string };
 
-interface State { toasts: ToasterToast[]; }
+interface State {
+  toasts: ToasterToast[];
+}
 ```
 
 ## ID Generation

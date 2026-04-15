@@ -8,30 +8,31 @@ Guild-scoped recipes ingested from URLs/videos/manual entries with structured in
 
 ## Columns
 
-| Column              | Type                     | Constraints                       |
-| ------------------- | ------------------------ | --------------------------------- |
-| `id`                | SERIAL                   | PRIMARY KEY                       |
-| `name`              | VARCHAR(255)             | NOT NULL                          |
-| `source_url`        | TEXT                     | nullable                          |
-| `source_type`       | `recipe_source_type`     | NOT NULL, DEFAULT `'manual'`      |
-| `ingredients`       | JSONB                    | NOT NULL — `RecipeIngredient[]`   |
-| `instructions`      | JSONB                    | NOT NULL — `string[]`             |
-| `servings`          | INTEGER                  | nullable                          |
-| `prep_time_minutes` | INTEGER                  | nullable                          |
-| `cook_time_minutes` | INTEGER                  | nullable                          |
-| `nutrition`         | JSONB                    | nullable — `RecipeNutrition`      |
-| `cuisine`           | VARCHAR(100)             | nullable                          |
-| `difficulty`        | `recipe_difficulty`      | nullable (`easy\|medium\|hard`)   |
-| `dietary_tags`      | JSONB                    | NOT NULL, DEFAULT `'[]'::jsonb`   |
-| `image_url`         | TEXT                     | nullable                          |
-| `notes`             | TEXT                     | nullable                          |
-| `is_favorite`       | BOOLEAN                  | NOT NULL, DEFAULT FALSE           |
-| `created_at`        | TIMESTAMPTZ              | NOT NULL, DEFAULT `NOW()`         |
-| `updated_at`        | TIMESTAMPTZ              | NOT NULL, DEFAULT `NOW()`         |
-| `user_id`           | VARCHAR(255)             | NOT NULL (audit trail)            |
-| `guild_id`          | VARCHAR(255)             | NOT NULL                          |
+| Column              | Type                 | Constraints                     |
+| ------------------- | -------------------- | ------------------------------- |
+| `id`                | SERIAL               | PRIMARY KEY                     |
+| `name`              | VARCHAR(255)         | NOT NULL                        |
+| `source_url`        | TEXT                 | nullable                        |
+| `source_type`       | `recipe_source_type` | NOT NULL, DEFAULT `'manual'`    |
+| `ingredients`       | JSONB                | NOT NULL — `RecipeIngredient[]` |
+| `instructions`      | JSONB                | NOT NULL — `string[]`           |
+| `servings`          | INTEGER              | nullable                        |
+| `prep_time_minutes` | INTEGER              | nullable                        |
+| `cook_time_minutes` | INTEGER              | nullable                        |
+| `nutrition`         | JSONB                | nullable — `RecipeNutrition`    |
+| `cuisine`           | VARCHAR(100)         | nullable                        |
+| `difficulty`        | `recipe_difficulty`  | nullable (`easy\|medium\|hard`) |
+| `dietary_tags`      | JSONB                | NOT NULL, DEFAULT `'[]'::jsonb` |
+| `image_url`         | TEXT                 | nullable                        |
+| `notes`             | TEXT                 | nullable                        |
+| `is_favorite`       | BOOLEAN              | NOT NULL, DEFAULT FALSE         |
+| `created_at`        | TIMESTAMPTZ          | NOT NULL, DEFAULT `NOW()`       |
+| `updated_at`        | TIMESTAMPTZ          | NOT NULL, DEFAULT `NOW()`       |
+| `user_id`           | VARCHAR(255)         | NOT NULL (audit trail)          |
+| `guild_id`          | VARCHAR(255)         | NOT NULL                        |
 
 Enums:
+
 - `recipe_source_type`: `website | video | file | manual`
 - `recipe_difficulty`: `easy | medium | hard`
 
@@ -64,18 +65,18 @@ Provenance is NOT persisted on the row. It is computed during ingestion (see [re
 
 ## Static Methods
 
-| Method | Signature | Returns |
-| ------ | --------- | ------- |
-| `createRecipe` | `(data: RecipeInsert)` | `Promise<RecipeRow>` |
-| `getRecipes` | `(guildId)` | `Promise<RecipeRow[]>` (favorites first, then name ASC) |
-| `getRecipe` | `(id, guildId)` | `Promise<RecipeRow \| null>` |
-| `updateRecipe` | `(id, guildId, data: RecipeUpdate)` | `Promise<RecipeRow \| null>` (bumps `updated_at`) |
-| `deleteRecipe` | `(id, guildId)` | `Promise<boolean>` |
-| `searchByName` | `(guildId, query)` | `Promise<RecipeRow[]>` — ILIKE |
-| `searchByFilters` | `(guildId, { cuisine?, difficulty?, tag?, keyword?, maxPrepTime? })` | `Promise<RecipeRow[]>` — `tag` uses JSONB `contains` |
-| `toggleFavorite` | `(id, guildId)` | `Promise<RecipeRow \| null>` |
-| `getFavorites` | `(guildId)` | `Promise<RecipeRow[]>` |
-| `getRandom` | `(guildId)` | `Promise<RecipeRow \| null>` (random selection in JS) |
+| Method            | Signature                                                            | Returns                                                 |
+| ----------------- | -------------------------------------------------------------------- | ------------------------------------------------------- |
+| `createRecipe`    | `(data: RecipeInsert)`                                               | `Promise<RecipeRow>`                                    |
+| `getRecipes`      | `(guildId)`                                                          | `Promise<RecipeRow[]>` (favorites first, then name ASC) |
+| `getRecipe`       | `(id, guildId)`                                                      | `Promise<RecipeRow \| null>`                            |
+| `updateRecipe`    | `(id, guildId, data: RecipeUpdate)`                                  | `Promise<RecipeRow \| null>` (bumps `updated_at`)       |
+| `deleteRecipe`    | `(id, guildId)`                                                      | `Promise<boolean>`                                      |
+| `searchByName`    | `(guildId, query)`                                                   | `Promise<RecipeRow[]>` — ILIKE                          |
+| `searchByFilters` | `(guildId, { cuisine?, difficulty?, tag?, keyword?, maxPrepTime? })` | `Promise<RecipeRow[]>` — `tag` uses JSONB `contains`    |
+| `toggleFavorite`  | `(id, guildId)`                                                      | `Promise<RecipeRow \| null>`                            |
+| `getFavorites`    | `(guildId)`                                                          | `Promise<RecipeRow[]>`                                  |
+| `getRandom`       | `(guildId)`                                                          | `Promise<RecipeRow \| null>` (random selection in JS)   |
 
 ## Relationships
 

@@ -6,14 +6,17 @@ Class-based React error boundary. Used to wrap each dashboard page.
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `children` | `ReactNode` | yes | Subtree to guard. |
+| Name       | Type        | Required | Description       |
+| ---------- | ----------- | -------- | ----------------- |
+| `children` | `ReactNode` | yes      | Subtree to guard. |
 
 ## State
 
 ```ts
-interface State { hasError: boolean; error: Error | null; }
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
 ```
 
 ## Lifecycle

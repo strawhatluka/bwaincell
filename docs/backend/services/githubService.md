@@ -6,11 +6,11 @@ Octokit wrapper that backs the `/issues` Discord command. Exports a singleton `g
 
 ## Environment Variables
 
-| Var | Purpose |
-|---|---|
-| `GITHUB_TOKEN` | Personal access token / fine-grained token with `issues:write` |
-| `GITHUB_REPO_OWNER` | Repository owner login |
-| `GITHUB_REPO_NAME` | Repository name |
+| Var                 | Purpose                                                        |
+| ------------------- | -------------------------------------------------------------- |
+| `GITHUB_TOKEN`      | Personal access token / fine-grained token with `issues:write` |
+| `GITHUB_REPO_OWNER` | Repository owner login                                         |
+| `GITHUB_REPO_NAME`  | Repository name                                                |
 
 Missing any of the three → service logs a warning and `isConfigured()` returns `false`; `/issues` is expected to surface a user-facing message.
 
@@ -34,13 +34,13 @@ interface GitHubIssueResponse {
 
 `createIssue` calls `octokit.rest.issues.create({ owner, repo, title, body, labels })`. Error handling maps HTTP status codes to user-facing messages:
 
-| Status | Message |
-|---|---|
-| 401 | "GitHub authentication failed. Invalid token." |
-| 403 | "GitHub permission denied. Token lacks required permissions." |
-| 404 | "GitHub repository not found. Check configuration." |
-| 429 | "GitHub API rate limit exceeded. Please try again later." |
-| other | "Failed to create GitHub issue. Please try again." |
+| Status | Message                                                       |
+| ------ | ------------------------------------------------------------- |
+| 401    | "GitHub authentication failed. Invalid token."                |
+| 403    | "GitHub permission denied. Token lacks required permissions." |
+| 404    | "GitHub repository not found. Check configuration."           |
+| 429    | "GitHub API rate limit exceeded. Please try again later."     |
+| other  | "Failed to create GitHub issue. Please try again."            |
 
 ## Exports
 

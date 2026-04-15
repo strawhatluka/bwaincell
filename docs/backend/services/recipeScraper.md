@@ -43,16 +43,17 @@ interface ScrapeResult {
 
 ## Exported Functions
 
-| Function | Signature | Purpose |
-| -------- | --------- | ------- |
-| `scrapeRecipeFromUrl` | `(url: string) => Promise<ScrapeResult>` | Entry point. Fetches + tries JSON-LD, microdata, OG in that order. |
-| `fetchRecipeHtml` | `(url: string) => Promise<string>` | Fetches HTML with timeout, 10 MB cap, HTML content-type check. |
-| `parseIsoDurationToMinutes` | `(input: unknown) => number \| null` | Parses ISO-8601 duration (`PT1H30M`). |
-| `splitIngredientString` | `(raw: string) => { quantity, unit, name }` | Best-effort free-text split for JSON-LD `recipeIngredient` strings. |
+| Function                    | Signature                                   | Purpose                                                             |
+| --------------------------- | ------------------------------------------- | ------------------------------------------------------------------- |
+| `scrapeRecipeFromUrl`       | `(url: string) => Promise<ScrapeResult>`    | Entry point. Fetches + tries JSON-LD, microdata, OG in that order.  |
+| `fetchRecipeHtml`           | `(url: string) => Promise<string>`          | Fetches HTML with timeout, 10 MB cap, HTML content-type check.      |
+| `parseIsoDurationToMinutes` | `(input: unknown) => number \| null`        | Parses ISO-8601 duration (`PT1H30M`).                               |
+| `splitIngredientString`     | `(raw: string) => { quantity, unit, name }` | Best-effort free-text split for JSON-LD `recipeIngredient` strings. |
 
 ## Error Cases
 
 `fetchRecipeHtml` throws on:
+
 - `AbortError` (timeout)
 - `HTTP <status> <statusText>` (non-2xx)
 - `Non-HTML content-type: <type>` (not `html` or `xml`)

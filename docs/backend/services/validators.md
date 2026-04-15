@@ -2,7 +2,7 @@
 
 **Source:** `backend/utils/validators.ts`
 
-Light-weight runtime validators and a pagination helper. **Note:** this module does *not* export Joi schemas — it uses native JS + discord.js types.
+Light-weight runtime validators and a pagination helper. **Note:** this module does _not_ export Joi schemas — it uses native JS + discord.js types.
 
 ## Exported Functions
 

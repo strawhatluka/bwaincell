@@ -162,41 +162,48 @@ bwaincell/
 5. `reminders`
 6. `budgets`
 7. `schedules`
-8. `event_configs` *(new)*
-9. `sunset_configs` *(new)*
-10. `recipes` *(new)*
-11. `meal_plans` *(new)*
-12. `recipe_preferences` *(new)*
+8. `event_configs` _(new)_
+9. `sunset_configs` _(new)_
+10. `recipes` _(new)_
+11. `meal_plans` _(new)_
+12. `recipe_preferences` _(new)_
 
 Schema authoritative source: `supabase/migrations/20260413000000_initial_schema.sql` + `20260414000000_recipes_schema.sql`. See [database-schema.md](database-schema.md).
 
 ## Feature Highlights
 
 ### Recipe Management
+
 - Ingest recipes from URL / video / file / manual entry via `recipeScraper.ts` + `recipeIngestion.ts`
 - Normalize ingredients with Gemini (`geminiService.ts` + `recipeNormalize.ts` + `ingredientCanonical.ts`)
 - Recipes are shared per guild (household model) and stored in `recipes` with ingredients as JSONB
 
 ### AI Shopping List
+
 - `shoppingList.ts` pulls the active `meal_plans` row for a guild, fans out to `recipes`, canonicalizes ingredients, then uses Gemini to merge/deduplicate into a consolidated shopping list
 
 ### Weekly Meal Plans
+
 - Exactly one active meal plan per guild (`archived = FALSE`, enforced by partial unique index)
 - 7-slot arrays: `recipe_ids INTEGER[]` parallel to `servings_per_recipe INTEGER[]`
 
 ### Sunset Scheduler (`/sunset`)
+
 - Per-guild row in `sunset_configs` (`advance_minutes`, `channel_id`, `zip_code`, `timezone`, `is_enabled`)
 - `sunsetService.ts` + `node-cron` schedule a daily calculation and announcement
 - Image generated via `skia-canvas` (`imageService.ts`)
 
 ### Local Events (`/events`)
+
 - Per-guild row in `event_configs` (`location`, `announcement_channel_id`, `schedule_day/hour/minute`, `timezone`)
 - `eventsService.ts` + `node-cron` post weekly events round-ups
 
 ### GitHub Issues (`/issues`)
+
 - `githubService.ts` + `@octokit/rest` — file issues directly from Discord
 
 ### `/random` / `/quote`
+
 - `/random` uses Gemini + `LOCATION_ZIP_CODE` for date suggestions
 - `/quote` stores and retrieves community quotes
 
@@ -253,11 +260,13 @@ const { data } = await supabase
 ### JWT Token Structure
 
 **Access Token (1h):**
+
 ```json
 { "userId": "123456789", "email": "user@gmail.com", "guildId": "987654321", "iat": ..., "exp": ... }
 ```
 
 **Refresh Token (7d):**
+
 ```json
 { "userId": "123456789", "type": "refresh", "iat": ..., "exp": ... }
 ```
@@ -335,4 +344,3 @@ See [guides/deployment.md](../guides/deployment.md).
 
 For API documentation, see [../api/](../api/).
 For getting started, see [../guides/getting-started.md](../guides/getting-started.md).
-

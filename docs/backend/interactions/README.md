@@ -43,14 +43,14 @@ Interaction Router
 
 ## Handlers in This Directory
 
-| File | Command | Doc |
-|---|---|---|
-| `taskHandlers.ts` | `/task` | [handlers/taskHandlers.md](handlers/taskHandlers.md) |
-| `listHandlers.ts` | `/list` | [handlers/listHandlers.md](handlers/listHandlers.md) |
-| `reminderHandlers.ts` | `/remind` | [handlers/reminderHandlers.md](handlers/reminderHandlers.md) |
-| `recipeHandlers.ts` | `/recipe` | [handlers/recipeHandlers.md](handlers/recipeHandlers.md) |
+| File                    | Command      | Doc                                                              |
+| ----------------------- | ------------ | ---------------------------------------------------------------- |
+| `taskHandlers.ts`       | `/task`      | [handlers/taskHandlers.md](handlers/taskHandlers.md)             |
+| `listHandlers.ts`       | `/list`      | [handlers/listHandlers.md](handlers/listHandlers.md)             |
+| `reminderHandlers.ts`   | `/remind`    | [handlers/reminderHandlers.md](handlers/reminderHandlers.md)     |
+| `recipeHandlers.ts`     | `/recipe`    | [handlers/recipeHandlers.md](handlers/recipeHandlers.md)         |
 | `selectMenuHandlers.ts` | (dispatcher) | [handlers/selectMenuHandlers.md](handlers/selectMenuHandlers.md) |
-| `randomHandlers.ts` | `/random` | [handlers/randomHandlers.md](handlers/randomHandlers.md) |
+| `randomHandlers.ts`     | `/random`    | [handlers/randomHandlers.md](handlers/randomHandlers.md)         |
 
 ## Conventions
 

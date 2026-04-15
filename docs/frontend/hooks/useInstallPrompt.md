@@ -10,7 +10,7 @@ Captures the PWA `beforeinstallprompt` event so the app can surface an "Install"
 function useInstallPrompt(): {
   isInstallable: boolean;
   promptInstall: () => Promise<void>;
-}
+};
 ```
 
 ## Internal Type

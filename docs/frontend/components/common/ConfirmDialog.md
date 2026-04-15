@@ -6,15 +6,15 @@ Generic destructive-confirmation dialog wrapping shadcn `AlertDialog`.
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `open` | `boolean` | yes | Controlled open state. |
-| `onOpenChange` | `(open: boolean) => void` | yes | Passed through to `AlertDialog.onOpenChange`. |
-| `title` | `string` | yes | Dialog title. |
-| `description` | `string` | yes | Dialog body copy. |
-| `onConfirm` | `() => void` | yes | Invoked when the confirm action is clicked. |
-| `confirmText` | `string` | no | Defaults to `"Delete"`. |
-| `cancelText` | `string` | no | Defaults to `"Cancel"`. |
+| Name           | Type                      | Required | Description                                   |
+| -------------- | ------------------------- | -------- | --------------------------------------------- |
+| `open`         | `boolean`                 | yes      | Controlled open state.                        |
+| `onOpenChange` | `(open: boolean) => void` | yes      | Passed through to `AlertDialog.onOpenChange`. |
+| `title`        | `string`                  | yes      | Dialog title.                                 |
+| `description`  | `string`                  | yes      | Dialog body copy.                             |
+| `onConfirm`    | `() => void`              | yes      | Invoked when the confirm action is clicked.   |
+| `confirmText`  | `string`                  | no       | Defaults to `"Delete"`.                       |
+| `cancelText`   | `string`                  | no       | Defaults to `"Cancel"`.                       |
 
 ## Styling
 

@@ -9,7 +9,10 @@ Generates the "quote card" PNG used by the `/quote` command. Uses `skia-canvas` 
 At module load:
 
 ```ts
-const probe = spawnSync(process.execPath, ['-e', "require('skia-canvas')"], { timeout: 10000, stdio: 'ignore' });
+const probe = spawnSync(process.execPath, ['-e', "require('skia-canvas')"], {
+  timeout: 10000,
+  stdio: 'ignore',
+});
 canvasAvailable = probe.status === 0;
 ```
 

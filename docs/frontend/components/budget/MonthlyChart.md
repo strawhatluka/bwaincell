@@ -6,21 +6,24 @@ Summary cards + recharts bar chart comparing income vs. expense per category.
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `transactions` | `Transaction[]` | yes | Source data. |
+| Name           | Type            | Required | Description  |
+| -------------- | --------------- | -------- | ------------ |
+| `transactions` | `Transaction[]` | yes      | Source data. |
 
 ### `Transaction`
 
 ```ts
 interface Transaction {
-  id: number; userId: string; guildId: string;
-  amount: number | { toNumber: () => number };   // Prisma Decimal tolerated
+  id: number;
+  userId: string;
+  guildId: string;
+  amount: number | { toNumber: () => number }; // Prisma Decimal tolerated
   type: 'income' | 'expense';
   category: string;
   description: string;
   date: string;
-  createdAt: string; updatedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 

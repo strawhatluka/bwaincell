@@ -6,10 +6,10 @@ Dialog-triggered form for creating one-time / daily / weekly reminders. **Not cu
 
 ## Props
 
-| Name | Type | Required | Description |
-|---|---|---|---|
-| `onCreate` | `(data: { message: string; frequency: 'once' \| 'daily' \| 'weekly'; time: string; dayOfWeek?: number }) => void` | yes | Invoked on valid submit. |
-| `isCreating` | `boolean` | yes | Disables inputs and flips button to `"Creating..."`. |
+| Name         | Type                                                                                                              | Required | Description                                          |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------- |
+| `onCreate`   | `(data: { message: string; frequency: 'once' \| 'daily' \| 'weekly'; time: string; dayOfWeek?: number }) => void` | yes      | Invoked on valid submit.                             |
+| `isCreating` | `boolean`                                                                                                         | yes      | Disables inputs and flips button to `"Creating..."`. |
 
 ## Constants
 

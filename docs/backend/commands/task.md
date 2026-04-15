@@ -8,13 +8,13 @@ Discord slash command for managing per-guild tasks.
 
 ## Subcommands
 
-| Subcommand | Options | Purpose |
-|---|---|---|
-| `add` | `description` (string, required), `date` (MM-DD-YYYY, optional), `time` (hh:mm AM/PM, optional) | Creates a task. Date and time must be provided together or not at all. |
-| `list` | `filter` (`all` / `pending` / `completed`, default `all`) | Lists up to 25 tasks with status, due date and interactive buttons / select menu. |
-| `done` | `task_id` (integer, required, autocomplete → pending tasks) | Marks a task complete. |
-| `delete` | `task_id` (integer, required, autocomplete) | Deletes a task. |
-| `edit` | `task_id` (integer, required), `new_text` (optional), `date` (optional), `time` (optional) | Edits description and/or date+time. At least one updatable field is required; date and time must be provided together. |
+| Subcommand | Options                                                                                         | Purpose                                                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `add`      | `description` (string, required), `date` (MM-DD-YYYY, optional), `time` (hh:mm AM/PM, optional) | Creates a task. Date and time must be provided together or not at all.                                                 |
+| `list`     | `filter` (`all` / `pending` / `completed`, default `all`)                                       | Lists up to 25 tasks with status, due date and interactive buttons / select menu.                                      |
+| `done`     | `task_id` (integer, required, autocomplete → pending tasks)                                     | Marks a task complete.                                                                                                 |
+| `delete`   | `task_id` (integer, required, autocomplete)                                                     | Deletes a task.                                                                                                        |
+| `edit`     | `task_id` (integer, required), `new_text` (optional), `date` (optional), `time` (optional)      | Edits description and/or date+time. At least one updatable field is required; date and time must be provided together. |
 
 ## Date/Time Parsing
 
