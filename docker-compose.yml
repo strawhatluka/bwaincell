@@ -3,7 +3,8 @@
 # =============================================================================
 # Architecture:
 #   - Backend (Discord Bot + Express API) → Raspberry Pi (sunny-pi)
-#   - Database: Supabase (hosted PostgreSQL)
+#   - Database: Self-hosted Supabase on the Pi (managed via `supabase start`,
+#     not defined here; see supabase/config.toml)
 #   - Frontend (Next.js PWA) → Vercel (separate deployment)
 # =============================================================================
 
@@ -95,14 +96,17 @@ networks:
 #
 # Architecture:
 #   - Backend (Discord Bot + Express API) → Raspberry Pi (sunny-pi)
-#   - Database: Supabase (hosted PostgreSQL, no local container)
+#   - Database: Self-hosted Supabase on the Pi (started separately via the
+#     Supabase CLI: `supabase start`; managed by supabase/config.toml)
 #   - Frontend (Next.js PWA) → Vercel (separate deployment, not in Docker)
 #   - Logs stored in ./logs volume
 #
 # Prerequisites:
 #   1. Create .env with production credentials (see .env.example)
 #   2. Ensure BOT_TOKEN, CLIENT_ID, GUILD_ID, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY are set
-#   3. Monorepo structure: backend/, frontend/, shared/, package.json at root
+#      (SUPABASE_URL points at the local Supabase stack on this host)
+#   3. Self-hosted Supabase stack must be running on the host (`supabase start`)
+#   4. Monorepo structure: backend/, frontend/, shared/, package.json at root
 #
 # Build Backend Image:
 #   docker compose build backend
@@ -131,9 +135,14 @@ networks:
 # View Resource Usage:
 #   docker stats bwaincell-backend
 #
-# Database (Supabase):
-#   Database is hosted on Supabase - manage via Supabase Dashboard
-#   https://supabase.com/dashboard
+# Database (Self-hosted Supabase on the Pi):
+#   Supabase runs as its own Docker stack alongside this compose file.
+#   Manage with the Supabase CLI from the project root:
+#     supabase start           # Start the local Supabase stack
+#     supabase status          # Show running services / ports
+#     supabase migration up    # Apply pending migrations
+#     supabase stop            # Stop the local Supabase stack
+#   Config: supabase/config.toml (api on :54321, db on :5433, studio on :54323)
 #
 # Frontend Deployment (Vercel):
 #   The frontend/ directory is deployed separately to Vercel

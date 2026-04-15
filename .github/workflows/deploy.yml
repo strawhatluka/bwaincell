@@ -43,18 +43,15 @@ jobs:
         run: npm install -g vercel@latest
 
       - name: Pull Vercel project configuration
-        working-directory: ./frontend
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }} --cwd=./frontend
 
       - name: Build for production
-        working-directory: ./frontend
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }} --cwd=./frontend
 
       - name: Deploy to production
         id: deploy
-        working-directory: ./frontend
         run: |
-          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} --cwd=./frontend)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "### Frontend Deployed to Vercel" >> $GITHUB_STEP_SUMMARY
           echo "**URL:** $URL" >> $GITHUB_STEP_SUMMARY
@@ -83,32 +80,32 @@ jobs:
           script: |
             set -e
 
-            echo "🔍 Capturing current deployment state for rollback..."
+            echo "Capturing current deployment state for rollback..."
             cd ~/bwaincell || exit 0
 
             # Backup backend image
             CURRENT_IMAGE=$(docker images bwaincell-backend:latest -q 2>/dev/null || echo "none")
             if [ "$CURRENT_IMAGE" != "none" ]; then
               docker tag bwaincell-backend:latest bwaincell-backend:backup 2>/dev/null || true
-              echo "✅ Backend image backed up: $CURRENT_IMAGE"
+              echo "Backend image backed up: $CURRENT_IMAGE"
             else
-              echo "ℹ️  No previous backend image to backup"
+              echo "No previous backend image to backup"
             fi
 
             # Backup Supabase database via pg_dump
-            if docker ps --format '{{.Names}}' | grep -q 'supabase_db'; then
+            SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep '^supabase_db_bwaincell$' | head -1)
+            if [ -n "$SUPABASE_CONTAINER" ]; then
               BACKUP_DIR=~/bwaincell-backups/$(date +%Y-%m-%d-%H%M%S)
               mkdir -p "$BACKUP_DIR"
-              echo "📦 Creating Supabase database backup..."
-              SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep 'supabase_db' | head -1)
+              echo "Creating Supabase database backup from $SUPABASE_CONTAINER..."
               docker exec "$SUPABASE_CONTAINER" pg_dump -U postgres postgres > "$BACKUP_DIR/supabase-pre-deploy.sql" || {
-                echo "⚠️  DB backup failed (non-critical — continuing)"
+                echo "DB backup failed (non-critical — continuing)"
               }
               # Keep only last 10 backups
               ls -1dt ~/bwaincell-backups/*/ 2>/dev/null | tail -n +11 | xargs -r rm -rf
-              echo "✅ Supabase backup saved to $BACKUP_DIR"
+              echo "Supabase backup saved to $BACKUP_DIR"
             else
-              echo "ℹ️  Supabase not running yet (first deployment)"
+              echo "Supabase not running yet (first deployment)"
             fi
 
       - name: Deploy to Raspberry Pi
@@ -129,31 +126,31 @@ jobs:
             echo "================================================"
 
             cd ~/bwaincell || {
-              echo "❌ Directory ~/bwaincell not found"
+              echo "Directory ~/bwaincell not found"
               exit 1
             }
 
             # Pull latest code
-            echo "📥 Pulling latest code from GitHub..."
+            echo "Pulling latest code from GitHub..."
             git fetch origin main
             git reset --hard origin/main
-            git clean -fd || echo "⚠️  Some files could not be cleaned (non-critical)"
+            git clean -fd || echo "Some files could not be cleaned (non-critical)"
 
             # Verify .env exists
             if [ ! -f .env ]; then
-              echo "❌ .env not found!"
+              echo ".env not found!"
               exit 1
             fi
 
-            echo "✅ Repository updated: $(git log -1 --oneline)"
+            echo "Repository updated: $(git log -1 --oneline)"
 
             # -----------------------------------------------------------------
-            # Supabase Deployment
+            # Supabase Deployment (self-hosted on the Pi)
             # -----------------------------------------------------------------
-            echo "🗄️  Starting / updating Supabase services..."
+            echo "Starting / updating self-hosted Supabase stack..."
 
             if ! command -v supabase &> /dev/null && ! command -v npx &> /dev/null; then
-              echo "❌ Neither supabase CLI nor npx available on Pi"
+              echo "Neither supabase CLI nor npx available on Pi"
               exit 1
             fi
 
@@ -162,22 +159,45 @@ jobs:
               SUPABASE_CMD="npx supabase"
             fi
 
-            # Ensure Supabase is running (idempotent: start is a no-op if already running)
-            $SUPABASE_CMD status 2>/dev/null || $SUPABASE_CMD start
+            # Detect whether the stack is already up by container presence
+            # (supabase status exit codes are unreliable across versions / link state)
+            if docker ps --format '{{.Names}}' | grep -q '^supabase_db_bwaincell$'; then
+              echo "Supabase stack already running"
+            else
+              echo "Starting Supabase stack..."
+              $SUPABASE_CMD start
+            fi
 
-            # Apply any new migrations
-            echo "📦 Applying Supabase migrations..."
-            $SUPABASE_CMD migration up || {
-              echo "⚠️  Migration up failed — may already be applied or schema is current"
+            # Wait for Postgres to actually accept connections before migrating
+            echo "Waiting for Supabase Postgres to be ready..."
+            for i in $(seq 1 30); do
+              if docker exec supabase_db_bwaincell pg_isready -U postgres -q 2>/dev/null; then
+                echo "Supabase Postgres ready (attempt $i)"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "Supabase Postgres did not become ready in 60s"
+                docker logs --tail=50 supabase_db_bwaincell || true
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # Apply any new migrations against the local stack
+            echo "Applying Supabase migrations..."
+            $SUPABASE_CMD migration up --local || {
+              echo "Migration up failed — may already be applied or schema is current"
             }
 
-            echo "✅ Supabase ready"
+            echo "Supabase ready"
 
             # -----------------------------------------------------------------
             # Backend Deployment
             # -----------------------------------------------------------------
-            echo "🛑 Stopping existing backend containers..."
-            docker compose down --remove-orphans || true
+            echo "Stopping existing backend containers..."
+            # NOTE: no --remove-orphans here; Supabase containers run in a
+            # separate compose project and must not be touched.
+            docker compose down || true
             docker rm -f bwaincell-backend 2>/dev/null || true
 
             # Clean up old images (preserve backup for rollback)
@@ -193,49 +213,49 @@ jobs:
             docker image prune -f || true
             docker builder prune -af
 
-            echo "💾 Disk space after cleanup:"
+            echo "Disk space after cleanup:"
             df -h / | grep -E "Filesystem|/dev/"
 
             # Build backend image
-            echo "🔨 Building backend image..."
+            echo "Building backend image..."
             docker build --no-cache \
               -t bwaincell-backend:latest \
               -f backend/Dockerfile \
               . 2>&1 | tee build-backend.log
 
             if [ ${PIPESTATUS[0]} -ne 0 ]; then
-              echo "❌ Backend image build failed"
+              echo "Backend image build failed"
               tail -100 build-backend.log
               exit 1
             fi
 
-            echo "✅ Backend image built successfully"
+            echo "Backend image built successfully"
 
             # Start backend
-            echo "🚀 Starting backend service..."
+            echo "Starting backend service..."
             docker compose up -d
 
             # Wait for startup
-            echo "⏳ Waiting for backend (60s for Pi cold boot)..."
+            echo "Waiting for backend (60s for Pi cold boot)..."
             sleep 60
 
             # Deploy Discord slash commands
-            echo "🚀 Deploying Discord slash commands..."
+            echo "Deploying Discord slash commands..."
             if docker compose exec -T backend node dist/src/deploy-commands.js 2>&1 | tee deploy-commands.log; then
-              echo "✅ Discord commands deployed"
+              echo "Discord commands deployed"
             else
-              echo "⚠️  Command deployment failed — may already be registered (non-critical)"
+              echo "Command deployment failed — may already be registered (non-critical)"
             fi
 
-            echo "🔍 Service status:"
+            echo "Service status:"
             docker compose ps
 
             # Health check
-            echo "🔍 Checking bot health..."
+            echo "Checking bot health..."
             for i in {1..15}; do
               HEALTH=$(curl -sf http://localhost:3000/health || echo "failed")
               if echo "$HEALTH" | grep -q "healthy\|ok\|running"; then
-                echo "✅ Bot health check passed"
+                echo "Bot health check passed"
                 echo "$HEALTH"
                 break
               fi
@@ -247,18 +267,18 @@ jobs:
             sleep 5
             docker compose logs --tail=50 backend | tee backend-logs.txt
             if grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord" backend-logs.txt; then
-              echo "✅ Bot connected to Discord"
+              echo "Bot connected to Discord"
             else
-              echo "⚠️  Discord connection not confirmed — check logs"
+              echo "Discord connection not confirmed — check logs"
             fi
 
-            echo "📊 Container resource usage:"
-            timeout 10 docker stats bwaincell-backend --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" || echo "⚠️  Stats timed out"
+            echo "Container resource usage:"
+            timeout 10 docker stats bwaincell-backend --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" || echo "Stats timed out"
 
             docker image prune -f || true
 
             echo "================================================"
-            echo "✅ Deployment Complete"
+            echo "Deployment Complete"
             echo "================================================"
             echo "Backend:  $(docker inspect -f '{{.State.Health.Status}}' bwaincell-backend 2>/dev/null || echo 'running')"
             echo "================================================"
@@ -277,26 +297,27 @@ jobs:
             set -e
             cd ~/bwaincell
 
-            echo "🔍 Verifying Supabase health..."
+            echo "Verifying self-hosted Supabase health..."
 
-            SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep 'supabase_db' | head -1)
+            SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep '^supabase_db_bwaincell$' | head -1)
             if [ -z "$SUPABASE_CONTAINER" ]; then
-              echo "❌ No Supabase database container running"
+              echo "No Supabase database container running (expected supabase_db_bwaincell)"
+              docker ps --format '{{.Names}}' | grep -i supabase || echo "(no supabase containers found)"
               exit 1
             fi
 
             if docker exec "$SUPABASE_CONTAINER" pg_isready -U postgres -q; then
-              echo "✅ Supabase PostgreSQL is ready"
+              echo "Supabase PostgreSQL is ready"
             else
-              echo "❌ Supabase PostgreSQL not responding"
+              echo "Supabase PostgreSQL not responding"
               exit 1
             fi
 
-            # Check Supabase REST API
+            # Check Supabase REST API (Kong gateway on 54321)
             if curl -sf http://127.0.0.1:54321/rest/v1/ > /dev/null 2>&1; then
-              echo "✅ Supabase REST API reachable"
+              echo "Supabase REST API reachable"
             else
-              echo "⚠️  Supabase REST API check inconclusive (may require ANON_KEY)"
+              echo "Supabase REST API check inconclusive (may require ANON_KEY)"
             fi
 
       - name: Verify deployment health
@@ -312,7 +333,7 @@ jobs:
           script: |
             set -e
 
-            echo "🔍 Post-Deployment Health Verification"
+            echo "Post-Deployment Health Verification"
             echo "========================================"
             cd ~/bwaincell
 
@@ -325,43 +346,43 @@ jobs:
               HEALTH_RESPONSE=$(curl -sf http://localhost:3000/health || echo "failed")
 
               if echo "$HEALTH_RESPONSE" | grep -q "healthy\|ok\|running"; then
-                echo "✅ Bot health check passed (attempt $i/$MAX_RETRIES)"
+                echo "Bot health check passed (attempt $i/$MAX_RETRIES)"
                 echo "Response: $HEALTH_RESPONSE"
                 break
               fi
 
               if [ $i -eq $MAX_RETRIES ]; then
-                echo "❌ Bot health check failed after $MAX_RETRIES attempts"
+                echo "Bot health check failed after $MAX_RETRIES attempts"
                 echo "Last response: $HEALTH_RESPONSE"
                 docker ps -a | grep bwaincell
                 docker logs --tail=100 bwaincell-backend 2>&1 || echo "Could not retrieve logs"
                 exit 1
               fi
 
-              echo "⏳ Health check attempt $i/$MAX_RETRIES failed, retrying in ${RETRY_DELAY}s..."
+              echo "Health check attempt $i/$MAX_RETRIES failed, retrying in ${RETRY_DELAY}s..."
               sleep $RETRY_DELAY
             done
 
             # Backend container status
             BACKEND_STATUS=$(docker inspect -f '{{.State.Status}}' bwaincell-backend 2>/dev/null || echo "unknown")
             if [ "$BACKEND_STATUS" != "running" ]; then
-              echo "❌ Backend container not running: $BACKEND_STATUS"
+              echo "Backend container not running: $BACKEND_STATUS"
               docker logs --tail=100 bwaincell-backend
               exit 1
             fi
-            echo "✅ Backend container is running"
+            echo "Backend container is running"
 
             # Discord connection
             sleep 5
             if docker logs --tail=100 bwaincell-backend 2>&1 | grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord"; then
-              echo "✅ Bot connected to Discord"
+              echo "Bot connected to Discord"
             else
-              echo "⚠️  Discord connection not confirmed (may still be connecting)"
+              echo "Discord connection not confirmed (may still be connecting)"
               docker logs --tail=50 bwaincell-backend
             fi
 
             echo "========================================"
-            echo "✅ All health checks passed"
+            echo "All health checks passed"
 
   # ---------------------------------------------------------------------------
   # Automatic Rollback (on deployment failure)
@@ -387,41 +408,41 @@ jobs:
             set -e
 
             echo "================================================"
-            echo "🔄 Starting Automatic Rollback"
+            echo "Starting Automatic Rollback"
             echo "================================================"
 
             cd ~/bwaincell || {
-              echo "❌ Directory ~/bwaincell not found"
+              echo "Directory ~/bwaincell not found"
               exit 1
             }
 
             # Check for backup image
             BACKUP_IMAGE=$(docker images bwaincell-backend:backup -q 2>/dev/null || echo "none")
             if [ "$BACKUP_IMAGE" = "none" ]; then
-              echo "⚠️  No backup image available — may be first deployment"
+              echo "No backup image available — may be first deployment"
               exit 1
             fi
 
-            echo "✅ Backup image found: $BACKUP_IMAGE"
+            echo "Backup image found: $BACKUP_IMAGE"
 
             # Restore backend
-            echo "🛑 Stopping current container..."
+            echo "Stopping current container..."
             docker compose down || true
 
-            echo "🔄 Restoring backup image..."
+            echo "Restoring backup image..."
             docker tag bwaincell-backend:backup bwaincell-backend:latest
 
-            echo "🚀 Starting service with backup image..."
+            echo "Starting service with backup image..."
             docker compose up -d
 
-            echo "⏳ Waiting for services (60s)..."
+            echo "Waiting for services (60s)..."
             sleep 60
 
             # Health check
             for i in {1..15}; do
               HEALTH=$(curl -sf http://localhost:3000/health || echo "failed")
               if echo "$HEALTH" | grep -q "healthy\|ok\|running"; then
-                echo "✅ Bot health check passed after rollback"
+                echo "Bot health check passed after rollback"
                 break
               fi
               echo "Attempt $i/15 — Bot not healthy yet, waiting..."
@@ -431,15 +452,15 @@ jobs:
             # Note: Supabase DB restore is manual (too risky to automate)
             LATEST_BACKUP=$(ls -1dt ~/bwaincell-backups/*/ 2>/dev/null | head -1)
             if [ -n "$LATEST_BACKUP" ] && [ -f "${LATEST_BACKUP}supabase-pre-deploy.sql" ]; then
-              SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep 'supabase_db' | head -1 || echo "")
-              echo "ℹ️  Supabase backup available at: ${LATEST_BACKUP}supabase-pre-deploy.sql"
+              SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep '^supabase_db_bwaincell$' | head -1 || echo "")
+              echo "Supabase backup available at: ${LATEST_BACKUP}supabase-pre-deploy.sql"
               if [ -n "$SUPABASE_CONTAINER" ]; then
-                echo "ℹ️  Manual restore: docker exec -i $SUPABASE_CONTAINER psql -U postgres postgres < ${LATEST_BACKUP}supabase-pre-deploy.sql"
+                echo "Manual restore: docker exec -i $SUPABASE_CONTAINER psql -U postgres postgres < ${LATEST_BACKUP}supabase-pre-deploy.sql"
               fi
             fi
 
             echo "================================================"
-            echo "✅ Rollback Complete"
+            echo "Rollback Complete"
             echo "================================================"
 
       - name: Verify rollback
@@ -458,14 +479,14 @@ jobs:
 
             BACKEND_STATUS=$(docker inspect -f '{{.State.Status}}' bwaincell-backend 2>/dev/null || echo "unknown")
             if [ "$BACKEND_STATUS" != "running" ]; then
-              echo "❌ Backend rollback failed: $BACKEND_STATUS"
+              echo "Backend rollback failed: $BACKEND_STATUS"
               exit 1
             fi
 
             HEALTH=$(curl -sf http://localhost:3000/health || echo "failed")
             if ! echo "$HEALTH" | grep -q "healthy\|ok\|running"; then
-              echo "❌ Backend health check failed after rollback"
+              echo "Backend health check failed after rollback"
               exit 1
             fi
 
-            echo "✅ Backend healthy after rollback"
+            echo "Backend healthy after rollback"

@@ -95,9 +95,9 @@ jobs:
 
       - name: Verify compiled output
         run: |
-          test -f shared/dist/index.js || (echo "❌ Compiled index.js not found" && exit 1)
-          test -f shared/dist/index.d.ts || (echo "❌ Type declarations not found" && exit 1)
-          echo "✅ Shared package compiled successfully"
+          test -f shared/dist/index.js || (echo "Compiled index.js not found" && exit 1)
+          test -f shared/dist/index.d.ts || (echo "Type declarations not found" && exit 1)
+          echo "Shared package compiled successfully"
 
   # ---------------------------------------------------------------------------
   # Test Backend (Discord Bot + Express API)
@@ -134,8 +134,8 @@ jobs:
 
       - name: Verify compiled output
         run: |
-          test -f backend/dist/src/bot.js || (echo "❌ Compiled bot.js not found" && exit 1)
-          echo "✅ Backend compiled successfully"
+          test -f backend/dist/src/bot.js || (echo "Compiled bot.js not found" && exit 1)
+          echo "Backend compiled successfully"
 
       - name: Lint backend
         run: npm run lint --workspace=backend
@@ -149,7 +149,7 @@ jobs:
 
       - name: Enforce backend coverage threshold (≥80%)
         run: |
-          echo "📊 Verifying backend test coverage..."
+          echo "Verifying backend test coverage..."
           if [ -f "backend/coverage/coverage-summary.json" ]; then
             lines=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.lines.pct);")
             branches=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.branches.pct);")
@@ -164,7 +164,7 @@ jobs:
             for metric_name in lines branches functions statements; do
               value=$(node -e "const c = require('./backend/coverage/coverage-summary.json'); console.log(c.total.${metric_name}.pct);")
               if (( $(echo "$value < $threshold" | bc -l) )); then
-                echo "❌ ${metric_name} coverage ${value}% is below threshold ${threshold}%"
+                echo "${metric_name} coverage ${value}% is below threshold ${threshold}%"
                 fail=1
               fi
             done
@@ -172,9 +172,9 @@ jobs:
             if [ $fail -eq 1 ]; then
               exit 1
             fi
-            echo "✅ All backend coverage metrics meet the ${threshold}% threshold"
+            echo "All backend coverage metrics meet the ${threshold}% threshold"
           else
-            echo "❌ coverage-summary.json not found"
+            echo "coverage-summary.json not found"
             exit 1
           fi
 
@@ -228,7 +228,7 @@ jobs:
 
       - name: Enforce frontend coverage threshold (≥80%)
         run: |
-          echo "📊 Verifying frontend test coverage..."
+          echo "Verifying frontend test coverage..."
           if [ -f "frontend/coverage/coverage-summary.json" ]; then
             threshold=80
             fail=0
@@ -236,7 +236,7 @@ jobs:
               value=$(node -e "const c = require('./frontend/coverage/coverage-summary.json'); console.log(c.total.${metric_name}.pct);")
               echo "${metric_name}: ${value}%"
               if (( $(echo "$value < $threshold" | bc -l) )); then
-                echo "❌ ${metric_name} coverage ${value}% is below threshold ${threshold}%"
+                echo "${metric_name} coverage ${value}% is below threshold ${threshold}%"
                 fail=1
               fi
             done
@@ -244,9 +244,9 @@ jobs:
             if [ $fail -eq 1 ]; then
               exit 1
             fi
-            echo "✅ All frontend coverage metrics meet the ${threshold}% threshold"
+            echo "All frontend coverage metrics meet the ${threshold}% threshold"
           else
-            echo "❌ coverage-summary.json not found"
+            echo "coverage-summary.json not found"
             exit 1
           fi
 
@@ -271,26 +271,26 @@ jobs:
 
       - name: Verify migration files
         run: |
-          echo "🔍 Checking Supabase migration files..."
+          echo "Checking Supabase migration files..."
           if [ ! -d "supabase/migrations" ]; then
-            echo "❌ supabase/migrations directory not found"
+            echo "supabase/migrations directory not found"
             exit 1
           fi
 
           count=$(ls -1 supabase/migrations/*.sql 2>/dev/null | wc -l)
           if [ "$count" -eq 0 ]; then
-            echo "❌ No migration files found"
+            echo "No migration files found"
             exit 1
           fi
-          echo "✅ Found $count migration file(s)"
+          echo "Found $count migration file(s)"
 
       - name: Verify config.toml
         run: |
           if [ ! -f "supabase/config.toml" ]; then
-            echo "❌ supabase/config.toml not found"
+            echo "supabase/config.toml not found"
             exit 1
           fi
-          echo "✅ supabase/config.toml present"
+          echo "supabase/config.toml present"
 
   # ---------------------------------------------------------------------------
   # Docker Build Test (Backend) - runs on all CI runs
@@ -322,7 +322,7 @@ jobs:
       - name: Verify image
         run: |
           docker images | grep bwaincell-backend
-          echo "✅ Docker image built successfully"
+          echo "Docker image built successfully"
 
   # ---------------------------------------------------------------------------
   # Summary Job - All tests must pass (BAS Quality Gate Report)
@@ -337,23 +337,23 @@ jobs:
       - name: Quality Gate Summary
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "   Bwaincell - Quality Gate Report"
+          echo "Bwaincell - Quality Gate Report"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           echo "Workspace Results:"
-          echo "  Shared:       ${{ needs.test-shared.result }}"
-          echo "  Backend:      ${{ needs.test-backend.result }}"
-          echo "  Frontend:     ${{ needs.test-frontend.result }}"
-          echo "  Supabase:     ${{ needs.validate-supabase.result }}"
-          echo "  Docker Build: ${{ needs.docker-build.result }}"
+          echo "Shared:       ${{ needs.test-shared.result }}"
+          echo "Backend:      ${{ needs.test-backend.result }}"
+          echo "Frontend:     ${{ needs.test-frontend.result }}"
+          echo "Supabase:     ${{ needs.validate-supabase.result }}"
+          echo "Docker Build: ${{ needs.docker-build.result }}"
           echo ""
-          echo "  Status (Monorepo):"
-          echo "  Phase 1: Linting           ✅"
-          echo "  Phase 2: Structure         ✅"
-          echo "  Phase 3: Build             ${{ (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') && '✅' || '❌' }}"
-          echo "  Phase 4: Testing           ${{ (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') && '✅' || '❌' }}"
-          echo "  Phase 5: Coverage (≥80%)   ✅ (enforced on all four metrics)"
-          echo "  Phase 6: Best Practices    ✅"
+          echo "Status (Monorepo):"
+          echo "Phase 1: Linting           "
+          echo "Phase 2: Structure         "
+          echo "Phase 3: Build             ${{ (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') && '' || '' }}"
+          echo "Phase 4: Testing           ${{ (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') && '' || '' }}"
+          echo "Phase 5: Coverage (≥80%)    (enforced on all four metrics)"
+          echo "Phase 6: Best Practices    "
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -363,8 +363,8 @@ jobs:
              [ "${{ needs.test-frontend.result }}" == "failure" ] || \
              [ "${{ needs.validate-supabase.result }}" == "failure" ] || \
              [ "${{ needs.docker-build.result }}" == "failure" ]; then
-            echo "❌ One or more test jobs failed"
+            echo "One or more test jobs failed"
             exit 1
           fi
 
-          echo "✅ All test jobs passed or skipped (no changes)"
+          echo "All test jobs passed or skipped (no changes)"
