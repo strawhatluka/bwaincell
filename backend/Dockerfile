@@ -56,10 +56,12 @@ COPY tsconfig.json ./
 # Copy shared source code (backend depends on this)
 COPY shared/ ./shared/
 
+# Copy supabase package (TS project reference for backend models)
+COPY supabase/ ./supabase/
+
 # Copy backend source files for build
 COPY backend/src/ ./backend/src/
 COPY backend/commands/ ./backend/commands/
-COPY backend/database/ ./backend/database/
 COPY backend/utils/ ./backend/utils/
 COPY backend/config/ ./backend/config/
 COPY backend/types/ ./backend/types/
@@ -74,10 +76,13 @@ ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
 # Clean any pre-existing compiled code to force fresh compilation
-RUN rm -rf backend/dist/ shared/dist/ *.tsbuildinfo
+RUN rm -rf backend/dist/ shared/dist/ supabase/dist/ *.tsbuildinfo
 
 # Build shared package first (backend depends on this for types)
 RUN npm run build --workspace=shared
+
+# Build supabase package (TS project reference for backend)
+RUN npx tsc --build supabase
 
 # Compile backend TypeScript
 RUN npm run build --workspace=backend
@@ -113,6 +118,9 @@ COPY --chown=botuser:botuser backend/package.json ./backend/
 # Copy compiled shared types (if backend imports them at runtime)
 COPY --from=builder --chown=botuser:botuser /app/shared/dist ./shared/dist
 COPY --chown=botuser:botuser shared/package.json ./shared/
+
+# Copy compiled supabase models (backend imports these at runtime)
+COPY --from=builder --chown=botuser:botuser /app/supabase/dist ./supabase/dist
 
 # Copy CHANGELOG.md (release notes) for announcements
 COPY --chown=botuser:botuser CHANGELOG.md ./

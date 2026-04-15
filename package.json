@@ -8,15 +8,6 @@
     "frontend",
     "shared"
   ],
-  "_moduleAliases": {
-    "@shared": "dist/shared",
-    "@commands": "dist/commands",
-    "@utils": "dist/utils",
-    "@database": "dist/database",
-    "@config": "dist/config",
-    "@types": "dist/types",
-    "@src": "dist/src"
-  },
   "scripts": {
     "dev": "npm run build:shared && concurrently -n backend,frontend -c blue,magenta \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "dev:backend": "npm run dev --workspace=backend",
@@ -33,6 +24,8 @@
     "test:shared": "npm run test --workspace=shared --if-present",
     "test:watch": "npm run test:watch --workspaces --if-present",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "lint": "npm run lint --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",
     "lint:backend": "npm run lint --workspace=backend",
@@ -49,6 +42,10 @@
     "docker:logs": "docker compose logs -f",
     "docker:backend": "docker compose logs -f backend",
     "docker:frontend": "docker compose logs -f frontend",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:reset": "supabase db reset",
     "postinstall": "test \"$VERCEL\" = \"1\" && echo 'Skipping postinstall on Vercel' || npm run build:shared --if-present",
     "prepare": "test \"$VERCEL\" = \"1\" && echo 'Skipping prepare on Vercel' || husky || true"
   },
@@ -58,7 +55,6 @@
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
     "@google/genai": "^1.40.0",
-    "skia-canvas": "^3.0.0",
     "@octokit/rest": "^20.1.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",
@@ -77,6 +73,7 @@
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.7",
+    "skia-canvas": "^3.0.0",
     "trinity-method-sdk": "^2.0.8",
     "winston": "^3.17.0"
   },
@@ -107,9 +104,9 @@
     "husky": "^9.1.7",
     "jest": "^30.1.3",
     "lint-staged": "^16.2.3",
-    "markdownlint-cli": "^0.47.0",
+    "markdownlint-cli": "^0.48.0",
     "prettier": "^3.0.0",
-    "sqlite3": "^5.1.7",
+    "supabase": "^2.91.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.4",
     "ts-node": "^10.9.2",

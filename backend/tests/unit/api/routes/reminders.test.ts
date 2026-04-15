@@ -15,7 +15,7 @@ jest.mock('../../../../shared/utils/logger', () => ({
   },
 }));
 
-jest.mock('../../../../database/index', () => ({
+jest.mock('../../../../../supabase/index', () => ({
   Reminder: {
     getUserReminders: jest.fn(),
     createReminder: jest.fn(),
@@ -23,7 +23,7 @@ jest.mock('../../../../database/index', () => ({
   },
 }));
 
-import { Reminder } from '../../../../database/index';
+import { Reminder } from '../../../../../supabase/index';
 import express from 'express';
 import remindersRouter from '../../../../src/api/routes/reminders';
 import request from 'supertest';

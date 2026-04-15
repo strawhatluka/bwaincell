@@ -10,6 +10,7 @@ import { getModels } from '../helpers/databaseHelper';
 import { handleInteractionError } from '../responses/errorResponses';
 import { logger } from '@shared/utils/logger';
 import { getScheduler } from '../../scheduler';
+import { handleRecipeModal } from '../handlers/recipeHandlers';
 
 // Parse date in MM-DD-YYYY hh:mm AM/PM format
 function parseDateString(dateStr: string): Date | null {
@@ -106,6 +107,16 @@ export async function handleModalSubmit(
   }
 
   // Note: Interaction already deferred by bot.js - no need to defer here
+
+  // Route all recipe modals to dedicated handler
+  if (customId.startsWith('recipe_')) {
+    try {
+      await handleRecipeModal(interaction);
+    } catch (error) {
+      return handleInteractionError(interaction, error, 'recipe modal');
+    }
+    return;
+  }
 
   const { Task, List, Reminder } = await getModels();
 

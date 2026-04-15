@@ -9,7 +9,8 @@ process.env.NODE_ENV = 'test';
 process.env.BOT_TOKEN = 'test-bot-token';
 process.env.CLIENT_ID = 'test-client-id';
 process.env.GUILD_ID = 'test-guild-id';
-process.env.DATABASE_PATH = ':memory:'; // Use in-memory database for tests
+process.env.SUPABASE_URL = 'http://test-supabase.local'; // Test Supabase URL
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key'; // Test Supabase key
 
 // Extend Jest timeout for slow operations
 jest.setTimeout(10000);

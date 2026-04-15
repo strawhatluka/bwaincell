@@ -1,6 +1,26 @@
 # Testing Guide
 
-**Last Updated** 2026-01-12
+**Last Updated:** 2026-04-15
+
+> **Supabase update (2026-04-15):** The backend test DB is no longer SQLite in-memory or a Docker `postgres` service. Use the Supabase local stack.
+>
+> ```bash
+> npm run supabase:start        # once per session
+> npm run supabase:reset        # clean DB + re-apply all migrations
+> npm test                      # or: npm run test:backend
+> ```
+>
+> In `tests/` and per-feature test files, initialize the Supabase client with the local URL and service-role key (from `npm run supabase:status`). Reset between test suites with `supabase db reset` for isolation, or wrap each test in an explicit cleanup step (`DELETE FROM tasks WHERE guild_id = <test-guild>`).
+>
+> Jest setup still reads from `.env` (via `dotenv-cli` or `jest.setup.ts`). Provide:
+>
+> ```env
+> SUPABASE_URL=http://127.0.0.1:54321
+> SUPABASE_SERVICE_ROLE_KEY=<from supabase status>
+> SUPABASE_ANON_KEY=<from supabase status>
+> ```
+>
+> CI uses the same pattern via `supabase/setup-cli` — see [ci-cd-pipeline.md](ci-cd-pipeline.md).
 **Target:** Contributors implementing features with comprehensive test coverage
 
 ---
@@ -68,40 +88,40 @@ Bwaincell uses **Jest** as the primary testing framework across all workspaces (
 
 ```javascript
 module.exports = {
-  preset: "ts-jest",
-  testEnvironment: "node",
+  preset: 'ts-jest',
+  testEnvironment: 'node',
   roots: [
-    "<rootDir>/src",
-    "<rootDir>/tests",
-    "<rootDir>/commands",
-    "<rootDir>/database",
-    "<rootDir>/utils",
+    '<rootDir>/src',
+    '<rootDir>/tests',
+    '<rootDir>/commands',
+    '<rootDir>/database',
+    '<rootDir>/utils',
   ],
-  testMatch: ["**/*.test.ts", "**/*.test.js"],
+  testMatch: ['**/*.test.ts', '**/*.test.js'],
   collectCoverageFrom: [
-    "src/**/*.ts",
-    "commands/**/*.ts",
-    "database/**/*.ts",
-    "utils/**/*.ts",
-    "!**/*.d.ts",
-    "!**/node_modules/**",
-    "!**/dist/**",
-    "!**/coverage/**",
-    "!**/*.test.ts",
-    "!tests/**",
+    'src/**/*.ts',
+    'commands/**/*.ts',
+    'database/**/*.ts',
+    'utils/**/*.ts',
+    '!**/*.d.ts',
+    '!**/node_modules/**',
+    '!**/dist/**',
+    '!**/coverage/**',
+    '!**/*.test.ts',
+    '!tests/**',
   ],
   moduleNameMapper: {
-    "^@shared/(.*)$": "<rootDir>/shared/$1",
-    "^@database/(.*)$": "<rootDir>/database/$1",
-    "^@utils/(.*)$": "<rootDir>/utils/$1",
-    "^@commands/(.*)$": "<rootDir>/commands/$1",
-    "^@config/(.*)$": "<rootDir>/config/$1",
-    "^@src/(.*)$": "<rootDir>/src/$1",
-    "^@types/(.*)$": "<rootDir>/types/$1",
+    '^@shared/(.*)$': '<rootDir>/shared/$1',
+    '^@database/(.*)$': '<rootDir>/database/$1',
+    '^@utils/(.*)$': '<rootDir>/utils/$1',
+    '^@commands/(.*)$': '<rootDir>/commands/$1',
+    '^@config/(.*)$': '<rootDir>/config/$1',
+    '^@src/(.*)$': '<rootDir>/src/$1',
+    '^@types/(.*)$': '<rootDir>/types/$1',
   },
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
-  coverageDirectory: "coverage",
-  coverageReporters: ["text", "lcov", "html"],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
     global: {
       branches: 35, // Target: 80%
@@ -112,13 +132,13 @@ module.exports = {
   },
   testTimeout: 10000,
   transform: {
-    "^.+\\.ts$": [
-      "ts-jest",
+    '^.+\\.ts$': [
+      'ts-jest',
       {
         tsconfig: {
           esModuleInterop: true,
           allowJs: true,
-          moduleResolution: "node",
+          moduleResolution: 'node',
           isolatedModules: true,
         },
       },
@@ -132,14 +152,14 @@ module.exports = {
 **File:** `backend/tests/setup.ts`
 
 ```typescript
-import { sequelize } from "../database";
+import { sequelize } from '../database';
 
 // Mock environment variables for testing
-process.env.NODE_ENV = "test";
-process.env.BOT_TOKEN = "test-bot-token";
-process.env.CLIENT_ID = "test-client-id";
-process.env.DATABASE_URL = "sqlite::memory:"; // In-memory SQLite for tests
-process.env.JWT_SECRET = "test-jwt-secret";
+process.env.NODE_ENV = 'test';
+process.env.BOT_TOKEN = 'test-bot-token';
+process.env.CLIENT_ID = 'test-client-id';
+process.env.DATABASE_URL = 'sqlite::memory:'; // In-memory SQLite for tests
+process.env.JWT_SECRET = 'test-jwt-secret';
 
 // Close database connection after all tests
 afterAll(async () => {
@@ -166,16 +186,16 @@ beforeEach(async () => {
 ### Unit Test Structure
 
 ```typescript
-import { describe, it, expect } from "@jest/globals";
-import { calculateBudget } from "@utils/budgetCalculator";
+import { describe, it, expect } from '@jest/globals';
+import { calculateBudget } from '@utils/budgetCalculator';
 
-describe("budgetCalculator", () => {
-  describe("calculateBudget", () => {
-    it("should calculate total expenses correctly", () => {
+describe('budgetCalculator', () => {
+  describe('calculateBudget', () => {
+    it('should calculate total expenses correctly', () => {
       // Arrange
       const expenses = [
-        { amount: 100, category: "food" },
-        { amount: 50, category: "transport" },
+        { amount: 100, category: 'food' },
+        { amount: 50, category: 'transport' },
       ];
 
       // Act
@@ -183,11 +203,11 @@ describe("budgetCalculator", () => {
 
       // Assert
       expect(result.total).toBe(150);
-      expect(result.categories).toHaveProperty("food", 100);
-      expect(result.categories).toHaveProperty("transport", 50);
+      expect(result.categories).toHaveProperty('food', 100);
+      expect(result.categories).toHaveProperty('transport', 50);
     });
 
-    it("should handle empty expense array", () => {
+    it('should handle empty expense array', () => {
       // Arrange
       const expenses = [];
 
@@ -199,14 +219,12 @@ describe("budgetCalculator", () => {
       expect(result.categories).toEqual({});
     });
 
-    it("should throw error for negative amounts", () => {
+    it('should throw error for negative amounts', () => {
       // Arrange
-      const expenses = [{ amount: -50, category: "food" }];
+      const expenses = [{ amount: -50, category: 'food' }];
 
       // Act & Assert
-      expect(() => calculateBudget(expenses)).toThrow(
-        "Amount cannot be negative",
-      );
+      expect(() => calculateBudget(expenses)).toThrow('Amount cannot be negative');
     });
   });
 });
@@ -217,41 +235,37 @@ describe("budgetCalculator", () => {
 **File:** `backend/utils/__tests__/dateUtils.test.ts`
 
 ```typescript
-import { describe, it, expect } from "@jest/globals";
-import { formatDateForDiscord, parseUserDate } from "@utils/dateUtils";
+import { describe, it, expect } from '@jest/globals';
+import { formatDateForDiscord, parseUserDate } from '@utils/dateUtils';
 
-describe("dateUtils", () => {
-  describe("formatDateForDiscord", () => {
-    it("should format date as Discord timestamp", () => {
-      const date = new Date("2026-01-11T12:00:00Z");
+describe('dateUtils', () => {
+  describe('formatDateForDiscord', () => {
+    it('should format date as Discord timestamp', () => {
+      const date = new Date('2026-01-11T12:00:00Z');
       const result = formatDateForDiscord(date);
-      expect(result).toBe("<t:1736596800:F>");
+      expect(result).toBe('<t:1736596800:F>');
     });
 
-    it("should handle invalid dates", () => {
-      expect(() => formatDateForDiscord(new Date("invalid"))).toThrow(
-        "Invalid date",
-      );
+    it('should handle invalid dates', () => {
+      expect(() => formatDateForDiscord(new Date('invalid'))).toThrow('Invalid date');
     });
   });
 
-  describe("parseUserDate", () => {
-    it("should parse natural language dates", () => {
-      const result = parseUserDate("tomorrow at 3pm");
+  describe('parseUserDate', () => {
+    it('should parse natural language dates', () => {
+      const result = parseUserDate('tomorrow at 3pm');
       expect(result).toBeInstanceOf(Date);
       expect(result.getHours()).toBe(15);
     });
 
-    it("should handle ISO date strings", () => {
-      const isoDate = "2026-01-15T10:00:00Z";
+    it('should handle ISO date strings', () => {
+      const isoDate = '2026-01-15T10:00:00Z';
       const result = parseUserDate(isoDate);
       expect(result.toISOString()).toBe(isoDate);
     });
 
-    it("should throw error for unparseable dates", () => {
-      expect(() => parseUserDate("invalid date string")).toThrow(
-        "Unable to parse date",
-      );
+    it('should throw error for unparseable dates', () => {
+      expect(() => parseUserDate('invalid date string')).toThrow('Unable to parse date');
     });
   });
 });
@@ -271,12 +285,12 @@ describe("dateUtils", () => {
 ### Integration Test Structure
 
 ```typescript
-import { describe, it, expect, beforeEach } from "@jest/globals";
-import request from "supertest";
-import { createApiServer } from "@src/api/server";
-import { Task } from "@database";
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import request from 'supertest';
+import { createApiServer } from '@src/api/server';
+import { Task } from '@database';
 
-describe("Tasks API", () => {
+describe('Tasks API', () => {
   let app;
   let authToken;
 
@@ -285,72 +299,72 @@ describe("Tasks API", () => {
     app = createApiServer();
 
     // Generate test JWT token
-    authToken = generateTestToken({ discordId: "test-user-123" });
+    authToken = generateTestToken({ discordId: 'test-user-123' });
 
     // Seed test data
     await Task.create({
-      id: "task-1",
-      userId: "test-user-123",
-      title: "Test Task",
+      id: 'task-1',
+      userId: 'test-user-123',
+      title: 'Test Task',
       completed: false,
     });
   });
 
-  describe("GET /api/tasks", () => {
-    it("should return all tasks for authenticated user", async () => {
+  describe('GET /api/tasks', () => {
+    it('should return all tasks for authenticated user', async () => {
       const response = await request(app)
-        .get("/api/tasks")
-        .set("Authorization", `Bearer ${authToken}`)
+        .get('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveLength(1);
-      expect(response.body.data[0].title).toBe("Test Task");
+      expect(response.body.data[0].title).toBe('Test Task');
     });
 
-    it("should return 401 without auth token", async () => {
-      await request(app).get("/api/tasks").expect(401);
+    it('should return 401 without auth token', async () => {
+      await request(app).get('/api/tasks').expect(401);
     });
   });
 
-  describe("POST /api/tasks", () => {
-    it("should create new task", async () => {
+  describe('POST /api/tasks', () => {
+    it('should create new task', async () => {
       const taskData = {
-        title: "New Task",
-        description: "Task description",
+        title: 'New Task',
+        description: 'Task description',
       };
 
       const response = await request(app)
-        .post("/api/tasks")
-        .set("Authorization", `Bearer ${authToken}`)
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
         .send(taskData)
         .expect(201);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data.title).toBe("New Task");
+      expect(response.body.data.title).toBe('New Task');
 
       // Verify in database
-      const dbTask = await Task.findOne({ where: { title: "New Task" } });
+      const dbTask = await Task.findOne({ where: { title: 'New Task' } });
       expect(dbTask).not.toBeNull();
     });
 
-    it("should validate required fields", async () => {
+    it('should validate required fields', async () => {
       const response = await request(app)
-        .post("/api/tasks")
-        .set("Authorization", `Bearer ${authToken}`)
+        .post('/api/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({}) // Missing title
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain("title");
+      expect(response.body.error).toContain('title');
     });
   });
 
-  describe("PATCH /api/tasks/:id", () => {
-    it("should update task", async () => {
+  describe('PATCH /api/tasks/:id', () => {
+    it('should update task', async () => {
       const response = await request(app)
-        .patch("/api/tasks/task-1")
-        .set("Authorization", `Bearer ${authToken}`)
+        .patch('/api/tasks/task-1')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ completed: true })
         .expect(200);
 
@@ -358,26 +372,26 @@ describe("Tasks API", () => {
       expect(response.body.data.completed).toBe(true);
     });
 
-    it("should not allow updating other users tasks", async () => {
-      const otherUserToken = generateTestToken({ discordId: "other-user" });
+    it('should not allow updating other users tasks', async () => {
+      const otherUserToken = generateTestToken({ discordId: 'other-user' });
 
       await request(app)
-        .patch("/api/tasks/task-1")
-        .set("Authorization", `Bearer ${otherUserToken}`)
+        .patch('/api/tasks/task-1')
+        .set('Authorization', `Bearer ${otherUserToken}`)
         .send({ completed: true })
         .expect(403);
     });
   });
 
-  describe("DELETE /api/tasks/:id", () => {
-    it("should delete task", async () => {
+  describe('DELETE /api/tasks/:id', () => {
+    it('should delete task', async () => {
       await request(app)
-        .delete("/api/tasks/task-1")
-        .set("Authorization", `Bearer ${authToken}`)
+        .delete('/api/tasks/task-1')
+        .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       // Verify deletion
-      const dbTask = await Task.findByPk("task-1");
+      const dbTask = await Task.findByPk('task-1');
       expect(dbTask).toBeNull();
     });
   });
@@ -397,20 +411,20 @@ Discord.js requires extensive mocking since we can't connect to real Discord ser
 **File:** `backend/tests/mocks/discordMocks.ts`
 
 ```typescript
-import { Client, Collection } from "discord.js";
+import { Client, Collection } from 'discord.js';
 
 export function createMockClient() {
   const client = {
     commands: new Collection(),
     user: {
-      id: "bot-user-id",
-      username: "TestBot",
-      tag: "TestBot#0000",
+      id: 'bot-user-id',
+      username: 'TestBot',
+      tag: 'TestBot#0000',
     },
     guilds: {
       cache: new Map(),
     },
-    login: jest.fn().mockResolvedValue("token"),
+    login: jest.fn().mockResolvedValue('token'),
     destroy: jest.fn().mockResolvedValue(undefined),
     on: jest.fn(),
     once: jest.fn(),
@@ -421,19 +435,19 @@ export function createMockClient() {
 
 export function createMockInteraction(overrides = {}) {
   return {
-    id: "interaction-id-123",
+    id: 'interaction-id-123',
     user: {
-      id: "user-id-123",
-      username: "TestUser",
-      tag: "TestUser#0000",
+      id: 'user-id-123',
+      username: 'TestUser',
+      tag: 'TestUser#0000',
     },
     guild: {
-      id: "guild-id-123",
-      name: "Test Guild",
+      id: 'guild-id-123',
+      name: 'Test Guild',
     },
-    guildId: "guild-id-123",
+    guildId: 'guild-id-123',
     channel: {
-      id: "channel-id-123",
+      id: 'channel-id-123',
       send: jest.fn().mockResolvedValue({}),
     },
     replied: false,
@@ -457,35 +471,35 @@ export function createMockInteraction(overrides = {}) {
 **File:** `backend/commands/__tests__/tasks.test.ts`
 
 ```typescript
-import { describe, it, expect, beforeEach } from "@jest/globals";
-import { createMockInteraction } from "@tests/mocks/discordMocks";
-import tasksCommand from "@commands/tasks";
-import { Task } from "@database";
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { createMockInteraction } from '@tests/mocks/discordMocks';
+import tasksCommand from '@commands/tasks';
+import { Task } from '@database';
 
-describe("/tasks command", () => {
+describe('/tasks command', () => {
   let mockInteraction;
 
   beforeEach(async () => {
     mockInteraction = createMockInteraction({
       isChatInputCommand: () => true,
-      commandName: "tasks",
+      commandName: 'tasks',
       options: {
-        getSubcommand: jest.fn().mockReturnValue("list"),
+        getSubcommand: jest.fn().mockReturnValue('list'),
       },
     });
 
     // Seed test data
     await Task.create({
-      id: "task-1",
-      userId: "user-id-123",
-      title: "Test Task",
+      id: 'task-1',
+      userId: 'user-id-123',
+      title: 'Test Task',
       completed: false,
     });
   });
 
-  describe("list subcommand", () => {
-    it("should display user tasks", async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue("list");
+  describe('list subcommand', () => {
+    it('should display user tasks', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('list');
 
       await tasksCommand.execute(mockInteraction);
 
@@ -493,70 +507,70 @@ describe("/tasks command", () => {
         expect.objectContaining({
           embeds: expect.arrayContaining([
             expect.objectContaining({
-              title: expect.stringContaining("Tasks"),
+              title: expect.stringContaining('Tasks'),
             }),
           ]),
-        }),
+        })
       );
     });
 
-    it("should show message when no tasks exist", async () => {
-      await Task.destroy({ where: { userId: "user-id-123" } });
+    it('should show message when no tasks exist', async () => {
+      await Task.destroy({ where: { userId: 'user-id-123' } });
 
       await tasksCommand.execute(mockInteraction);
 
       expect(mockInteraction.reply).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("No tasks found"),
-        }),
+          content: expect.stringContaining('No tasks found'),
+        })
       );
     });
   });
 
-  describe("add subcommand", () => {
-    it("should create new task", async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue("add");
+  describe('add subcommand', () => {
+    it('should create new task', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('add');
       mockInteraction.options.getString = jest.fn((name) => {
-        if (name === "title") return "New Task";
-        if (name === "description") return "Task description";
+        if (name === 'title') return 'New Task';
+        if (name === 'description') return 'Task description';
         return null;
       });
 
       await tasksCommand.execute(mockInteraction);
 
-      const task = await Task.findOne({ where: { title: "New Task" } });
+      const task = await Task.findOne({ where: { title: 'New Task' } });
       expect(task).not.toBeNull();
-      expect(task.description).toBe("Task description");
+      expect(task.description).toBe('Task description');
 
       expect(mockInteraction.reply).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("created"),
-        }),
+          content: expect.stringContaining('created'),
+        })
       );
     });
 
-    it("should handle database errors gracefully", async () => {
-      jest.spyOn(Task, "create").mockRejectedValue(new Error("Database error"));
+    it('should handle database errors gracefully', async () => {
+      jest.spyOn(Task, 'create').mockRejectedValue(new Error('Database error'));
 
       await tasksCommand.execute(mockInteraction);
 
       expect(mockInteraction.reply).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("error"),
+          content: expect.stringContaining('error'),
           ephemeral: true,
-        }),
+        })
       );
     });
   });
 
-  describe("complete subcommand", () => {
-    it("should mark task as completed", async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue("complete");
-      mockInteraction.options.getString = jest.fn(() => "task-1");
+  describe('complete subcommand', () => {
+    it('should mark task as completed', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('complete');
+      mockInteraction.options.getString = jest.fn(() => 'task-1');
 
       await tasksCommand.execute(mockInteraction);
 
-      const task = await Task.findByPk("task-1");
+      const task = await Task.findByPk('task-1');
       expect(task.completed).toBe(true);
     });
   });
@@ -568,24 +582,24 @@ describe("/tasks command", () => {
 **File:** `backend/utils/interactions/__tests__/taskHandlers.test.ts`
 
 ```typescript
-import { describe, it, expect } from "@jest/globals";
-import { createMockInteraction } from "@tests/mocks/discordMocks";
-import { handleTaskButton } from "@utils/interactions/handlers/taskHandlers";
-import { Task } from "@database";
+import { describe, it, expect } from '@jest/globals';
+import { createMockInteraction } from '@tests/mocks/discordMocks';
+import { handleTaskButton } from '@utils/interactions/handlers/taskHandlers';
+import { Task } from '@database';
 
-describe("Task Button Handlers", () => {
-  describe("task_complete button", () => {
-    it("should mark task as completed", async () => {
+describe('Task Button Handlers', () => {
+  describe('task_complete button', () => {
+    it('should mark task as completed', async () => {
       const task = await Task.create({
-        id: "task-1",
-        userId: "user-id-123",
-        title: "Test Task",
+        id: 'task-1',
+        userId: 'user-id-123',
+        title: 'Test Task',
         completed: false,
       });
 
       const mockInteraction = createMockInteraction({
         isButton: () => true,
-        customId: "task_complete_task-1",
+        customId: 'task_complete_task-1',
         deferred: true,
       });
 
@@ -596,10 +610,10 @@ describe("Task Button Handlers", () => {
       expect(mockInteraction.editReply).toHaveBeenCalled();
     });
 
-    it("should handle non-existent tasks", async () => {
+    it('should handle non-existent tasks', async () => {
       const mockInteraction = createMockInteraction({
         isButton: () => true,
-        customId: "task_complete_invalid-id",
+        customId: 'task_complete_invalid-id',
         deferred: true,
       });
 
@@ -607,31 +621,31 @@ describe("Task Button Handlers", () => {
 
       expect(mockInteraction.followUp).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("not found"),
+          content: expect.stringContaining('not found'),
           ephemeral: true,
-        }),
+        })
       );
     });
   });
 
-  describe("task_delete button", () => {
-    it("should delete task", async () => {
+  describe('task_delete button', () => {
+    it('should delete task', async () => {
       await Task.create({
-        id: "task-1",
-        userId: "user-id-123",
-        title: "Test Task",
+        id: 'task-1',
+        userId: 'user-id-123',
+        title: 'Test Task',
         completed: false,
       });
 
       const mockInteraction = createMockInteraction({
         isButton: () => true,
-        customId: "task_delete_task-1",
+        customId: 'task_delete_task-1',
         deferred: true,
       });
 
       await handleTaskButton(mockInteraction);
 
-      const task = await Task.findByPk("task-1");
+      const task = await Task.findByPk('task-1');
       expect(task).toBeNull();
     });
   });
@@ -716,17 +730,17 @@ describe('TaskList Component', () => {
 
 ```typescript
 // backend/utils/__tests__/taskValidator.test.ts
-import { validateTask } from "@utils/taskValidator";
+import { validateTask } from '@utils/taskValidator';
 
-describe("validateTask", () => {
-  it("should validate task with title", () => {
-    const task = { title: "Buy groceries" };
+describe('validateTask', () => {
+  it('should validate task with title', () => {
+    const task = { title: 'Buy groceries' };
     expect(validateTask(task)).toBe(true);
   });
 
-  it("should reject task without title", () => {
+  it('should reject task without title', () => {
     const task = {};
-    expect(() => validateTask(task)).toThrow("Title is required");
+    expect(() => validateTask(task)).toThrow('Title is required');
   });
 });
 ```
@@ -740,7 +754,7 @@ Run test: `npm test -- taskValidator.test.ts`
 // backend/utils/taskValidator.ts
 export function validateTask(task: any): boolean {
   if (!task.title) {
-    throw new Error("Title is required");
+    throw new Error('Title is required');
   }
   return true;
 }
@@ -760,24 +774,24 @@ interface Task {
 }
 
 export function validateTask(task: any): task is Task {
-  if (!task || typeof task !== "object") {
-    throw new Error("Task must be an object");
+  if (!task || typeof task !== 'object') {
+    throw new Error('Task must be an object');
   }
 
-  if (!task.title || typeof task.title !== "string") {
-    throw new Error("Title is required and must be a string");
+  if (!task.title || typeof task.title !== 'string') {
+    throw new Error('Title is required and must be a string');
   }
 
   if (task.title.length > 200) {
-    throw new Error("Title must be less than 200 characters");
+    throw new Error('Title must be less than 200 characters');
   }
 
-  if (task.description && typeof task.description !== "string") {
-    throw new Error("Description must be a string");
+  if (task.description && typeof task.description !== 'string') {
+    throw new Error('Description must be a string');
   }
 
   if (task.dueDate && !(task.dueDate instanceof Date)) {
-    throw new Error("Due date must be a Date object");
+    throw new Error('Due date must be a Date object');
   }
 
   return true;
@@ -793,10 +807,10 @@ Add corresponding tests for new validations, then refactor again if needed.
 ### 1. Function Mocking
 
 ```typescript
-import { jest } from "@jest/globals";
+import { jest } from '@jest/globals';
 
 // Mock a module
-jest.mock("@utils/logger", () => ({
+jest.mock('@utils/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -804,21 +818,21 @@ jest.mock("@utils/logger", () => ({
 }));
 
 // Mock a function return value
-const mockFunction = jest.fn().mockReturnValue("mocked value");
+const mockFunction = jest.fn().mockReturnValue('mocked value');
 
 // Mock resolved promise
-const mockAsync = jest.fn().mockResolvedValue({ data: "success" });
+const mockAsync = jest.fn().mockResolvedValue({ data: 'success' });
 
 // Mock rejected promise
-const mockError = jest.fn().mockRejectedValue(new Error("Failed"));
+const mockError = jest.fn().mockRejectedValue(new Error('Failed'));
 ```
 
 ### 2. Sequelize Model Mocking
 
 ```typescript
-import { Task } from "@database";
+import { Task } from '@database';
 
-jest.mock("@database", () => ({
+jest.mock('@database', () => ({
   Task: {
     findAll: jest.fn(),
     findByPk: jest.fn(),
@@ -829,7 +843,7 @@ jest.mock("@database", () => ({
 }));
 
 // In test
-(Task.findAll as jest.Mock).mockResolvedValue([{ id: "1", title: "Task 1" }]);
+(Task.findAll as jest.Mock).mockResolvedValue([{ id: '1', title: 'Task 1' }]);
 ```
 
 ### 3. Discord.js Interaction Mocking
@@ -843,7 +857,7 @@ See [Discord Bot Testing](#discord-bot-testing) section above.
 const originalEnv = process.env;
 
 beforeEach(() => {
-  process.env = { ...originalEnv, NODE_ENV: "test" };
+  process.env = { ...originalEnv, NODE_ENV: 'test' };
 });
 
 afterEach(() => {
@@ -858,7 +872,7 @@ jest.useFakeTimers();
 
 // In test
 setTimeout(() => {
-  console.log("delayed");
+  console.log('delayed');
 }, 1000);
 
 jest.advanceTimersByTime(1000); // Fast-forward time
@@ -994,7 +1008,7 @@ cd backend && npm run coverage:threshold
 ### 1. Arrange-Act-Assert (AAA) Pattern
 
 ```typescript
-it("should calculate tax correctly", () => {
+it('should calculate tax correctly', () => {
   // Arrange - Set up test data
   const amount = 100;
   const taxRate = 0.08;
@@ -1011,17 +1025,17 @@ it("should calculate tax correctly", () => {
 
 ```typescript
 // Good: Single assertion
-it("should return user name", () => {
-  const user = { name: "John" };
-  expect(getUsername(user)).toBe("John");
+it('should return user name', () => {
+  const user = { name: 'John' };
+  expect(getUsername(user)).toBe('John');
 });
 
 // Acceptable: Related assertions
-it("should return formatted user", () => {
-  const user = { name: "John", age: 30 };
+it('should return formatted user', () => {
+  const user = { name: 'John', age: 30 };
   const result = formatUser(user);
 
-  expect(result.name).toBe("JOHN");
+  expect(result.name).toBe('JOHN');
   expect(result.age).toBe(30);
   expect(result.formatted).toBe(true);
 });
@@ -1031,17 +1045,17 @@ it("should return formatted user", () => {
 
 ```typescript
 // Bad
-it("works", () => {
+it('works', () => {
   /* ... */
 });
 
 // Good
-it("should return 404 when task does not exist", () => {
+it('should return 404 when task does not exist', () => {
   /* ... */
 });
 
 // Great
-it("should throw ValidationError when task title exceeds 200 characters", () => {
+it('should throw ValidationError when task title exceeds 200 characters', () => {
   /* ... */
 });
 ```
@@ -1049,24 +1063,24 @@ it("should throw ValidationError when task title exceeds 200 characters", () => 
 ### 4. Test Edge Cases
 
 ```typescript
-describe("divideNumbers", () => {
-  it("should divide two positive numbers", () => {
+describe('divideNumbers', () => {
+  it('should divide two positive numbers', () => {
     expect(divideNumbers(10, 2)).toBe(5);
   });
 
-  it("should handle negative numbers", () => {
+  it('should handle negative numbers', () => {
     expect(divideNumbers(-10, 2)).toBe(-5);
   });
 
-  it("should handle division by zero", () => {
-    expect(() => divideNumbers(10, 0)).toThrow("Cannot divide by zero");
+  it('should handle division by zero', () => {
+    expect(() => divideNumbers(10, 0)).toThrow('Cannot divide by zero');
   });
 
-  it("should handle decimal results", () => {
+  it('should handle decimal results', () => {
     expect(divideNumbers(10, 3)).toBeCloseTo(3.333, 2);
   });
 
-  it("should handle very large numbers", () => {
+  it('should handle very large numbers', () => {
     expect(divideNumbers(1e20, 1e10)).toBe(1e10);
   });
 });
@@ -1077,33 +1091,33 @@ describe("divideNumbers", () => {
 ```typescript
 // Bad: Tests depend on each other
 let userId;
-it("should create user", async () => {
-  const user = await createUser({ name: "John" });
+it('should create user', async () => {
+  const user = await createUser({ name: 'John' });
   userId = user.id; // Leaking state
 });
 
-it("should find user", async () => {
+it('should find user', async () => {
   const user = await findUser(userId); // Depends on previous test
-  expect(user.name).toBe("John");
+  expect(user.name).toBe('John');
 });
 
 // Good: Tests are independent
-it("should create user", async () => {
-  const user = await createUser({ name: "John" });
+it('should create user', async () => {
+  const user = await createUser({ name: 'John' });
   expect(user.id).toBeDefined();
 });
 
-it("should find user", async () => {
-  const user = await createUser({ name: "John" });
+it('should find user', async () => {
+  const user = await createUser({ name: 'John' });
   const found = await findUser(user.id);
-  expect(found.name).toBe("John");
+  expect(found.name).toBe('John');
 });
 ```
 
 ### 6. Clean Up Resources
 
 ```typescript
-describe("Database Tests", () => {
+describe('Database Tests', () => {
   let connection;
 
   beforeAll(async () => {
@@ -1128,14 +1142,14 @@ describe("Database Tests", () => {
 
 ```typescript
 // Bad: Testing internal implementation
-it("should call internal helper function", () => {
-  const spy = jest.spyOn(module, "_internalHelper");
+it('should call internal helper function', () => {
+  const spy = jest.spyOn(module, '_internalHelper');
   module.publicFunction();
   expect(spy).toHaveBeenCalled();
 });
 
 // Good: Testing public behavior
-it("should return correct result", () => {
+it('should return correct result', () => {
   const result = module.publicFunction();
   expect(result).toBe(expectedValue);
 });
@@ -1147,9 +1161,9 @@ it("should return correct result", () => {
 // Test factory for creating test data
 function createTestTask(overrides = {}) {
   return {
-    id: "test-task-id",
-    userId: "test-user-id",
-    title: "Test Task",
+    id: 'test-task-id',
+    userId: 'test-user-id',
+    title: 'Test Task',
     completed: false,
     createdAt: new Date(),
     ...overrides,
@@ -1157,8 +1171,8 @@ function createTestTask(overrides = {}) {
 }
 
 // Usage in tests
-it("should mark task as completed", () => {
-  const task = createTestTask({ title: "Buy milk" });
+it('should mark task as completed', () => {
+  const task = createTestTask({ title: 'Buy milk' });
   // ...
 });
 ```

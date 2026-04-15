@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext } from "react";
-import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import React, { createContext, useContext } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -26,16 +26,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await signOut({ redirect: false });
-      router.push("/login");
+      router.push('/login');
     } catch (error) {
-      console.error("[AUTH] Logout error:", error);
-      router.push("/login");
+      console.error('[AUTH] Logout error:', error);
+      router.push('/login');
     }
   };
 
   const value: AuthContextType = {
-    isAuthenticated: status === "authenticated",
-    isLoading: status === "loading",
+    isAuthenticated: status === 'authenticated',
+    isLoading: status === 'loading',
     username: session?.user?.name || null,
     email: session?.user?.email || null,
     logout,
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuthContext() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
+    throw new Error('useAuthContext must be used within an AuthProvider');
   }
   return context;
 }

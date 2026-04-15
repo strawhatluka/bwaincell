@@ -2,33 +2,31 @@
 
 Step-by-step guides and tutorials for using and developing Bwaincell.
 
-## Available Guides
+## Getting Started
 
-### Getting Started
+- **[Getting Started](getting-started.md)** — Installation, Supabase local stack, and quick start
 
-- **[Getting Started](getting-started.md)** - Installation, setup, and quick start guide
+## Troubleshooting & FAQ
 
-### Troubleshooting & FAQ
+- **[Troubleshooting](troubleshooting.md)** — Discord bot, Supabase, auth, API, frontend, deployment, Gemini, recipe-scraper
+- **[FAQ](faq.md)** — Installation, Discord, development, deployment, Supabase
 
-- **[Troubleshooting](troubleshooting.md)** - Comprehensive troubleshooting guide for Discord bot, database, authentication, API, frontend, and deployment issues (60+ issues)
-- **[FAQ](faq.md)** - Frequently asked questions covering installation, Discord bot, development, deployment, and troubleshooting (60+ FAQs)
+## Development Guides
 
-### Advanced Guides
+- **[API Development](api-development.md)** — Creating and extending Express REST endpoints (uses Supabase model wrappers)
+- **[Discord Bot Development](discord-bot-development.md)** — Adding slash commands + interaction handlers (including Recipe/Sunset/Events patterns)
+- **[Database Migrations](database-migrations.md)** — Supabase migration authoring workflow (`supabase migration new`, `supabase db push`, `supabase db reset`)
+- **[Testing](testing.md)** — Unit, integration, and E2E testing with the Supabase local stack
+- **[Deployment](deployment.md)** — Raspberry Pi (self-hosted Supabase), Vercel frontend, Supabase project linking
 
-- **[Security Best Practices](security-best-practices.md)** - OWASP Top 10, JWT security, OAuth2, secrets management, input validation, rate limiting
-- **[Performance Optimization](performance-optimization.md)** - Database optimization, API performance, frontend optimization, caching strategies, query optimization
-- **[Monitoring and Logging](monitoring-and-logging.md)** - Winston logger, structured logging, application monitoring, database monitoring, alerting
-- **[CI/CD Pipeline](ci-cd-pipeline.md)** - GitHub Actions, quality gates, automated testing, code coverage, pre-commit hooks
-- **[PWA Features](pwa-features.md)** - PWA manifest, service workers, offline mode, dark mode, app installation, background sync
-- **[Docker Development](docker-development.md)** - Multi-stage Dockerfile, container orchestration, hot reloading, debugging in Docker
+## Operations Guides
 
-## Coming Soon
-
-- **API Development Guide** - Creating and extending API endpoints
-- **Discord Bot Development** - Adding new slash commands and interactions
-- **Testing Guide** - Writing unit, integration, and E2E tests
-- **Deployment Guide** - Deploying to production (Raspberry Pi + Vercel)
-- **Database Migrations** - Managing database schema changes
+- **[Security Best Practices](security-best-practices.md)** — OWASP Top 10, JWT, OAuth2, **Supabase RLS**, service-role vs anon key separation
+- **[Performance Optimization](performance-optimization.md)** — Supabase indexes, PostgREST query depth, Supabase pooler
+- **[Monitoring and Logging](monitoring-and-logging.md)** — Winston (Express), Supabase logs dashboard, PostgREST logs
+- **[CI/CD Pipeline](ci-cd-pipeline.md)** — GitHub Actions, Supabase CLI in CI
+- **[Docker Development](docker-development.md)** — Backend/frontend containers; Supabase runs its own container stack
+- **[PWA Features](pwa-features.md)** — PWA manifest, service workers, offline mode, dark mode
 
 ## Need Help?
 
@@ -36,3 +34,7 @@ Step-by-step guides and tutorials for using and developing Bwaincell.
 - [API Documentation](../api/)
 - [Reference Documentation](../reference/)
 - [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
+
+---
+
+**Last Updated:** 2026-04-15

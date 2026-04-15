@@ -26,7 +26,7 @@ jest.mock('../../../config/config', () => ({
 }));
 
 // Mock Schedule model
-jest.mock('../../../database/models/Schedule', () => ({
+jest.mock('../../../../supabase/models/Schedule', () => ({
   __esModule: true,
   default: {
     addEvent: jest.fn(),
@@ -39,7 +39,7 @@ jest.mock('../../../database/models/Schedule', () => ({
 }));
 
 import scheduleCommand from '../../../commands/schedule';
-import Schedule from '../../../database/models/Schedule';
+import Schedule from '../../../../supabase/models/Schedule';
 import { logger } from '../../../shared/utils/logger';
 import { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
 

@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { logger } from '../shared/utils/logger';
 import eventsService from '../utils/eventsService';
-import EventConfig from '../database/models/EventConfig';
+import EventConfig from '../../supabase/models/EventConfig';
 import { getScheduler } from '../utils/scheduler';
 import { getEventWindow, parseDayName } from '../utils/dateHelpers';
 import config from '../config/config';
@@ -130,8 +130,7 @@ export default {
         }
 
         // Build confirmation message from saved config
-        // Use .get() to bypass Sequelize class field shadowing
-        const configData = updatedConfig.get({ plain: true });
+        const configData = updatedConfig;
         const dayNames = [
           'Sunday',
           'Monday',

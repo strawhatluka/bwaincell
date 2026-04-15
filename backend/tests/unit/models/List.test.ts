@@ -15,7 +15,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import List from '../../../database/models/List';
+import List from '../../../../supabase/models/List';
 
 describe('List Model', () => {
   const testGuildId = 'guild-123';

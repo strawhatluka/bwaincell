@@ -1,69 +1,57 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]/route';
+import { User } from '@database/models/User';
+import List from '@database/models/List';
 
 // Force dynamic rendering (no static optimization)
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * GET /api/lists
  * Retrieve all lists for the authenticated user's guild
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user from database to access guildId
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
-          error: "User not found in database",
-          message:
-            "Please authenticate via Discord bot first to create your user account",
+          error: 'User not found in database',
+          message: 'Please authenticate via Discord bot first to create your user account',
         },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
-    // Fetch all lists for this guild
-    const lists = await prisma.list.findMany({
-      where: { guildId: user.guildId },
-      orderBy: { createdAt: "desc" },
-    });
+    const lists = await List.getUserLists(user.guild_id);
 
     return NextResponse.json({ success: true, data: lists });
   } catch (error) {
-    console.error("[API] Error fetching lists:", error);
+    console.error('[API] Error fetching lists:', error);
 
-    // Log more details about the error
     if (error instanceof Error) {
-      console.error("[API] Error name:", error.name);
-      console.error("[API] Error message:", error.message);
-      console.error("[API] Error stack:", error.stack);
+      console.error('[API] Error name:', error.name);
+      console.error('[API] Error message:', error.message);
+      console.error('[API] Error stack:', error.stack);
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch lists",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to fetch lists',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -77,82 +65,52 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user from database to access guildId and discordId
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true, discordId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
     const { name } = body;
 
-    // Validate required fields
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
-        { success: false, error: "Name is required and cannot be empty" },
-        { status: 400 },
+        { success: false, error: 'Name is required and cannot be empty' },
+        { status: 400 }
       );
     }
 
-    // Check if list with this name already exists (case-insensitive)
-    const existingList = await prisma.list.findFirst({
-      where: {
-        guildId: user.guildId,
-        name: {
-          equals: name.trim(),
-          mode: "insensitive",
-        },
-      },
-    });
+    // createList returns null if a list with this name already exists (case-insensitive)
+    const list = await List.createList(user.guild_id, name.trim(), user.discord_id);
 
-    if (existingList) {
+    if (!list) {
       return NextResponse.json(
-        { success: false, error: "A list with this name already exists" },
-        { status: 400 },
+        { success: false, error: 'A list with this name already exists' },
+        { status: 400 }
       );
     }
-
-    // Create new list
-    const list = await prisma.list.create({
-      data: {
-        name: name.trim(),
-        userId: user.discordId,
-        guildId: user.guildId,
-        items: [],
-      },
-    });
 
     return NextResponse.json({ success: true, data: list }, { status: 201 });
   } catch (error) {
-    console.error("[API] Error creating list:", error);
+    console.error('[API] Error creating list:', error);
 
-    // Log more details about the error
     if (error instanceof Error) {
-      console.error("[API] Error name:", error.name);
-      console.error("[API] Error message:", error.message);
-      console.error("[API] Error stack:", error.stack);
+      console.error('[API] Error name:', error.name);
+      console.error('[API] Error message:', error.message);
+      console.error('[API] Error stack:', error.stack);
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to create list",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to create list',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -15,7 +15,7 @@ jest.mock('../../../../shared/utils/logger', () => ({
   },
 }));
 
-jest.mock('../../../../database/index', () => ({
+jest.mock('../../../../../supabase/index', () => ({
   Note: {
     getNotes: jest.fn(),
     searchNotes: jest.fn(),
@@ -28,7 +28,7 @@ jest.mock('../../../../database/index', () => ({
   },
 }));
 
-import { Note } from '../../../../database/index';
+import { Note } from '../../../../../supabase/index';
 import express from 'express';
 import notesRouter from '../../../../src/api/routes/notes';
 import request from 'supertest';

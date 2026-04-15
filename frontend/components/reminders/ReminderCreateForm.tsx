@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -19,13 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+} from '@/components/ui/dialog';
+import { Plus } from 'lucide-react';
 
 interface ReminderCreateFormProps {
   onCreate: (data: {
     message: string;
-    frequency: "once" | "daily" | "weekly";
+    frequency: 'once' | 'daily' | 'weekly';
     time: string;
     dayOfWeek?: number;
   }) => void;
@@ -33,25 +33,20 @@ interface ReminderCreateFormProps {
 }
 
 const DAYS = [
-  { value: 0, label: "Sunday" },
-  { value: 1, label: "Monday" },
-  { value: 2, label: "Tuesday" },
-  { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" },
-  { value: 5, label: "Friday" },
-  { value: 6, label: "Saturday" },
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
 ];
 
-export function ReminderCreateForm({
-  onCreate,
-  isCreating,
-}: ReminderCreateFormProps) {
+export function ReminderCreateForm({ onCreate, isCreating }: ReminderCreateFormProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [frequency, setFrequency] = useState<"once" | "daily" | "weekly">(
-    "once",
-  );
-  const [time, setTime] = useState("09:00");
+  const [message, setMessage] = useState('');
+  const [frequency, setFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
+  const [time, setTime] = useState('09:00');
   const [dayOfWeek, setDayOfWeek] = useState<number>(1);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -62,13 +57,13 @@ export function ReminderCreateForm({
       message: message.trim(),
       frequency,
       time,
-      dayOfWeek: frequency === "weekly" ? dayOfWeek : undefined,
+      dayOfWeek: frequency === 'weekly' ? dayOfWeek : undefined,
     });
 
     // Reset form
-    setMessage("");
-    setFrequency("once");
-    setTime("09:00");
+    setMessage('');
+    setFrequency('once');
+    setTime('09:00');
     setDayOfWeek(1);
     setIsOpen(false);
   };
@@ -106,9 +101,7 @@ export function ReminderCreateForm({
               <Label htmlFor="frequency">Type</Label>
               <Select
                 value={frequency}
-                onValueChange={(value) =>
-                  setFrequency(value as "once" | "daily" | "weekly")
-                }
+                onValueChange={(value) => setFrequency(value as 'once' | 'daily' | 'weekly')}
                 disabled={isCreating}
               >
                 <SelectTrigger className="border-[#f59e0b]/30 focus:ring-[#f59e0b]">
@@ -122,7 +115,7 @@ export function ReminderCreateForm({
               </Select>
             </div>
 
-            {frequency === "weekly" && (
+            {frequency === 'weekly' && (
               <div className="grid gap-2">
                 <Label htmlFor="dayOfWeek">Day of Week</Label>
                 <Select
@@ -170,7 +163,7 @@ export function ReminderCreateForm({
               disabled={isCreating || !message.trim() || !time}
               className="bg-[#f59e0b] hover:bg-[#e08c00]"
             >
-              {isCreating ? "Creating..." : "Create Reminder"}
+              {isCreating ? 'Creating...' : 'Create Reminder'}
             </Button>
           </DialogFooter>
         </form>

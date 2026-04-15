@@ -6,7 +6,7 @@ import {
 } from 'discord.js';
 import { DateTime } from 'luxon';
 import { logger } from '../shared/utils/logger';
-import Schedule from '../database/models/Schedule';
+import Schedule from '../../supabase/models/Schedule';
 import config from '../config/config';
 
 interface ScheduleEvent {
@@ -17,11 +17,11 @@ interface ScheduleEvent {
   date: string; // DATEONLY format (MM-DD-YYYY)
   time: string; // HH:MM format
   description?: string | null;
-  created_at: Date;
+  created_at: string;
 }
 
 interface CountdownResult {
-  event: Schedule;
+  event: ScheduleEvent;
   timeLeft: string;
 }
 

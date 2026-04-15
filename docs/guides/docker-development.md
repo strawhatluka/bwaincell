@@ -2,6 +2,14 @@
 
 Comprehensive guide to Docker development for Bwaincell - containerized development and deployment on Raspberry Pi.
 
+> **Supabase update (2026-04-15):** The **database is no longer a `postgres` service in `docker-compose.yml`**. Postgres (plus PostgREST, GoTrue, Studio) is provisioned and orchestrated by the **Supabase CLI** as a separate container stack started via `npm run supabase:start` (local dev) or `supabase start` on the production Pi. `docker-compose.yml` now only concerns the **backend** (Discord bot + Express API) and, optionally, the **frontend** container for Pi deployments.
+>
+> Practical consequences:
+> - Any section below that references a `postgres` or `db` service inside `docker-compose.yml` is **stale** and should be read as "the Supabase CLI now handles that container stack separately".
+> - `DATABASE_URL` is no longer used; the backend reads `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`.
+> - Start order in local dev: `npm run supabase:start` first, then `npm run dev` (or `docker compose up -d` for containerized runs).
+> - On the Pi, both the Bwaincell backend container and the Supabase stack share `127.0.0.1` — the backend reaches Supabase at `http://127.0.0.1:54321`.
+
 ## Table of Contents
 
 1. [Docker Development Setup](#docker-development-setup)
@@ -315,13 +323,13 @@ services:
 
     # Expose port 5433 externally to avoid conflict with sunny-stack-db (5432)
     ports:
-      - "5433:5432"
+      - '5433:5432'
 
     networks:
       - bwaincell-network
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bwaincell}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-bwaincell}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -331,28 +339,28 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5" # Max 0.5 cores
+          cpus: '0.5' # Max 0.5 cores
           memory: 512M # Max 512MB RAM
         reservations:
-          cpus: "0.25" # Min 0.25 cores reserved
+          cpus: '0.25' # Min 0.25 cores reserved
           memory: 256M # Min 256MB RAM reserved
 
     # Logging configuration with rotation
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m" # Max 10MB per log file
-        max-file: "3" # Keep 3 rotated files
-        compress: "true"
+        max-size: '10m' # Max 10MB per log file
+        max-file: '3' # Keep 3 rotated files
+        compress: 'true'
 
     # Security options
     security_opt:
       - no-new-privileges:true
 
     labels:
-      com.bwaincell.service: "postgres"
-      com.bwaincell.environment: "production"
-      com.bwaincell.platform: "raspberry-pi"
+      com.bwaincell.service: 'postgres'
+      com.bwaincell.environment: 'production'
+      com.bwaincell.platform: 'raspberry-pi'
 
   # ---------------------------------------------------------------------------
   # Backend Service - Discord.js 14 + Express API + PostgreSQL (Monorepo)
@@ -381,7 +389,7 @@ services:
 
     # Health check configuration (matches Dockerfile HEALTHCHECK)
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -389,7 +397,7 @@ services:
 
     # Port mapping
     ports:
-      - "3000:3000" # Express API + health endpoint
+      - '3000:3000' # Express API + health endpoint
 
     # Persistent storage for logs
     volumes:
@@ -400,26 +408,26 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0" # Max 1 core (Pi has 4)
+          cpus: '1.0' # Max 1 core (Pi has 4)
           memory: 512M # Max 512MB RAM
         reservations:
-          cpus: "0.25" # Min 0.25 cores reserved
+          cpus: '0.25' # Min 0.25 cores reserved
           memory: 128M # Min 128MB RAM reserved
 
     # Logging configuration with rotation
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "25m" # Max 25MB per log file
-        max-file: "3" # Keep 3 rotated files (75MB total)
-        compress: "true" # Compress rotated logs
+        max-size: '25m' # Max 25MB per log file
+        max-file: '3' # Keep 3 rotated files (75MB total)
+        compress: 'true' # Compress rotated logs
 
     # Security options
     security_opt:
       - no-new-privileges:true # Prevent privilege escalation
 
     # Run as non-root user (matches Dockerfile USER)
-    user: "1001:1001"
+    user: '1001:1001'
 
     # Network configuration
     networks:
@@ -432,9 +440,9 @@ services:
 
     # Labels for management
     labels:
-      com.bwaincell.service: "discord-bot"
-      com.bwaincell.environment: "production"
-      com.bwaincell.platform: "raspberry-pi"
+      com.bwaincell.service: 'discord-bot'
+      com.bwaincell.environment: 'production'
+      com.bwaincell.platform: 'raspberry-pi'
 
 # -----------------------------------------------------------------------------
 # Volumes
@@ -443,7 +451,7 @@ volumes:
   postgres-data:
     driver: local
     labels:
-      com.bwaincell.description: "PostgreSQL production database storage"
+      com.bwaincell.description: 'PostgreSQL production database storage'
 
 # -----------------------------------------------------------------------------
 # Networks
@@ -452,7 +460,7 @@ networks:
   bwaincell-network:
     driver: bridge
     labels:
-      com.bwaincell.description: "Production network for Pi services"
+      com.bwaincell.description: 'Production network for Pi services'
 ```
 
 ### docker-compose Commands
@@ -592,7 +600,7 @@ postgres:
     - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql # Initialization
 
   ports:
-    - "5433:5432" # Expose externally (avoid conflict with port 5432)
+    - '5433:5432' # Expose externally (avoid conflict with port 5432)
 ```
 
 ### Database Initialization
@@ -728,7 +736,7 @@ services:
     command: node --inspect=0.0.0.0:9229 dist/src/bot.js
 
     ports:
-      - "9229:9229" # Debugger port
+      - '9229:9229' # Debugger port
 ```
 
 **VS Code Launch Configuration (.vscode/launch.json):**
@@ -885,10 +893,10 @@ docker scan bwaincell-backend:latest
 deploy:
   resources:
     limits:
-      cpus: "1.0" # Prevent CPU hogging
+      cpus: '1.0' # Prevent CPU hogging
       memory: 512M # Prevent memory leaks from crashing system
     reservations:
-      cpus: "0.25" # Guaranteed minimum
+      cpus: '0.25' # Guaranteed minimum
       memory: 128M
 ```
 

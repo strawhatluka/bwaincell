@@ -38,13 +38,15 @@ jest.mock('../../../../src/api/middleware/oauth', () => ({
 }));
 
 // Mock the User model
-const mockUserFindOne = jest.fn();
+const mockUserFindByGoogleId = jest.fn();
 const mockUserCreate = jest.fn();
+const mockUserUpdate = jest.fn();
 
-jest.mock('../../../../database/models/User', () => ({
+jest.mock('../../../../../supabase/models/User', () => ({
   User: {
-    findOne: mockUserFindOne,
+    findByGoogleId: mockUserFindByGoogleId,
     create: mockUserCreate,
+    update: mockUserUpdate,
   },
 }));
 
@@ -87,6 +89,7 @@ describe('OAuth API Routes', () => {
       mockVerifyGoogleToken.mockResolvedValue(googleUser);
 
       const mockUser = {
+        id: 'user-uuid-123',
         googleId: 'google-123',
         email: 'luka@test.com',
         name: 'Luka',
@@ -94,9 +97,10 @@ describe('OAuth API Routes', () => {
         discordId: 'discord-luka-123',
         guildId: 'test-guild-id',
         refreshToken: null,
-        save: jest.fn(),
       };
-      mockUserFindOne.mockResolvedValue(mockUser);
+      mockUserFindByGoogleId.mockResolvedValue(mockUser);
+      // First update call returns updated user, second stores refresh token
+      mockUserUpdate.mockResolvedValue(mockUser);
       mockGenerateAccessToken.mockReturnValue('mock-access-token');
       mockGenerateRefreshToken.mockReturnValue('mock-refresh-token');
 
@@ -110,7 +114,10 @@ describe('OAuth API Routes', () => {
       expect(res.body.data.refreshToken).toBe('mock-refresh-token');
       expect(res.body.data.user.email).toBe('luka@test.com');
       expect(res.body.data.user.name).toBe('Luka');
-      expect(mockUser.save).toHaveBeenCalled();
+      expect(mockUserUpdate).toHaveBeenCalledWith(
+        'user-uuid-123',
+        expect.objectContaining({ name: 'Luka', picture: 'https://example.com/photo.jpg' })
+      );
     });
 
     it('should create a new user when none exists', async () => {
@@ -121,19 +128,19 @@ describe('OAuth API Routes', () => {
         picture: null,
       };
       mockVerifyGoogleToken.mockResolvedValue(googleUser);
-      mockUserFindOne.mockResolvedValue(null);
+      mockUserFindByGoogleId.mockResolvedValue(null);
 
       const mockNewUser = {
-        googleId: 'google-new',
+        id: 'user-uuid-new',
+        google_id: 'google-new',
         email: 'luka@test.com',
         name: 'New User',
         picture: null,
-        discordId: 'discord-luka-123',
-        guildId: 'test-guild-id',
-        refreshToken: null,
-        save: jest.fn(),
+        discord_id: 'discord-luka-123',
+        guild_id: 'test-guild-id',
       };
       mockUserCreate.mockResolvedValue(mockNewUser);
+      mockUserUpdate.mockResolvedValue(mockNewUser);
       mockGenerateAccessToken.mockReturnValue('new-access-token');
       mockGenerateRefreshToken.mockReturnValue('new-refresh-token');
 
@@ -146,7 +153,7 @@ describe('OAuth API Routes', () => {
       expect(res.body.data.accessToken).toBe('new-access-token');
       expect(mockUserCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          googleId: 'google-new',
+          google_id: 'google-new',
           email: 'luka@test.com',
         })
       );
@@ -202,6 +209,7 @@ describe('OAuth API Routes', () => {
       mockVerifyGoogleToken.mockResolvedValue(googleUser);
 
       const mockUser = {
+        id: 'user-uuid-123',
         googleId: 'google-123',
         email: 'luka@test.com',
         name: 'Old Name',
@@ -209,17 +217,26 @@ describe('OAuth API Routes', () => {
         discordId: 'discord-luka-123',
         guildId: 'test-guild-id',
         refreshToken: 'old-refresh-token',
-        save: jest.fn(),
       };
-      mockUserFindOne.mockResolvedValue(mockUser);
+      const updatedUser = {
+        ...mockUser,
+        name: 'Updated Name',
+        picture: 'https://example.com/new-photo.jpg',
+      };
+      mockUserFindByGoogleId.mockResolvedValue(mockUser);
+      mockUserUpdate.mockResolvedValue(updatedUser);
       mockGenerateAccessToken.mockReturnValue('token');
       mockGenerateRefreshToken.mockReturnValue('refresh');
 
       await request(app).post('/auth/google/verify').send({ idToken: 'valid-token' });
 
-      expect(mockUser.name).toBe('Updated Name');
-      expect(mockUser.picture).toBe('https://example.com/new-photo.jpg');
-      expect(mockUser.save).toHaveBeenCalled();
+      expect(mockUserUpdate).toHaveBeenCalledWith(
+        'user-uuid-123',
+        expect.objectContaining({
+          name: 'Updated Name',
+          picture: 'https://example.com/new-photo.jpg',
+        })
+      );
     });
   });
 
@@ -230,13 +247,13 @@ describe('OAuth API Routes', () => {
       mockJwtVerify.mockReturnValue({ googleId: 'google-123' });
 
       const mockUser = {
-        googleId: 'google-123',
+        google_id: 'google-123',
         email: 'luka@test.com',
-        discordId: 'discord-luka-123',
-        guildId: 'test-guild-id',
-        refreshToken: 'valid-refresh-token',
+        discord_id: 'discord-luka-123',
+        guild_id: 'test-guild-id',
+        refresh_token: 'valid-refresh-token',
       };
-      mockUserFindOne.mockResolvedValue(mockUser);
+      mockUserFindByGoogleId.mockResolvedValue(mockUser);
       mockGenerateAccessToken.mockReturnValue('new-access-token');
 
       const res = await request(app)
@@ -272,7 +289,7 @@ describe('OAuth API Routes', () => {
 
     it('should return 401 when user is not found with the refresh token', async () => {
       mockJwtVerify.mockReturnValue({ googleId: 'google-123' });
-      mockUserFindOne.mockResolvedValue(null);
+      mockUserFindByGoogleId.mockResolvedValue(null);
 
       const res = await request(app)
         .post('/auth/refresh')
@@ -291,11 +308,12 @@ describe('OAuth API Routes', () => {
       mockJwtVerify.mockReturnValue({ googleId: 'google-123' });
 
       const mockUser = {
-        googleId: 'google-123',
-        refreshToken: 'valid-refresh-token',
-        save: jest.fn(),
+        id: 'user-uuid-123',
+        google_id: 'google-123',
+        refresh_token: 'valid-refresh-token',
       };
-      mockUserFindOne.mockResolvedValue(mockUser);
+      mockUserFindByGoogleId.mockResolvedValue(mockUser);
+      mockUserUpdate.mockResolvedValue({ ...mockUser, refresh_token: null });
 
       const res = await request(app)
         .post('/auth/logout')
@@ -304,8 +322,7 @@ describe('OAuth API Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.message).toContain('Logged out successfully');
-      expect(mockUser.refreshToken).toBeNull();
-      expect(mockUser.save).toHaveBeenCalled();
+      expect(mockUserUpdate).toHaveBeenCalledWith('user-uuid-123', { refresh_token: null });
     });
 
     it('should return 200 even without refresh token', async () => {
@@ -329,7 +346,7 @@ describe('OAuth API Routes', () => {
 
     it('should return 200 even when user is not found', async () => {
       mockJwtVerify.mockReturnValue({ googleId: 'google-nonexistent' });
-      mockUserFindOne.mockResolvedValue(null);
+      mockUserFindByGoogleId.mockResolvedValue(null);
 
       const res = await request(app)
         .post('/auth/logout')

@@ -9,7 +9,7 @@ import {
   AutocompleteInteraction,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
-import List, { ListItem } from '../database/models/List';
+import List, { ListItem } from '../../supabase/models/List';
 
 export default {
   data: new SlashCommandBuilder()
@@ -127,7 +127,7 @@ export default {
     try {
       if (focused.name === 'list_name') {
         const lists = await List.getUserLists(guildId);
-        const choices = lists.map((list: InstanceType<typeof List>) => list.name).slice(0, 25);
+        const choices = lists.map((list: any) => list.name).slice(0, 25);
 
         const filtered = choices.filter((choice: string) =>
           choice.toLowerCase().includes(focused.value.toLowerCase())
@@ -368,7 +368,7 @@ export default {
           const embed = new EmbedBuilder().setTitle('Your Lists').setColor(0x0099ff).setTimestamp();
 
           const listInfo = lists
-            .map((list: InstanceType<typeof List>) => {
+            .map((list: any) => {
               const itemCount = list.items ? list.items.length : 0;
               const completedCount = list.items
                 ? list.items.filter((item: ListItem) => item.completed).length

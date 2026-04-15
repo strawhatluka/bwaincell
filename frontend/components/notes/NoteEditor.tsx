@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { X } from "lucide-react";
+} from '@/components/ui/dialog';
+import { X } from 'lucide-react';
 
 interface Note {
   id: number;
@@ -31,24 +31,15 @@ interface NoteEditorProps {
   note?: Note | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (
-    data: { title: string; content: string; tags: string[] },
-    noteId?: number,
-  ) => void;
+  onSave: (data: { title: string; content: string; tags: string[] }, noteId?: number) => void;
   isSaving: boolean;
 }
 
-export function NoteEditor({
-  note,
-  isOpen,
-  onClose,
-  onSave,
-  isSaving,
-}: NoteEditorProps) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+export function NoteEditor({ note, isOpen, onClose, onSave, isSaving }: NoteEditorProps) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
     if (note) {
@@ -56,19 +47,19 @@ export function NoteEditor({
       setContent(note.content);
       setTags(note.tags || []);
     } else {
-      setTitle("");
-      setContent("");
+      setTitle('');
+      setContent('');
       setTags([]);
     }
   }, [note]);
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       const newTag = tagInput.trim();
       if (newTag && !tags.includes(newTag)) {
         setTags([...tags, newTag]);
-        setTagInput("");
+        setTagInput('');
       }
     }
   };
@@ -84,7 +75,7 @@ export function NoteEditor({
     // Check if user has uncommitted tag input
     if (tagInput.trim()) {
       alert(
-        "Please press Enter or add a comma to add the tag, or clear the tag field before saving.",
+        'Please press Enter or add a comma to add the tag, or clear the tag field before saving.'
       );
       return;
     }
@@ -95,21 +86,21 @@ export function NoteEditor({
         content: content.trim(),
         tags,
       },
-      note?.id,
+      note?.id
     );
 
     // Reset form
-    setTitle("");
-    setContent("");
+    setTitle('');
+    setContent('');
     setTags([]);
-    setTagInput("");
+    setTagInput('');
   };
 
   const handleClose = () => {
-    setTitle("");
-    setContent("");
+    setTitle('');
+    setContent('');
     setTags([]);
-    setTagInput("");
+    setTagInput('');
     onClose();
   };
 
@@ -118,11 +109,11 @@ export function NoteEditor({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{note ? "Edit Note" : "Create New Note"}</DialogTitle>
+            <DialogTitle>{note ? 'Edit Note' : 'Create New Note'}</DialogTitle>
             <DialogDescription>
               {note
-                ? "Update your note below."
-                : "Write your thoughts, ideas, or important information."}
+                ? 'Update your note below.'
+                : 'Write your thoughts, ideas, or important information.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -183,12 +174,7 @@ export function NoteEditor({
             </div>
           </div>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSaving}
-            >
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSaving}>
               Cancel
             </Button>
             <Button
@@ -196,7 +182,7 @@ export function NoteEditor({
               disabled={isSaving || !title.trim() || !content.trim()}
               className="bg-[#f59e0b] hover:bg-[#e08c00]"
             >
-              {isSaving ? "Saving..." : note ? "Update Note" : "Create Note"}
+              {isSaving ? 'Saving...' : note ? 'Update Note' : 'Create Note'}
             </Button>
           </DialogFooter>
         </form>

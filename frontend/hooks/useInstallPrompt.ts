@@ -1,16 +1,15 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 interface BeforeInstallPromptEvent {
   preventDefault: () => void;
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
 export function useInstallPrompt() {
-  const [installPrompt, setInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
@@ -20,16 +19,10 @@ export function useInstallPrompt() {
       setIsInstallable(true);
     };
 
-    globalThis.window?.addEventListener(
-      "beforeinstallprompt",
-      handler as EventListener,
-    );
+    globalThis.window?.addEventListener('beforeinstallprompt', handler as EventListener);
 
     return () =>
-      globalThis.window?.removeEventListener(
-        "beforeinstallprompt",
-        handler as EventListener,
-      );
+      globalThis.window?.removeEventListener('beforeinstallprompt', handler as EventListener);
   }, []);
 
   const promptInstall = async () => {
@@ -38,7 +31,7 @@ export function useInstallPrompt() {
     installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
 
-    if (outcome === "accepted") {
+    if (outcome === 'accepted') {
       setIsInstallable(false);
       setInstallPrompt(null);
     }

@@ -2,6 +2,19 @@
 
 Comprehensive guide for monitoring and logging in Bwaincell - ensuring observability, debugging, and production readiness.
 
+> **Supabase update (2026-04-15):** In addition to the Winston-based Express logging described below, Bwaincell now has two new log surfaces:
+>
+> **Supabase Logs Dashboard** — The self-hosted Supabase instance on the Pi exposes a Studio UI at `http://<pi-host>:54323` (default). Database logs, Auth logs, Storage logs, and Realtime logs are browsable from there.
+>
+> **PostgREST Logs** — Every Supabase query from `@supabase/supabase-js` goes through PostgREST. Query logs show up in the Supabase Dashboard's "Logs → API" panel and are invaluable when debugging RLS or unexpected 4xx responses.
+>
+> **Retention:** Self-hosted Supabase retains logs per its own Postgres log-retention settings; tune via `supabase/config.toml` or Postgres parameters. Winston backend logs retain per the existing volume-rotation policy.
+>
+> **Recommended alerting additions:**
+> - Alarm on `supabase-js` errors emitted via Winston (`logger.error('Supabase connection failed', ...)` in `supabase/supabase.ts`).
+> - Alarm on `sunsetService` / `eventsService` cron failures.
+> - Alarm on Gemini quota errors (`geminiService.ts`).
+
 ## Table of Contents
 
 1. [Winston Logger Configuration](#winston-logger-configuration)
@@ -31,61 +44,54 @@ npm install winston
 **File:** `shared/utils/logger.ts`
 
 ```typescript
-import winston from "winston";
+import winston from 'winston';
 
 /**
  * Winston logger configuration for Bwaincell
  * Provides structured logging with JSON format
  */
 export const logger = winston.createLogger({
-  level: process.env.NODE_ENV === "production" ? "info" : "debug",
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 
   format: winston.format.combine(
     winston.format.timestamp({
-      format: "YYYY-MM-DD HH:mm:ss",
+      format: 'YYYY-MM-DD HH:mm:ss',
     }),
     winston.format.errors({ stack: true }), // Capture error stack traces
     winston.format.splat(), // String interpolation
-    winston.format.json(), // JSON format for machine parsing
+    winston.format.json() // JSON format for machine parsing
   ),
 
   defaultMeta: {
-    service: "bwaincell",
-    environment: process.env.NODE_ENV || "development",
+    service: 'bwaincell',
+    environment: process.env.NODE_ENV || 'development',
   },
 
   transports: [
     // Console output (development)
     new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple(),
-      ),
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
     }),
 
     // Error log file (all environments)
     new winston.transports.File({
-      filename: "logs/error.log",
-      level: "error",
+      filename: 'logs/error.log',
+      level: 'error',
       maxsize: 10485760, // 10MB
       maxFiles: 5, // Keep 5 rotated files
     }),
 
     // Combined log file (all levels)
     new winston.transports.File({
-      filename: "logs/combined.log",
+      filename: 'logs/combined.log',
       maxsize: 10485760, // 10MB
       maxFiles: 10, // Keep 10 rotated files
     }),
   ],
 
   // Handle exceptions and rejections
-  exceptionHandlers: [
-    new winston.transports.File({ filename: "logs/exceptions.log" }),
-  ],
-  rejectionHandlers: [
-    new winston.transports.File({ filename: "logs/rejections.log" }),
-  ],
+  exceptionHandlers: [new winston.transports.File({ filename: 'logs/exceptions.log' })],
+  rejectionHandlers: [new winston.transports.File({ filename: 'logs/rejections.log' })],
 });
 
 // Stream for Morgan (HTTP request logging)
@@ -100,22 +106,22 @@ export const morganStream = {
 
 ```typescript
 // backend/src/bot.ts
-import { logger } from "@shared/utils/logger";
+import { logger } from '@shared/utils/logger';
 
-logger.info("[BOT] Starting Discord bot", {
+logger.info('[BOT] Starting Discord bot', {
   nodeVersion: process.version,
-  discordVersion: require("discord.js").version,
+  discordVersion: require('discord.js').version,
 });
 
-client.on("ready", () => {
-  logger.info("[BOT] Bot is ready", {
+client.on('ready', () => {
+  logger.info('[BOT] Bot is ready', {
     username: client.user?.tag,
     guildCount: client.guilds.cache.size,
   });
 });
 
-client.on("error", (error) => {
-  logger.error("[BOT] Discord client error", {
+client.on('error', (error) => {
+  logger.error('[BOT] Discord client error', {
     error: error.message,
     stack: error.stack,
   });
@@ -126,20 +132,20 @@ client.on("error", (error) => {
 
 ```typescript
 // backend/src/api/server.ts
-import { logger, morganStream } from "@shared/utils/logger";
-import morgan from "morgan";
+import { logger, morganStream } from '@shared/utils/logger';
+import morgan from 'morgan';
 
 // HTTP request logging
-app.use(morgan("combined", { stream: morganStream }));
+app.use(morgan('combined', { stream: morganStream }));
 
 // Application logging
-logger.info("[API] Express server starting", {
+logger.info('[API] Express server starting', {
   port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV,
 });
 
 app.listen(port, () => {
-  logger.info("[API] Server is running", {
+  logger.info('[API] Server is running', {
     port: port,
     url: `http://localhost:${port}`,
   });
@@ -184,10 +190,10 @@ Winston uses npm log levels (highest to lowest priority):
 try {
   await sequelize.authenticate();
 } catch (error) {
-  logger.error("[DB] Database connection failed", {
+  logger.error('[DB] Database connection failed', {
     error: error.message,
     stack: error.stack,
-    databaseUrl: process.env.DATABASE_URL?.replace(/:[^:]*@/, ":***@"), // Mask password
+    databaseUrl: process.env.DATABASE_URL?.replace(/:[^:]*@/, ':***@'), // Mask password
   });
   process.exit(1); // Exit on critical error
 }
@@ -206,15 +212,15 @@ try {
 **Example:**
 
 ```typescript
-logger.warn("[AUTH] Failed login attempt", {
+logger.warn('[AUTH] Failed login attempt', {
   username: username,
   ip: req.ip,
-  userAgent: req.headers["user-agent"],
+  userAgent: req.headers['user-agent'],
   timestamp: new Date().toISOString(),
 });
 
 if (slowQueryTime > 100) {
-  logger.warn("[DB] Slow query detected", {
+  logger.warn('[DB] Slow query detected', {
     sql: query,
     duration: slowQueryTime,
     threshold: 100,
@@ -235,14 +241,14 @@ if (slowQueryTime > 100) {
 **Example:**
 
 ```typescript
-logger.info("[BOT] Command executed", {
+logger.info('[BOT] Command executed', {
   command: interaction.commandName,
   user: interaction.user.tag,
   guild: interaction.guild?.name,
   duration: Date.now() - startTime,
 });
 
-logger.info("[CRON] Reminder check completed", {
+logger.info('[CRON] Reminder check completed', {
   remindersFound: reminders.length,
   remindersSent: sentCount,
   duration: Date.now() - startTime,
@@ -277,12 +283,12 @@ logger.info("[CRON] Reminder check completed", {
 **Example:**
 
 ```typescript
-logger.debug("[AUTH] Validating JWT token", {
-  token: token.substring(0, 20) + "...", // Truncate for security
+logger.debug('[AUTH] Validating JWT token', {
+  token: token.substring(0, 20) + '...', // Truncate for security
   expiresIn: decoded.exp - Math.floor(Date.now() / 1000),
 });
 
-logger.debug("[CACHE] Cache lookup", {
+logger.debug('[CACHE] Cache lookup', {
   key: cacheKey,
   hit: !!cachedValue,
   ttl: cachedValue ? cache.getTtl(cacheKey) : null,
@@ -296,7 +302,7 @@ logger.debug("[CACHE] Cache lookup", {
 ```typescript
 // Development: Show all logs (debug level)
 // Production: Show only important logs (info level)
-const logLevel = process.env.NODE_ENV === "production" ? "info" : "debug";
+const logLevel = process.env.NODE_ENV === 'production' ? 'info' : 'debug';
 
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || logLevel,
@@ -349,7 +355,7 @@ LOG_LEVEL=debug  # development
 
 ```typescript
 // ✅ GOOD: Rich context
-logger.info("[TASK] Task created", {
+logger.info('[TASK] Task created', {
   taskId: task.id,
   title: task.title,
   userId: req.user.discordId,
@@ -359,28 +365,28 @@ logger.info("[TASK] Task created", {
 });
 
 // ❌ BAD: Minimal context
-logger.info("Task created");
+logger.info('Task created');
 ```
 
 **Avoid Sensitive Data:**
 
 ```typescript
 // ❌ BAD: Logging passwords
-logger.info("[AUTH] Login attempt", {
+logger.info('[AUTH] Login attempt', {
   username: username,
   password: password, // NEVER log passwords!
 });
 
 // ✅ GOOD: Mask sensitive data
-logger.info("[AUTH] Login attempt", {
+logger.info('[AUTH] Login attempt', {
   username: username,
   passwordLength: password.length,
   ip: req.ip,
 });
 
 // ✅ GOOD: Mask database URLs
-logger.info("[DB] Connecting to database", {
-  url: process.env.DATABASE_URL?.replace(/:[^:]*@/, ":***@"),
+logger.info('[DB] Connecting to database', {
+  url: process.env.DATABASE_URL?.replace(/:[^:]*@/, ':***@'),
 });
 ```
 
@@ -392,7 +398,7 @@ logger.info("[DB] Connecting to database", {
 async function updateTask(taskId: string, updates: Partial<Task>) {
   const startTime = Date.now();
 
-  logger.debug("[TASK] updateTask ENTRY", {
+  logger.debug('[TASK] updateTask ENTRY', {
     taskId: taskId,
     updates: updates,
   });
@@ -401,13 +407,13 @@ async function updateTask(taskId: string, updates: Partial<Task>) {
     const task = await Task.findByPk(taskId);
 
     if (!task) {
-      logger.warn("[TASK] Task not found", { taskId: taskId });
-      throw new Error("Task not found");
+      logger.warn('[TASK] Task not found', { taskId: taskId });
+      throw new Error('Task not found');
     }
 
     await task.update(updates);
 
-    logger.info("[TASK] Task updated", {
+    logger.info('[TASK] Task updated', {
       taskId: taskId,
       updates: Object.keys(updates),
       duration: Date.now() - startTime,
@@ -415,7 +421,7 @@ async function updateTask(taskId: string, updates: Partial<Task>) {
 
     return task;
   } catch (error) {
-    logger.error("[TASK] updateTask ERROR", {
+    logger.error('[TASK] updateTask ERROR', {
       taskId: taskId,
       error: error.message,
       stack: error.stack,
@@ -430,8 +436,8 @@ async function updateTask(taskId: string, updates: Partial<Task>) {
 
 ```typescript
 await sequelize.transaction(async (t) => {
-  logger.info("[TRANSACTION] Starting transaction", {
-    operation: "bulkTaskUpdate",
+  logger.info('[TRANSACTION] Starting transaction', {
+    operation: 'bulkTaskUpdate',
     taskCount: tasks.length,
   });
 
@@ -439,13 +445,13 @@ await sequelize.transaction(async (t) => {
     // Perform operations
     await Task.bulkCreate(tasks, { transaction: t });
 
-    logger.info("[TRANSACTION] Transaction committed", {
-      operation: "bulkTaskUpdate",
+    logger.info('[TRANSACTION] Transaction committed', {
+      operation: 'bulkTaskUpdate',
       taskCount: tasks.length,
     });
   } catch (error) {
-    logger.error("[TRANSACTION] Transaction rolled back", {
-      operation: "bulkTaskUpdate",
+    logger.error('[TRANSACTION] Transaction rolled back', {
+      operation: 'bulkTaskUpdate',
       error: error.message,
     });
     throw error;
@@ -554,8 +560,8 @@ docker compose logs --no-color backend > backend-logs.txt
 
 ```typescript
 // Example: Logtail integration
-import { Logtail } from "@logtail/node";
-import { LogtailTransport } from "@logtail/winston";
+import { Logtail } from '@logtail/node';
+import { LogtailTransport } from '@logtail/winston';
 
 const logtail = new Logtail(process.env.LOGTAIL_TOKEN);
 
@@ -575,13 +581,13 @@ export const logger = winston.createLogger({
 
 ```typescript
 // backend/src/api/routes/health.ts
-import { Router } from "express";
-import { sequelize } from "../../database/connection";
-import { logger } from "@shared/utils/logger";
+import { Router } from 'express';
+import { sequelize } from '../../database/connection';
+import { logger } from '@shared/utils/logger';
 
 const router = Router();
 
-router.get("/health", async (req, res) => {
+router.get('/health', async (req, res) => {
   const startTime = Date.now();
 
   try {
@@ -589,16 +595,16 @@ router.get("/health", async (req, res) => {
     await sequelize.authenticate();
 
     const health = {
-      status: "healthy",
+      status: 'healthy',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
-      version: require("../../../package.json").version,
-      database: "connected",
+      version: require('../../../package.json').version,
+      database: 'connected',
       memory: {
         used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024), // MB
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-        unit: "MB",
+        unit: 'MB',
       },
       cpu: {
         usage: process.cpuUsage(),
@@ -606,18 +612,18 @@ router.get("/health", async (req, res) => {
       responseTime: Date.now() - startTime,
     };
 
-    logger.debug("[HEALTH] Health check passed", health);
+    logger.debug('[HEALTH] Health check passed', health);
 
     res.status(200).json(health);
   } catch (error) {
-    logger.error("[HEALTH] Health check failed", {
+    logger.error('[HEALTH] Health check failed', {
       error: error.message,
       stack: error.stack,
     });
 
     res.status(503).json({
-      status: "unhealthy",
-      error: "Service unavailable",
+      status: 'unhealthy',
+      error: 'Service unavailable',
       timestamp: new Date().toISOString(),
     });
   }
@@ -665,31 +671,27 @@ echo "Health check passed"
 
 ```typescript
 // backend/src/api/middleware/performanceMonitor.ts
-import { Request, Response, NextFunction } from "express";
-import { logger } from "@shared/utils/logger";
+import { Request, Response, NextFunction } from 'express';
+import { logger } from '@shared/utils/logger';
 
-export function performanceMonitor(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function performanceMonitor(req: Request, res: Response, next: NextFunction): void {
   const startTime = Date.now();
 
-  res.on("finish", () => {
+  res.on('finish', () => {
     const duration = Date.now() - startTime;
 
-    logger.info("[PERF] Request completed", {
+    logger.info('[PERF] Request completed', {
       method: req.method,
       path: req.path,
       statusCode: res.statusCode,
       duration: duration,
-      unit: "ms",
-      userAgent: req.headers["user-agent"],
+      unit: 'ms',
+      userAgent: req.headers['user-agent'],
     });
 
     // Alert on slow requests (>1 second)
     if (duration > 1000) {
-      logger.warn("[PERF] Slow request detected", {
+      logger.warn('[PERF] Slow request detected', {
         method: req.method,
         path: req.path,
         duration: duration,
@@ -715,17 +717,17 @@ let requestCount = 0;
 setInterval(() => {
   const errorRate = requestCount > 0 ? (errorCount / requestCount) * 100 : 0;
 
-  logger.info("[METRICS] Error rate", {
+  logger.info('[METRICS] Error rate', {
     errorCount: errorCount,
     requestCount: requestCount,
-    errorRate: errorRate.toFixed(2) + "%",
+    errorRate: errorRate.toFixed(2) + '%',
   });
 
   // Alert if error rate > 5%
   if (errorRate > 5) {
-    logger.error("[METRICS] High error rate detected", {
-      errorRate: errorRate.toFixed(2) + "%",
-      threshold: "5%",
+    logger.error('[METRICS] High error rate detected', {
+      errorRate: errorRate.toFixed(2) + '%',
+      threshold: '5%',
     });
   }
 
@@ -743,29 +745,29 @@ setInterval(() => {
 
 ```typescript
 // backend/database/connection.ts
-import { Sequelize } from "sequelize";
-import { logger } from "@shared/utils/logger";
+import { Sequelize } from 'sequelize';
+import { logger } from '@shared/utils/logger';
 
 const sequelize = new Sequelize(process.env.DATABASE_URL!, {
-  dialect: "postgres",
+  dialect: 'postgres',
 
   logging: (sql: string, timing?: number) => {
     // Log all queries in development
-    if (process.env.NODE_ENV === "development") {
-      logger.debug("[DB] Query executed", {
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug('[DB] Query executed', {
         sql: sql,
         duration: timing,
-        unit: "ms",
+        unit: 'ms',
       });
     }
 
     // Log slow queries in production (>100ms)
     if (timing && timing > 100) {
-      logger.warn("[DB] Slow query detected", {
+      logger.warn('[DB] Slow query detected', {
         sql: sql,
         duration: timing,
         threshold: 100,
-        unit: "ms",
+        unit: 'ms',
       });
     }
   },
@@ -781,7 +783,7 @@ const sequelize = new Sequelize(process.env.DATABASE_URL!, {
 setInterval(() => {
   const pool = sequelize.connectionManager.pool;
 
-  logger.info("[DB] Connection pool status", {
+  logger.info('[DB] Connection pool status', {
     size: pool.size, // Current connections
     available: pool.available, // Available connections
     waiting: pool.pending, // Waiting requests
@@ -791,7 +793,7 @@ setInterval(() => {
 
   // Alert if pool is exhausted
   if (pool.available === 0 && pool.pending > 0) {
-    logger.warn("[DB] Connection pool exhausted", {
+    logger.warn('[DB] Connection pool exhausted', {
       waiting: pool.pending,
       maxConnections: pool.max,
     });
@@ -853,8 +855,8 @@ WHERE state = 'active';
 
 ```typescript
 // backend/src/bot.ts
-import { Client, Events } from "discord.js";
-import { logger } from "@shared/utils/logger";
+import { Client, Events } from 'discord.js';
+import { logger } from '@shared/utils/logger';
 
 const client = new Client({
   /* ... */
@@ -862,7 +864,7 @@ const client = new Client({
 
 // Bot ready
 client.on(Events.ClientReady, () => {
-  logger.info("[BOT] Bot is ready", {
+  logger.info('[BOT] Bot is ready', {
     username: client.user?.tag,
     id: client.user?.id,
     guildCount: client.guilds.cache.size,
@@ -876,7 +878,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   const startTime = Date.now();
 
-  logger.info("[BOT] Command received", {
+  logger.info('[BOT] Command received', {
     command: interaction.commandName,
     user: interaction.user.tag,
     userId: interaction.user.id,
@@ -887,13 +889,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
   try {
     await command.execute(interaction);
 
-    logger.info("[BOT] Command executed successfully", {
+    logger.info('[BOT] Command executed successfully', {
       command: interaction.commandName,
       user: interaction.user.tag,
       duration: Date.now() - startTime,
     });
   } catch (error) {
-    logger.error("[BOT] Command execution failed", {
+    logger.error('[BOT] Command execution failed', {
       command: interaction.commandName,
       user: interaction.user.tag,
       error: error.message,
@@ -904,7 +906,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 // Error handling
 client.on(Events.Error, (error) => {
-  logger.error("[BOT] Discord client error", {
+  logger.error('[BOT] Discord client error', {
     error: error.message,
     stack: error.stack,
   });
@@ -912,14 +914,14 @@ client.on(Events.Error, (error) => {
 
 // Warning handling
 client.on(Events.Warn, (warning) => {
-  logger.warn("[BOT] Discord client warning", {
+  logger.warn('[BOT] Discord client warning', {
     warning: warning,
   });
 });
 
 // Rate limit warnings
 client.on(Events.RateLimit, (rateLimitData) => {
-  logger.warn("[BOT] Rate limit hit", {
+  logger.warn('[BOT] Rate limit hit', {
     timeout: rateLimitData.timeout,
     limit: rateLimitData.limit,
     method: rateLimitData.method,
@@ -930,7 +932,7 @@ client.on(Events.RateLimit, (rateLimitData) => {
 
 // Shard disconnect
 client.on(Events.ShardDisconnect, (event, shardId) => {
-  logger.error("[BOT] Shard disconnected", {
+  logger.error('[BOT] Shard disconnected', {
     shardId: shardId,
     code: event.code,
     reason: event.reason,
@@ -939,7 +941,7 @@ client.on(Events.ShardDisconnect, (event, shardId) => {
 
 // Shard reconnect
 client.on(Events.ShardReconnecting, (shardId) => {
-  logger.info("[BOT] Shard reconnecting", {
+  logger.info('[BOT] Shard reconnecting', {
     shardId: shardId,
   });
 });
@@ -967,7 +969,7 @@ setInterval(
       .map(([command, count]) => ({ command, count }))
       .sort((a, b) => b.count - a.count);
 
-    logger.info("[BOT] Command usage statistics", {
+    logger.info('[BOT] Command usage statistics', {
       totalCommands: stats.reduce((sum, s) => sum + s.count, 0),
       commandBreakdown: stats,
     });
@@ -975,7 +977,7 @@ setInterval(
     // Reset counters
     commandStats.clear();
   },
-  60 * 60 * 1000,
+  60 * 60 * 1000
 ); // Every hour
 ```
 
@@ -986,14 +988,14 @@ setInterval(
 setInterval(() => {
   const ping = client.ws.ping;
 
-  logger.info("[BOT] Gateway latency", {
+  logger.info('[BOT] Gateway latency', {
     ping: ping,
-    unit: "ms",
+    unit: 'ms',
   });
 
   // Alert if latency > 300ms
   if (ping > 300) {
-    logger.warn("[BOT] High gateway latency", {
+    logger.warn('[BOT] High gateway latency', {
       ping: ping,
       threshold: 300,
     });
@@ -1009,11 +1011,11 @@ setInterval(() => {
 
 ```typescript
 // backend/src/utils/alerting.ts
-import nodemailer from "nodemailer";
-import { logger } from "@shared/utils/logger";
+import nodemailer from 'nodemailer';
+import { logger } from '@shared/utils/logger';
 
 const transporter = nodemailer.createTransporter({
-  service: "gmail",
+  service: 'gmail',
   auth: {
     user: process.env.ALERT_EMAIL,
     pass: process.env.ALERT_EMAIL_PASSWORD,
@@ -1029,9 +1031,9 @@ export async function sendAlert(subject: string, message: string) {
       text: message,
     });
 
-    logger.info("[ALERT] Email alert sent", { subject });
+    logger.info('[ALERT] Email alert sent', { subject });
   } catch (error) {
-    logger.error("[ALERT] Failed to send email alert", {
+    logger.error('[ALERT] Failed to send email alert', {
       subject: subject,
       error: error.message,
     });
@@ -1040,7 +1042,7 @@ export async function sendAlert(subject: string, message: string) {
 
 // Usage
 if (errorRate > 10) {
-  sendAlert("High Error Rate", `Error rate: ${errorRate}% (threshold: 10%)`);
+  sendAlert('High Error Rate', `Error rate: ${errorRate}% (threshold: 10%)`);
 }
 ```
 
@@ -1048,18 +1050,18 @@ if (errorRate > 10) {
 
 ```typescript
 // backend/src/utils/alerting.ts
-import axios from "axios";
+import axios from 'axios';
 
 export async function sendDiscordAlert(message: string) {
   try {
     await axios.post(process.env.DISCORD_WEBHOOK_URL!, {
       content: `🚨 **Bwaincell Alert**\n${message}`,
-      username: "Bwaincell Monitoring",
+      username: 'Bwaincell Monitoring',
     });
 
-    logger.info("[ALERT] Discord webhook sent");
+    logger.info('[ALERT] Discord webhook sent');
   } catch (error) {
-    logger.error("[ALERT] Failed to send Discord webhook", {
+    logger.error('[ALERT] Failed to send Discord webhook', {
       error: error.message,
     });
   }
@@ -1067,7 +1069,7 @@ export async function sendDiscordAlert(message: string) {
 
 // Usage
 if (databaseConnectionFailed) {
-  sendDiscordAlert("Database connection failed! Service may be down.");
+  sendDiscordAlert('Database connection failed! Service may be down.');
 }
 ```
 
@@ -1109,15 +1111,15 @@ export const ALERT_THRESHOLDS = {
 export const logger = winston.createLogger({
   transports: [
     new winston.transports.File({
-      filename: "logs/error.log",
-      level: "error",
+      filename: 'logs/error.log',
+      level: 'error',
       maxsize: 10485760, // 10MB per file
       maxFiles: 5, // Keep 5 rotated files (50MB total)
       tailable: true, // Latest logs in base file
     }),
 
     new winston.transports.File({
-      filename: "logs/combined.log",
+      filename: 'logs/combined.log',
       maxsize: 10485760, // 10MB per file
       maxFiles: 10, // Keep 10 rotated files (100MB total)
       tailable: true,
@@ -1236,19 +1238,15 @@ grep "duration.*[0-9]{4,}" logs/combined.log | tail -n 20
 
 ```typescript
 // Add correlation ID to all logs for a request
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from 'uuid';
 
-export function correlationMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function correlationMiddleware(req: Request, res: Response, next: NextFunction): void {
   req.correlationId = uuidv4();
 
   // Attach to all logs in this request
   logger.defaultMeta.correlationId = req.correlationId;
 
-  res.on("finish", () => {
+  res.on('finish', () => {
     delete logger.defaultMeta.correlationId;
   });
 
@@ -1256,7 +1254,7 @@ export function correlationMiddleware(
 }
 
 // All logs will include correlationId
-logger.info("[API] Request received", {
+logger.info('[API] Request received', {
   path: req.path,
   // correlationId: "abc-123-def" (automatically included)
 });

@@ -40,11 +40,14 @@ describe('Logger', () => {
       const spy = jest.spyOn(logger, 'info');
       logCommandExecution('testCommand', 'userId123', 'guildId456');
 
-      expect(spy).toHaveBeenCalledWith('Command executed', expect.objectContaining({
-        command: 'testCommand',
-        userId: 'userId123',
-        guildId: 'guildId456'
-      }));
+      expect(spy).toHaveBeenCalledWith(
+        'Command executed',
+        expect.objectContaining({
+          command: 'testCommand',
+          userId: 'userId123',
+          guildId: 'guildId456',
+        })
+      );
     });
 
     it('should log errors with context', () => {
@@ -54,10 +57,13 @@ describe('Logger', () => {
 
       logError(testError, context);
 
-      expect(spy).toHaveBeenCalledWith('Error occurred', expect.objectContaining({
-        message: 'Test error',
-        context
-      }));
+      expect(spy).toHaveBeenCalledWith(
+        'Error occurred',
+        expect.objectContaining({
+          message: 'Test error',
+          context,
+        })
+      );
     });
   });
 });

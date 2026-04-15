@@ -1,15 +1,15 @@
-const js = require("@eslint/js");
-const typescript = require("@typescript-eslint/eslint-plugin");
-const typescriptParser = require("@typescript-eslint/parser");
+const js = require('@eslint/js');
+const typescript = require('@typescript-eslint/eslint-plugin');
+const typescriptParser = require('@typescript-eslint/parser');
 
 module.exports = [
   js.configs.recommended,
   {
-    files: ["**/*.ts"],
+    files: ['**/*.ts'],
     languageOptions: {
       parser: typescriptParser,
       ecmaVersion: 2020,
-      sourceType: "module",
+      sourceType: 'module',
       globals: {
         process: true,
         module: true,
@@ -30,29 +30,29 @@ module.exports = [
       },
     },
     plugins: {
-      "@typescript-eslint": typescript,
+      '@typescript-eslint': typescript,
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "error",
+      '@typescript-eslint/no-unused-vars': [
+        'error',
         {
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
         },
       ],
-      "@typescript-eslint/no-explicit-any": "off",
-      "no-console": "off",
-      "@typescript-eslint/explicit-function-return-type": "off",
-      "@typescript-eslint/explicit-module-boundary-types": "off",
-      "@typescript-eslint/no-empty-function": "warn",
-      "no-unused-vars": "off",
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-console': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-empty-function': 'warn',
+      'no-unused-vars': 'off',
     },
   },
   {
-    files: ["**/*.js"],
+    files: ['**/*.js'],
     languageOptions: {
       ecmaVersion: 2020,
-      sourceType: "commonjs",
+      sourceType: 'commonjs',
       globals: {
         process: true,
         module: true,
@@ -74,7 +74,7 @@ module.exports = [
     },
   },
   {
-    files: ["**/*.test.ts", "**/*.spec.ts", "tests/**/*.ts"],
+    files: ['**/*.test.ts', '**/*.spec.ts', 'tests/**/*.ts'],
     languageOptions: {
       globals: {
         jest: true,
@@ -90,6 +90,6 @@ module.exports = [
     },
   },
   {
-    ignores: ["dist/", "node_modules/", "coverage/"],
+    ignores: ['dist/', 'node_modules/', 'coverage/'],
   },
 ];

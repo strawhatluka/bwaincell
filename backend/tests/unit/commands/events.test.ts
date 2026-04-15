@@ -23,7 +23,7 @@ jest.mock('../../../shared/utils/logger', () => ({
 
 // Mock EventConfig model
 const mockUpsertConfig = jest.fn();
-jest.mock('../../../database/models/EventConfig', () => ({
+jest.mock('../../../../supabase/models/EventConfig', () => ({
   __esModule: true,
   default: {
     upsertConfig: (...args: any[]) => mockUpsertConfig(...args),
@@ -124,13 +124,11 @@ describe('/events Command', () => {
     mockDiscoverLocalEvents.mockResolvedValue(mockEvents);
     mockFormatEventsForDiscord.mockResolvedValue(mockEmbed);
 
-    // Restore EventConfig mock
+    // Restore EventConfig mock - returns plain row object (Supabase, not Sequelize)
     mockUpsertConfig.mockResolvedValue({
-      get: jest.fn(() => ({
-        schedule_day: 1,
-        schedule_hour: 12,
-        schedule_minute: 0,
-      })),
+      schedule_day: 1,
+      schedule_hour: 12,
+      schedule_minute: 0,
     });
 
     mockInteraction = {

@@ -272,7 +272,7 @@ npx shadcn-ui@latest add button
 Example:
 
 ```typescript
-import { useTasks } from "@/hooks/useTasks";
+import { useTasks } from '@/hooks/useTasks';
 
 export function TaskList() {
   const { tasks, isLoading, createTask, updateTask } = useTasks();

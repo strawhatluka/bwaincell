@@ -25,7 +25,7 @@ jest.mock('../../../config/config', () => ({
   },
 }));
 
-import Schedule from '../../../database/models/Schedule';
+import Schedule from '../../../../supabase/models/Schedule';
 
 describe('Schedule Model', () => {
   const testGuildId = 'guild-123';

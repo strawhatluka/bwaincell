@@ -1,97 +1,59 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../../auth/[...nextauth]/route';
+import { User } from '@database/models/User';
+import List from '@database/models/List';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
-interface ListItem {
-  text: string;
-  completed: boolean;
-  added_at: string;
-}
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * POST /api/lists/[listName]/clear-completed
  * Remove all completed items from a list
  */
 export async function POST(
-  request: NextRequest,
-  { params }: { params: { listName: string } },
+  _request: NextRequest,
+  props: { params: Promise<{ listName: string }> }
 ) {
+  const { listName: rawListName } = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    const listName = decodeURIComponent(params.listName);
+    const listName = decodeURIComponent(rawListName);
 
-    // Find the list
-    const list = await prisma.list.findFirst({
-      where: {
-        guildId: user.guildId,
-        name: {
-          equals: listName,
-          mode: "insensitive",
-        },
+    const updatedList = await List.clearCompleted(user.guild_id, listName);
+
+    if (!updatedList) {
+      return NextResponse.json({ success: false, error: 'List not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: updatedList,
+        message: 'Completed items cleared successfully',
       },
-    });
-
-    if (!list) {
-      return NextResponse.json(
-        { success: false, error: "List not found" },
-        { status: 404 },
-      );
-    }
-
-    // Parse existing items
-    const items: ListItem[] = Array.isArray(list.items)
-      ? (list.items as unknown as ListItem[])
-      : [];
-
-    // Filter out completed items
-    const updatedItems = items.filter((item) => !item.completed);
-
-    const removedCount = items.length - updatedItems.length;
-
-    // Update list with filtered items array
-    const updatedList = await prisma.list.update({
-      where: { id: list.id },
-      data: { items: updatedItems as any },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: updatedList,
-      message: `Removed ${removedCount} completed item${removedCount !== 1 ? "s" : ""}`,
-    });
+      { status: 201 }
+    );
   } catch (error) {
-    console.error("[API] Error clearing completed items:", error);
+    console.error('[API] Error clearing completed items:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to clear completed items",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to clear completed items',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { DateTime } from 'luxon';
 import { logger } from '../shared/utils/logger';
-import SunsetConfig from '../database/models/SunsetConfig';
+import SunsetConfig from '../../supabase/models/SunsetConfig';
 import { getScheduler } from '../utils/scheduler';
 import { getCoordinatesFromZip, getSunsetTime } from '../utils/sunsetService';
 import config from '../config/config';
@@ -176,7 +176,7 @@ export default {
             return;
           }
 
-          const configData = existingConfig.get({ plain: true });
+          const configData = existingConfig;
 
           // Try to fetch today's sunset time
           let sunsetDisplay = 'Unable to fetch';

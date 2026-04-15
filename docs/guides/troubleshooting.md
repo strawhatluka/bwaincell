@@ -1,6 +1,25 @@
 # Troubleshooting Guide
 
-**Version:** 2.0.0
+**Version:** 2.1.2
+**Last Updated:** 2026-04-15
+
+> **Supabase update (2026-04-15):** Key troubleshooting entries for the current stack.
+>
+> **"SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY ... environment variables are required"** — Thrown by `supabase/supabase.ts` on the first query. Set both in `.env` (local) or in your deployment environment. Service-role or anon key is accepted; service-role is preferred server-side.
+>
+> **Supabase local stack won't start** — `npm run supabase:status`. If Docker is not running, start Docker Desktop. If ports 54321–54324 are in use, stop the conflicting process. `npm run supabase:stop` then `npm run supabase:start` clears a hung stack.
+>
+> **Migrations out of sync** — `npm run supabase:reset` locally replays `init.sql` + all migrations from scratch. Never edit an already-applied migration; add a new forward migration instead.
+>
+> **RLS denying reads** — We currently do not ship RLS policies; if you add them and the backend starts returning zero rows with the anon key, check `auth.jwt() ->> 'guild_id'` matches the row's `guild_id` and/or test with the service-role key to confirm it's an RLS issue.
+>
+> **Service-role vs anon key mismatch** — If inserts succeed from Discord but fail from the PWA, you're likely using the anon key without matching RLS policies in place. Either use the service-role key on the server-side API route or add the RLS policy.
+>
+> **Recipe scraper fails on a URL** — `backend/utils/recipeScraper.ts`. Check logs; many sites block scraping. Fallback: use `/recipe add` with manual entry.
+>
+> **Gemini errors** — `GEMINI_API_KEY` missing / quota exhausted / network issue. Recipe ingestion will store the raw ingredient text without normalization. `/random date` and AI shopping-list will fail outright.
+>
+> **Sunset announcement didn't fire** — Check `sunset_configs.is_enabled`, `channel_id` validity, bot channel permissions, and that the Pi was online at the computed trigger time (`sunset - advance_minutes`).
 **Last Updated** 2026-01-12
 
 Comprehensive troubleshooting guide for common issues in Bwaincell's Discord bot, database, authentication, API, frontend, and deployment.
@@ -183,15 +202,13 @@ grep "modal_" backend/utils/interactions.ts
    ```typescript
    // backend/src/bot.ts
    const modalButtons = [
-     "list_add_",
-     "task_edit_",
-     "task_add_new",
-     "reminder_edit_",
-     "reminder_create_",
+     'list_add_',
+     'task_edit_',
+     'task_add_new',
+     'reminder_edit_',
+     'reminder_create_',
    ];
-   const opensModal = modalButtons.some((prefix) =>
-     interaction.customId.startsWith(prefix),
-   );
+   const opensModal = modalButtons.some((prefix) => interaction.customId.startsWith(prefix));
 
    if (!opensModal) {
      await interaction.deferUpdate(); // Only defer non-modal buttons
@@ -248,7 +265,7 @@ psql -U bwaincell -d bwaincell -c "SELECT id, message, next_trigger FROM reminde
 
    ```typescript
    // backend/src/bot.ts (must be FIRST line)
-   process.env.TZ = process.env.TIMEZONE || "America/Los_Angeles";
+   process.env.TZ = process.env.TIMEZONE || 'America/Los_Angeles';
    ```
 
 4. Restart backend to apply timezone changes:
@@ -341,9 +358,7 @@ head -10 backend/commands/task.ts
    ```typescript
    // backend/commands/example.ts
    export default {
-     data: new SlashCommandBuilder()
-       .setName("example")
-       .setDescription("Example command"),
+     data: new SlashCommandBuilder().setName('example').setDescription('Example command'),
      async execute(interaction) {
        // Command logic
      },
@@ -440,9 +455,8 @@ docker logs bwaincell-bot | grep "autocomplete"
 
    ```typescript
    export default {
-     data: new SlashCommandBuilder().setName("note").addStringOption(
-       (option) =>
-         option.setName("tag").setDescription("Note tag").setAutocomplete(true), // Enable autocomplete
+     data: new SlashCommandBuilder().setName('note').addStringOption(
+       (option) => option.setName('tag').setDescription('Note tag').setAutocomplete(true) // Enable autocomplete
      ),
      async execute(interaction) {
        /* ... */
@@ -451,11 +465,9 @@ docker logs bwaincell-bot | grep "autocomplete"
        const focusedValue = interaction.options.getFocused();
        const allTags = await Note.getAllTags(guildId);
        const filtered = allTags.filter((tag) =>
-         tag.toLowerCase().includes(focusedValue.toLowerCase()),
+         tag.toLowerCase().includes(focusedValue.toLowerCase())
        );
-       await interaction.respond(
-         filtered.slice(0, 25).map((tag) => ({ name: tag, value: tag })),
-       );
+       await interaction.respond(filtered.slice(0, 25).map((tag) => ({ name: tag, value: tag })));
      },
    };
    ```
@@ -732,7 +744,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
      where: { guild_id: guildId },
      limit: 50,
      offset: page * 50,
-     order: [["created_at", "DESC"]],
+     order: [['created_at', 'DESC']],
    });
    ```
 
@@ -747,7 +759,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 
    // Good (single query)
    const lists = await List.findAll({
-     include: [{ model: Item, as: "items" }],
+     include: [{ model: Item, as: 'items' }],
    });
    ```
 
@@ -806,7 +818,7 @@ GROUP BY client_addr, state;
 
    ```typescript
    // Close sequelize on shutdown
-   process.on("SIGTERM", async () => {
+   process.on('SIGTERM', async () => {
      await sequelize.close();
      process.exit(0);
    });
@@ -1071,7 +1083,7 @@ SELECT deadlocks FROM pg_stat_database WHERE datname = 'bwaincell';
        {
          /* ... */
        },
-       { transaction: t },
+       { transaction: t }
      );
    });
 
@@ -1342,18 +1354,18 @@ curl -X OPTIONS http://localhost:3000/api/auth/google/verify \
 1. Configure CORS in backend (backend/src/api/server.ts):
 
    ```typescript
-   import cors from "cors";
+   import cors from 'cors';
 
    app.use(
      cors({
        origin: [
-         "http://localhost:3010", // Development
-         "https://bwaincell.sunny-stack.com", // Production
+         'http://localhost:3010', // Development
+         'https://bwaincell.sunny-stack.com', // Production
        ],
        credentials: true,
-       methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-       allowedHeaders: ["Content-Type", "Authorization"],
-     }),
+       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+       allowedHeaders: ['Content-Type', 'Authorization'],
+     })
    );
    ```
 
@@ -1400,10 +1412,7 @@ docker logs bwaincell-bot | grep "/api/auth/refresh"
 
    ```typescript
    // backend/src/api/routes/auth.ts
-   await User.update(
-     { refreshToken: newRefreshToken },
-     { where: { email: user.email } },
-   );
+   await User.update({ refreshToken: newRefreshToken }, { where: { email: user.email } });
    ```
 
 2. Implement refresh logic in frontend:
@@ -1411,16 +1420,16 @@ docker logs bwaincell-bot | grep "/api/auth/refresh"
    ```typescript
    // frontend/lib/api.ts
    async function refreshAccessToken() {
-     const refreshToken = localStorage.getItem("refreshToken");
+     const refreshToken = localStorage.getItem('refreshToken');
 
-     const response = await fetch("http://localhost:3000/api/auth/refresh", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
+     const response = await fetch('http://localhost:3000/api/auth/refresh', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
        body: JSON.stringify({ refreshToken }),
      });
 
      const { data } = await response.json();
-     localStorage.setItem("accessToken", data.accessToken);
+     localStorage.setItem('accessToken', data.accessToken);
      return data.accessToken;
    }
    ```
@@ -1436,7 +1445,7 @@ docker logs bwaincell-bot | grep "/api/auth/refresh"
    if (!user) {
      return res.status(401).json({
        success: false,
-       error: "Invalid refresh token",
+       error: 'Invalid refresh token',
      });
    }
    ```
@@ -1474,18 +1483,18 @@ docker logs bwaincell-bot | grep "/api/auth/refresh"
 
    ```typescript
    // frontend/lib/api.ts
-   localStorage.setItem("accessToken", token);
-   localStorage.setItem("refreshToken", refreshToken);
+   localStorage.setItem('accessToken', token);
+   localStorage.setItem('refreshToken', refreshToken);
    ```
 
 2. For production, use httpOnly cookies (more secure):
 
    ```typescript
    // backend/src/api/routes/auth.ts
-   res.cookie("accessToken", token, {
+   res.cookie('accessToken', token, {
      httpOnly: true,
-     secure: process.env.NODE_ENV === "production",
-     sameSite: "strict",
+     secure: process.env.NODE_ENV === 'production',
+     sameSite: 'strict',
      maxAge: 60 * 60 * 1000, // 1 hour
    });
    ```
@@ -1493,7 +1502,7 @@ docker logs bwaincell-bot | grep "/api/auth/refresh"
 3. Implement "Remember Me" functionality:
    ```typescript
    // Longer refresh token expiry if user opts in
-   const refreshTokenExpiry = rememberMe ? "30d" : "7d";
+   const refreshTokenExpiry = rememberMe ? '30d' : '7d';
    ```
 
 **Prevention:**
@@ -1531,17 +1540,17 @@ grep "authenticateJWT\|app.use" backend/src/api/server.ts
 
    ```typescript
    // backend/src/api/server.ts
-   import { authenticateJWT } from "./middleware/auth";
+   import { authenticateJWT } from './middleware/auth';
 
    // Public routes (no auth)
-   app.use("/health", healthRoutes);
-   app.use("/api/auth", authRoutes);
+   app.use('/health', healthRoutes);
+   app.use('/api/auth', authRoutes);
 
    // Protected routes (require auth)
-   app.use("/api/tasks", authenticateJWT, taskRoutes);
-   app.use("/api/lists", authenticateJWT, listRoutes);
-   app.use("/api/notes", authenticateJWT, noteRoutes);
-   app.use("/api/reminders", authenticateJWT, reminderRoutes);
+   app.use('/api/tasks', authenticateJWT, taskRoutes);
+   app.use('/api/lists', authenticateJWT, listRoutes);
+   app.use('/api/notes', authenticateJWT, noteRoutes);
+   app.use('/api/reminders', authenticateJWT, reminderRoutes);
    ```
 
 2. Verify JWT middleware implementation:
@@ -1554,17 +1563,17 @@ grep "authenticateJWT\|app.use" backend/src/api/server.ts
      if (!authHeader) {
        return res.status(401).json({
          success: false,
-         error: "No token provided",
+         error: 'No token provided',
        });
      }
 
-     const token = authHeader.split(" ")[1];
+     const token = authHeader.split(' ')[1];
 
      jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
        if (err) {
          return res.status(401).json({
            success: false,
-           error: "Invalid token",
+           error: 'Invalid token',
          });
        }
 
@@ -1612,11 +1621,11 @@ curl -H "Authorization: Bearer token" http://localhost:3000/api/tasks
 
    ```typescript
    // Development: Use Basic Auth for quick testing
-   if (process.env.NODE_ENV === "development") {
-     app.use("/api", authenticateBasic);
+   if (process.env.NODE_ENV === 'development') {
+     app.use('/api', authenticateBasic);
    } else {
      // Production: Use JWT
-     app.use("/api", authenticateJWT);
+     app.use('/api', authenticateJWT);
    }
    ```
 
@@ -1626,14 +1635,14 @@ curl -H "Authorization: Bearer token" http://localhost:3000/api/tasks
    function authenticateEither(req, res, next) {
      const authHeader = req.headers.authorization;
 
-     if (authHeader.startsWith("Bearer ")) {
+     if (authHeader.startsWith('Bearer ')) {
        return authenticateJWT(req, res, next);
-     } else if (authHeader.startsWith("Basic ")) {
+     } else if (authHeader.startsWith('Basic ')) {
        return authenticateBasic(req, res, next);
      } else {
        return res.status(401).json({
          success: false,
-         error: "No valid authentication provided",
+         error: 'No valid authentication provided',
        });
      }
    }
@@ -1677,23 +1686,23 @@ node -e "const app = require('./backend/src/api/server').default; console.log(ap
 1. Verify routes are registered (backend/src/api/server.ts):
 
    ```typescript
-   import taskRoutes from "./routes/tasks";
-   import listRoutes from "./routes/lists";
+   import taskRoutes from './routes/tasks';
+   import listRoutes from './routes/lists';
 
-   app.use("/api/tasks", authenticateJWT, taskRoutes);
-   app.use("/api/lists", authenticateJWT, listRoutes);
+   app.use('/api/tasks', authenticateJWT, taskRoutes);
+   app.use('/api/lists', authenticateJWT, listRoutes);
    ```
 
 2. Check route definitions (backend/src/api/routes/tasks.ts):
 
    ```typescript
-   import express from "express";
+   import express from 'express';
    const router = express.Router();
 
-   router.get("/", async (req, res) => {
+   router.get('/', async (req, res) => {
      /* ... */
    });
-   router.post("/", async (req, res) => {
+   router.post('/', async (req, res) => {
      /* ... */
    });
 
@@ -1704,10 +1713,10 @@ node -e "const app = require('./backend/src/api/server').default; console.log(ap
 
    ```typescript
    // ✅ Correct: /api/tasks/
-   app.use("/api/tasks", taskRoutes);
+   app.use('/api/tasks', taskRoutes);
 
    // ❌ Wrong: /tasks/ (missing /api prefix)
-   app.use("/tasks", taskRoutes);
+   app.use('/tasks', taskRoutes);
    ```
 
 **Prevention:**
@@ -1747,7 +1756,7 @@ grep "express.json\|bodyParser" backend/src/api/server.ts
 
    ```typescript
    // backend/src/api/server.ts
-   import express from "express";
+   import express from 'express';
 
    const app = express();
 
@@ -1756,19 +1765,19 @@ grep "express.json\|bodyParser" backend/src/api/server.ts
    app.use(express.urlencoded({ extended: true }));
 
    // Then register routes
-   app.use("/api/tasks", taskRoutes);
+   app.use('/api/tasks', taskRoutes);
    ```
 
 2. Send correct Content-Type header:
    ```typescript
    // Frontend fetch
-   fetch("http://localhost:3000/api/tasks", {
-     method: "POST",
+   fetch('http://localhost:3000/api/tasks', {
+     method: 'POST',
      headers: {
-       "Content-Type": "application/json",
+       'Content-Type': 'application/json',
        Authorization: `Bearer ${token}`,
      },
-     body: JSON.stringify({ text: "New task" }),
+     body: JSON.stringify({ text: 'New task' }),
    });
    ```
 
@@ -1808,7 +1817,7 @@ psql -U bwaincell -d bwaincell -c "SELECT query, mean_time FROM pg_stat_statemen
 
    ```typescript
    // backend/src/api/routes/tasks.ts
-   router.get("/", async (req, res) => {
+   router.get('/', async (req, res) => {
      const page = parseInt(req.query.page) || 0;
      const limit = parseInt(req.query.limit) || 50;
      const offset = page * limit;
@@ -1817,7 +1826,7 @@ psql -U bwaincell -d bwaincell -c "SELECT query, mean_time FROM pg_stat_statemen
        where: { guild_id: req.user.guildId },
        limit,
        offset,
-       order: [["created_at", "DESC"]],
+       order: [['created_at', 'DESC']],
      });
 
      res.json({
@@ -1841,7 +1850,7 @@ psql -U bwaincell -d bwaincell -c "SELECT query, mean_time FROM pg_stat_statemen
      res.setTimeout(30000, () => {
        res.status(504).json({
          success: false,
-         error: "Request timeout",
+         error: 'Request timeout',
        });
      });
      next();
@@ -1891,14 +1900,14 @@ curl http://localhost:3000/api/notes
    }
 
    // backend/src/api/routes/tasks.ts
-   import { success, error } from "../utils/response";
+   import { success, error } from '../utils/response';
 
-   router.get("/", async (req, res) => {
+   router.get('/', async (req, res) => {
      try {
        const tasks = await Task.findAll();
        res.json(success(tasks));
      } catch (err) {
-       res.status(500).json(error("Failed to fetch tasks"));
+       res.status(500).json(error('Failed to fetch tasks'));
      }
    });
    ```
@@ -1908,11 +1917,11 @@ curl http://localhost:3000/api/notes
    ```typescript
    // backend/src/api/server.ts
    app.use((err, req, res, next) => {
-     logger.error("API error", { error: err.message, stack: err.stack });
+     logger.error('API error', { error: err.message, stack: err.stack });
 
      res.status(err.status || 500).json({
        success: false,
-       error: err.message || "Internal server error",
+       error: err.message || 'Internal server error',
      });
    });
    ```
@@ -1956,13 +1965,12 @@ curl -X PUT http://localhost:3000/api/tasks/1 \
 
    ```typescript
    // backend/src/api/routes/tasks.ts
-   router.patch("/:id", async (req, res) => {
+   router.patch('/:id', async (req, res) => {
      const updates = {};
 
      // Only update provided fields
      if (req.body.text !== undefined) updates.text = req.body.text;
-     if (req.body.completed !== undefined)
-       updates.completed = req.body.completed;
+     if (req.body.completed !== undefined) updates.completed = req.body.completed;
      if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate;
 
      await Task.update(updates, {
@@ -1977,10 +1985,10 @@ curl -X PUT http://localhost:3000/api/tasks/1 \
 
    ```typescript
    // PATCH: Partial update
-   router.patch("/:id", partialUpdateHandler);
+   router.patch('/:id', partialUpdateHandler);
 
    // PUT: Full replacement
-   router.put("/:id", fullUpdateHandler);
+   router.put('/:id', fullUpdateHandler);
    ```
 
 **Prevention:**
@@ -2016,12 +2024,12 @@ docker logs bwaincell-bot | grep "Query params:"
 
    ```typescript
    // backend/src/api/routes/tasks.ts
-   router.get("/", async (req, res) => {
+   router.get('/', async (req, res) => {
      const where: any = { guild_id: req.user.guildId };
 
      // Parse boolean (query params are always strings)
      if (req.query.completed !== undefined) {
-       where.completed = req.query.completed === "true";
+       where.completed = req.query.completed === 'true';
      }
 
      // Parse number
@@ -2040,15 +2048,15 @@ docker logs bwaincell-bot | grep "Query params:"
 2. Use query validation library:
 
    ```typescript
-   import { z } from "zod";
+   import { z } from 'zod';
 
    const taskQuerySchema = z.object({
-     completed: z.enum(["true", "false"]).optional(),
+     completed: z.enum(['true', 'false']).optional(),
      limit: z.string().regex(/^\d+$/).optional(),
      page: z.string().regex(/^\d+$/).optional(),
    });
 
-   router.get("/", async (req, res) => {
+   router.get('/', async (req, res) => {
      const query = taskQuerySchema.parse(req.query);
      // Now query is typed and validated
    });
@@ -2091,18 +2099,18 @@ curl -X POST http://localhost:3000/api/tasks \
    // backend/src/api/server.ts
    app.use((err, req, res, next) => {
      // Log full error internally
-     logger.error("API error", {
+     logger.error('API error', {
        error: err.message,
        stack: err.stack,
        path: req.path,
      });
 
      // Send safe error to client
-     const isDevelopment = process.env.NODE_ENV === "development";
+     const isDevelopment = process.env.NODE_ENV === 'development';
 
      res.status(err.status || 500).json({
        success: false,
-       error: isDevelopment ? err.message : "Internal server error",
+       error: isDevelopment ? err.message : 'Internal server error',
        ...(isDevelopment && { stack: err.stack }),
      });
    });
@@ -2116,7 +2124,7 @@ curl -X POST http://localhost:3000/api/tasks \
      status = 400;
      constructor(message: string) {
        super(message);
-       this.name = "ValidationError";
+       this.name = 'ValidationError';
      }
    }
 
@@ -2124,12 +2132,12 @@ curl -X POST http://localhost:3000/api/tasks \
      status = 404;
      constructor(message: string) {
        super(message);
-       this.name = "NotFoundError";
+       this.name = 'NotFoundError';
      }
    }
 
    // Usage
-   throw new ValidationError("Missing required field: text");
+   throw new ValidationError('Missing required field: text');
    ```
 
 **Prevention:**
@@ -2173,20 +2181,20 @@ curl -I http://localhost:3000/api/tasks
 
    ```typescript
    // backend/src/api/server.ts
-   import rateLimit from "express-rate-limit";
+   import rateLimit from 'express-rate-limit';
 
    const limiter = rateLimit({
      windowMs: 15 * 60 * 1000, // 15 minutes
      max: 100, // 100 requests per window
      message: {
        success: false,
-       error: "Too many requests, please try again later",
+       error: 'Too many requests, please try again later',
      },
      standardHeaders: true,
      legacyHeaders: false,
    });
 
-   app.use("/api/", limiter);
+   app.use('/api/', limiter);
    ```
 
 3. Different limits for different endpoints:
@@ -2197,7 +2205,7 @@ curl -I http://localhost:3000/api/tasks
      max: 10,
    });
 
-   app.use("/api/auth/login", strictLimiter);
+   app.use('/api/auth/login', strictLimiter);
    ```
 
 **Prevention:**
@@ -2331,7 +2339,7 @@ npm run dev:frontend
 2. Use 'use client' directive for client-only components:
 
    ```typescript
-   "use client";
+   'use client';
    // Component that uses browser APIs
    ```
 
@@ -2383,15 +2391,15 @@ grep "API_URL\|NEXT_PUBLIC" frontend/.env.local
 
    ```typescript
    // frontend/lib/api.ts
-   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
    export async function fetchTasks() {
-     const token = localStorage.getItem("accessToken");
+     const token = localStorage.getItem('accessToken');
 
      const response = await fetch(`${API_URL}/api/tasks`, {
        headers: {
          Authorization: `Bearer ${token}`,
-         "Content-Type": "application/json",
+         'Content-Type': 'application/json',
        },
      });
 
@@ -2408,7 +2416,7 @@ grep "API_URL\|NEXT_PUBLIC" frontend/.env.local
    try {
      const data = await fetchTasks();
    } catch (error) {
-     if (error.message.includes("401")) {
+     if (error.message.includes('401')) {
        // Token expired, try refresh
        await refreshToken();
        return fetchTasks(); // Retry
@@ -2462,27 +2470,22 @@ grep "API_URL\|NEXT_PUBLIC" frontend/.env.local
    setTasks(tasks); // Same reference, no re-render
 
    // ✅ Correct: Create new object
-   setTasks(
-     tasks.map((t) => (t.id === task.id ? { ...t, completed: true } : t)),
-   );
+   setTasks(tasks.map((t) => (t.id === task.id ? { ...t, completed: true } : t)));
    ```
 
 2. Use React Query for automatic refetching:
 
    ```typescript
-   import { useQuery, useMutation } from "@tanstack/react-query";
+   import { useQuery, useMutation } from '@tanstack/react-query';
 
    function TaskList() {
-     const { data: tasks } = useQuery(["tasks"], fetchTasks);
+     const { data: tasks } = useQuery(['tasks'], fetchTasks);
 
-     const completeTask = useMutation(
-       (taskId) => updateTask(taskId, { completed: true }),
-       {
-         onSuccess: () => {
-           queryClient.invalidateQueries(["tasks"]); // Refetch tasks
-         },
+     const completeTask = useMutation((taskId) => updateTask(taskId, { completed: true }), {
+       onSuccess: () => {
+         queryClient.invalidateQueries(['tasks']); // Refetch tasks
        },
-     );
+     });
    }
    ```
 
@@ -2662,11 +2665,11 @@ cat frontend/next.config.js
    // frontend/next.config.js
    module.exports = {
      images: {
-       domains: ["example.com"], // Allow external images
+       domains: ['example.com'], // Allow external images
        remotePatterns: [
          {
-           protocol: "https",
-           hostname: "**.example.com",
+           protocol: 'https',
+           hostname: '**.example.com',
          },
        ],
      },
@@ -2712,22 +2715,22 @@ cat frontend/next.config.js
 
    ```typescript
    // frontend/hooks/useTheme.ts
-   import { useState, useEffect } from "react";
+   import { useState, useEffect } from 'react';
 
    export function useTheme() {
-     const [theme, setTheme] = useState<"light" | "dark">("light");
+     const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
      useEffect(() => {
        // Load from storage
-       const saved = localStorage.getItem("theme");
-       if (saved) setTheme(saved as "light" | "dark");
+       const saved = localStorage.getItem('theme');
+       if (saved) setTheme(saved as 'light' | 'dark');
      }, []);
 
      const toggleTheme = () => {
-       const newTheme = theme === "light" ? "dark" : "light";
+       const newTheme = theme === 'light' ? 'dark' : 'light';
        setTheme(newTheme);
-       localStorage.setItem("theme", newTheme);
-       document.documentElement.classList.toggle("dark");
+       localStorage.setItem('theme', newTheme);
+       document.documentElement.classList.toggle('dark');
      };
 
      return { theme, toggleTheme };
@@ -2880,7 +2883,7 @@ docker-compose config
 
    ```yaml
    # docker-compose.yml
-   version: "3.8"
+   version: '3.8'
    services:
      bot:
        build: .
@@ -2955,7 +2958,7 @@ psql $DATABASE_URL?sslmode=require
    module.exports = {
      production: {
        url: process.env.DATABASE_URL,
-       dialect: "postgres",
+       dialect: 'postgres',
        dialectOptions: {
          ssl: {
            require: true,
@@ -3070,16 +3073,16 @@ node --inspect backend/src/bot.ts
 
    ```typescript
    // ❌ Wrong: Listener never removed
-   client.on("message", handler);
+   client.on('message', handler);
 
    // ✅ Correct: Remove on shutdown
    const handler = (msg) => {
      /* ... */
    };
-   client.on("message", handler);
+   client.on('message', handler);
 
-   process.on("SIGTERM", () => {
-     client.off("message", handler);
+   process.on('SIGTERM', () => {
+     client.off('message', handler);
    });
    ```
 
@@ -3139,19 +3142,19 @@ docker inspect bwaincell-bot | grep -A 10 "Mounts"
 
    ```typescript
    // backend/src/shared/utils/logger.ts
-   import winston from "winston";
+   import winston from 'winston';
 
    const logger = winston.createLogger({
      transports: [
        new winston.transports.Console(),
        new winston.transports.File({
-         filename: "/app/logs/combined.log",
+         filename: '/app/logs/combined.log',
          maxsize: 10485760, // 10MB
          maxFiles: 5,
        }),
        new winston.transports.File({
-         filename: "/app/logs/error.log",
-         level: "error",
+         filename: '/app/logs/error.log',
+         level: 'error',
        }),
      ],
    });
@@ -3251,20 +3254,20 @@ docker logs bwaincell-bot | grep "health"
 
    ```typescript
    // backend/src/api/server.ts
-   app.get("/health", async (req, res) => {
+   app.get('/health', async (req, res) => {
      try {
        // Check database connection
        await sequelize.authenticate();
 
        res.json({
-         status: "healthy",
+         status: 'healthy',
          timestamp: new Date().toISOString(),
          uptime: process.uptime(),
-         database: "connected",
+         database: 'connected',
        });
      } catch (error) {
        res.status(503).json({
-         status: "unhealthy",
+         status: 'unhealthy',
          error: error.message,
        });
      }
@@ -3283,7 +3286,7 @@ docker logs bwaincell-bot | grep "health"
    services:
      bot:
        healthcheck:
-         test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+         test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
          interval: 30s
          timeout: 3s
          retries: 3
@@ -3336,12 +3339,12 @@ kubectl get pods
 
    ```typescript
    // backend/src/bot.ts
-   process.on("SIGTERM", async () => {
-     logger.info("Received SIGTERM, shutting down gracefully...");
+   process.on('SIGTERM', async () => {
+     logger.info('Received SIGTERM, shutting down gracefully...');
 
      // Stop accepting new requests
      server.close(() => {
-       logger.info("HTTP server closed");
+       logger.info('HTTP server closed');
      });
 
      // Close database connections
@@ -3408,8 +3411,8 @@ curl -I https://bwaincell.sunny-stack.com/_next/static/css/main.css
    ```javascript
    // next.config.js
    module.exports = {
-     output: "standalone", // For Docker
-     assetPrefix: process.env.ASSET_PREFIX || "",
+     output: 'standalone', // For Docker
+     assetPrefix: process.env.ASSET_PREFIX || '',
    };
    ```
 

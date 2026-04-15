@@ -9,6 +9,9 @@ import {
 import { getModels } from '../helpers/databaseHelper';
 import { handleInteractionError } from '../responses/errorResponses';
 import { logger } from '@shared/utils/logger';
+import supabase from '../../../../supabase/supabase';
+import type { TaskRow, ListRow } from '../../../../supabase/types';
+import { handleRecipeSelect } from './recipeHandlers';
 
 export async function handleSelectMenuInteraction(
   interaction: StringSelectMenuInteraction<CacheType>
@@ -30,15 +33,28 @@ export async function handleSelectMenuInteraction(
     return;
   }
 
+  try {
+    // All recipe select menus (plan flow + edit/swap/week/history)
+    if (customId.startsWith('recipe_')) {
+      await handleRecipeSelect(interaction);
+      return;
+    }
+  } catch (error) {
+    return handleInteractionError(interaction, error, 'recipe select menu');
+  }
+
   const { Task, List, Reminder } = await getModels();
 
   try {
     // Task quick action
     if (customId === 'task_quick_action') {
       const taskId = parseInt(interaction.values[0]);
-      const task = await Task.findOne({
-        where: { id: taskId, user_id: userId, guild_id: guildId },
-      });
+      const { data: task } = (await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', taskId)
+        .eq('guild_id', guildId)
+        .single()) as { data: TaskRow | null };
 
       if (!task) {
         await interaction.editReply({
@@ -130,9 +146,7 @@ export async function handleSelectMenuInteraction(
       const listName = customId.replace('list_complete_select_', '');
       const selectedIndex = parseInt(interaction.values[0]);
 
-      const list = await List.findOne({
-        where: { user_id: userId, guild_id: guildId, name: listName },
-      });
+      const list = await List.getList(guildId, listName);
 
       if (!list) {
         await interaction.editReply({
@@ -159,9 +173,7 @@ export async function handleSelectMenuInteraction(
 
       if (result) {
         // Refresh the list to show updated status
-        const updatedList = await List.findOne({
-          where: { user_id: userId, guild_id: guildId, name: listName },
-        });
+        const updatedList = await List.getList(guildId, listName);
 
         if (!updatedList) {
           await interaction.editReply({
@@ -233,9 +245,7 @@ export async function handleSelectMenuInteraction(
       // Value format: "listName_index"
       const value = interaction.values[0];
       const listName = value.substring(0, value.lastIndexOf('_'));
-      const list = await List.findOne({
-        where: { user_id: userId, guild_id: guildId, name: listName },
-      });
+      const list = await List.getList(guildId, listName);
 
       if (!list) {
         await interaction.editReply({
@@ -294,9 +304,12 @@ export async function handleSelectMenuInteraction(
     // List quick select
     if (customId === 'list_quick_select') {
       const listId = parseInt(interaction.values[0]);
-      const list = await List.findOne({
-        where: { id: listId, user_id: userId, guild_id: guildId },
-      });
+      const { data: list } = (await supabase
+        .from('lists')
+        .select('*')
+        .eq('id', listId)
+        .eq('guild_id', guildId)
+        .single()) as { data: ListRow | null };
 
       if (!list) {
         await interaction.editReply({

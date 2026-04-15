@@ -4,10 +4,8 @@ const mockCommandClient = {
   on: jest.fn(),
   user: { id: 'bot-123', username: 'TestBot' },
   guilds: {
-    cache: new Map([
-      ['guild-1', { id: 'guild-1', name: 'Test Guild' }]
-    ])
-  }
+    cache: new Map([['guild-1', { id: 'guild-1', name: 'Test Guild' }]]),
+  },
 };
 
 jest.mock('discord.js', () => ({
@@ -15,7 +13,7 @@ jest.mock('discord.js', () => ({
   GatewayIntentBits: {
     Guilds: 1,
     GuildMessages: 512,
-    MessageContent: 32768
+    MessageContent: 32768,
   },
   SlashCommandBuilder: jest.fn(() => {
     const builder: any = {
@@ -23,20 +21,20 @@ jest.mock('discord.js', () => ({
       setDescription: jest.fn(() => builder),
       addStringOption: jest.fn(() => builder),
       addIntegerOption: jest.fn(() => builder),
-      toJSON: jest.fn(() => ({}))
+      toJSON: jest.fn(() => ({})),
     };
     return builder;
   }),
   REST: jest.fn(() => {
     const rest: any = {
       setToken: jest.fn(() => rest),
-      put: jest.fn(() => Promise.resolve([]))
+      put: jest.fn(() => Promise.resolve([])),
     };
     return rest;
   }),
   Routes: {
-    applicationGuildCommands: jest.fn().mockReturnValue('mock-route')
-  }
+    applicationGuildCommands: jest.fn().mockReturnValue('mock-route'),
+  },
 }));
 
 // Mock Sequelize and database models
@@ -50,7 +48,7 @@ const mockCommandSequelize = {
       return callback(transaction);
     }
     return Promise.resolve(transaction);
-  })
+  }),
 };
 
 jest.mock('sequelize', () => ({
@@ -60,8 +58,8 @@ jest.mock('sequelize', () => ({
     INTEGER: 'INTEGER',
     TEXT: 'TEXT',
     BOOLEAN: 'BOOLEAN',
-    DATE: 'DATE'
-  }
+    DATE: 'DATE',
+  },
 }));
 
 // Mock database models
@@ -71,18 +69,18 @@ const mockTask = {
   findByPk: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
-  destroy: jest.fn()
+  destroy: jest.fn(),
 };
 
 const mockBudget = {
   create: jest.fn(),
   findAll: jest.fn(),
   findByPk: jest.fn(),
-  sum: jest.fn()
+  sum: jest.fn(),
 };
 
-jest.mock('../../database/models/Task', () => ({ __esModule: true, default: mockTask }));
-jest.mock('../../database/models/Budget', () => ({ __esModule: true, default: mockBudget }));
+jest.mock('../../supabase/models/Task', () => ({ __esModule: true, default: mockTask }));
+jest.mock('../../supabase/models/Budget', () => ({ __esModule: true, default: mockBudget }));
 
 // Create mock interaction helper
 const createMockInteraction = () => ({
@@ -94,12 +92,12 @@ const createMockInteraction = () => ({
   options: {
     getSubcommand: jest.fn(),
     getString: jest.fn(),
-    getInteger: jest.fn()
+    getInteger: jest.fn(),
   },
   reply: jest.fn(),
   deferReply: jest.fn(),
   editReply: jest.fn(),
-  followUp: jest.fn()
+  followUp: jest.fn(),
 });
 
 describe('Command Execution Integration', () => {
@@ -131,7 +129,7 @@ describe('Command Execution Integration', () => {
         description: 'Integration test task',
         priority: 'high',
         status: 'pending',
-        createdAt: new Date()
+        createdAt: new Date(),
       };
 
       mockTask.create.mockResolvedValue(mockTaskData);
@@ -140,12 +138,13 @@ describe('Command Execution Integration', () => {
         ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
-          getString: jest.fn()
-            .mockReturnValueOnce('Integration test task')  // description
-            .mockReturnValueOnce('high'),                  // priority
-          getInteger: jest.fn().mockReturnValue(null)
+          getString: jest
+            .fn()
+            .mockReturnValueOnce('Integration test task') // description
+            .mockReturnValueOnce('high'), // priority
+          getInteger: jest.fn().mockReturnValue(null),
         },
-        reply: jest.fn().mockResolvedValue(undefined)
+        reply: jest.fn().mockResolvedValue(undefined),
       };
 
       // Simulate command execution flow
@@ -164,7 +163,7 @@ describe('Command Execution Integration', () => {
           guildId: interaction.guildId,
           description,
           priority,
-          status: 'pending'
+          status: 'pending',
         };
 
         const createdTask = await mockTask.create(taskData);
@@ -172,7 +171,7 @@ describe('Command Execution Integration', () => {
         // 3. Send response
         await interaction.reply({
           content: `Task created with ID: ${createdTask.id}`,
-          ephemeral: true
+          ephemeral: true,
         });
 
         return createdTask;
@@ -186,13 +185,13 @@ describe('Command Execution Integration', () => {
         guildId: 'guild-1',
         description: 'Integration test task',
         priority: 'high',
-        status: 'pending'
+        status: 'pending',
       });
 
       // Verify response
       expect(interaction.reply).toHaveBeenCalledWith({
         content: 'Task created with ID: 1',
-        ephemeral: true
+        ephemeral: true,
       });
 
       expect(result.id).toBe(1);
@@ -203,12 +202,13 @@ describe('Command Execution Integration', () => {
         ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
-          getString: jest.fn()
-            .mockReturnValueOnce('')  // empty description
+          getString: jest
+            .fn()
+            .mockReturnValueOnce('') // empty description
             .mockReturnValueOnce('high'),
-          getInteger: jest.fn().mockReturnValue(null)
+          getInteger: jest.fn().mockReturnValue(null),
         },
-        reply: jest.fn().mockResolvedValue(undefined)
+        reply: jest.fn().mockResolvedValue(undefined),
       };
 
       const taskCreationFlow = async () => {
@@ -219,7 +219,7 @@ describe('Command Execution Integration', () => {
           if (!description || description.trim().length === 0) {
             await interaction.reply({
               content: 'Error: Task description cannot be empty',
-              ephemeral: true
+              ephemeral: true,
             });
             return null;
           }
@@ -229,12 +229,12 @@ describe('Command Execution Integration', () => {
             guildId: interaction.guildId,
             description,
             priority,
-            status: 'pending'
+            status: 'pending',
           });
         } catch (error) {
           await interaction.reply({
             content: 'An error occurred while creating the task',
-            ephemeral: true
+            ephemeral: true,
           });
           return null;
         }
@@ -245,7 +245,7 @@ describe('Command Execution Integration', () => {
       expect(result).toBeNull();
       expect(interaction.reply).toHaveBeenCalledWith({
         content: 'Error: Task description cannot be empty',
-        ephemeral: true
+        ephemeral: true,
       });
       expect(mockTask.create).not.toHaveBeenCalled();
     });
@@ -258,12 +258,10 @@ describe('Command Execution Integration', () => {
         ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
-          getString: jest.fn()
-            .mockReturnValueOnce('Test task')
-            .mockReturnValueOnce('medium'),
-          getInteger: jest.fn().mockReturnValue(null)
+          getString: jest.fn().mockReturnValueOnce('Test task').mockReturnValueOnce('medium'),
+          getInteger: jest.fn().mockReturnValue(null),
         },
-        reply: jest.fn().mockResolvedValue(undefined)
+        reply: jest.fn().mockResolvedValue(undefined),
       };
 
       const taskCreationWithTransaction = async () => {
@@ -272,13 +270,16 @@ describe('Command Execution Integration', () => {
             const description = interaction.options.getString('description');
             const priority = interaction.options.getString('priority') || 'medium';
 
-            const task = await mockTask.create({
-              userId: interaction.user.id,
-              guildId: interaction.guildId,
-              description,
-              priority,
-              status: 'pending'
-            }, { transaction: t });
+            const task = await mockTask.create(
+              {
+                userId: interaction.user.id,
+                guildId: interaction.guildId,
+                description,
+                priority,
+                status: 'pending',
+              },
+              { transaction: t }
+            );
 
             await t.commit();
             return task;
@@ -303,9 +304,9 @@ describe('Command Execution Integration', () => {
         userId: 'user-1',
         guildId: 'guild-1',
         category: 'groceries',
-        amount: 150.50,
+        amount: 150.5,
         type: 'expense',
-        date: new Date()
+        date: new Date(),
       };
 
       mockBudget.create.mockResolvedValue(mockBudgetData);
@@ -314,12 +315,13 @@ describe('Command Execution Integration', () => {
         ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
-          getString: jest.fn()
-            .mockReturnValueOnce('groceries')  // category
-            .mockReturnValueOnce('expense'),   // type
-          getNumber: jest.fn().mockReturnValue(150.50)  // amount
+          getString: jest
+            .fn()
+            .mockReturnValueOnce('groceries') // category
+            .mockReturnValueOnce('expense'), // type
+          getNumber: jest.fn().mockReturnValue(150.5), // amount
         },
-        reply: jest.fn().mockResolvedValue(undefined)
+        reply: jest.fn().mockResolvedValue(undefined),
       };
 
       const budgetCreationFlow = async () => {
@@ -331,7 +333,7 @@ describe('Command Execution Integration', () => {
         if (!category || !type || !amount || amount <= 0) {
           await interaction.reply({
             content: 'Invalid input: Please provide valid category, type, and positive amount',
-            ephemeral: true
+            ephemeral: true,
           });
           return null;
         }
@@ -342,14 +344,14 @@ describe('Command Execution Integration', () => {
           category,
           type,
           amount,
-          date: new Date()
+          date: new Date(),
         };
 
         const createdBudget = await mockBudget.create(budgetData);
 
         await interaction.reply({
           content: `Budget entry created: ${type} of $${amount} for ${category}`,
-          ephemeral: true
+          ephemeral: true,
         });
 
         return createdBudget;
@@ -362,13 +364,13 @@ describe('Command Execution Integration', () => {
         guildId: 'guild-1',
         category: 'groceries',
         type: 'expense',
-        amount: 150.50,
-        date: expect.any(Date)
+        amount: 150.5,
+        date: expect.any(Date),
       });
 
       expect(interaction.reply).toHaveBeenCalledWith({
         content: 'Budget entry created: expense of $150.5 for groceries',
-        ephemeral: true
+        ephemeral: true,
       });
 
       expect(result.id).toBe(1);
@@ -378,26 +380,22 @@ describe('Command Execution Integration', () => {
       const mockBudgetEntries = [
         { category: 'groceries', amount: 100, type: 'expense' },
         { category: 'salary', amount: 2000, type: 'income' },
-        { category: 'utilities', amount: 150, type: 'expense' }
+        { category: 'utilities', amount: 150, type: 'expense' },
       ];
 
       mockBudget.findAll.mockResolvedValue(mockBudgetEntries);
       mockBudget.sum.mockImplementation((_field, options) => {
-        const filtered = mockBudgetEntries.filter(entry =>
-          entry.type === options.where.type
-        );
-        return Promise.resolve(
-          filtered.reduce((sum, entry) => sum + entry.amount, 0)
-        );
+        const filtered = mockBudgetEntries.filter((entry) => entry.type === options.where.type);
+        return Promise.resolve(filtered.reduce((sum, entry) => sum + entry.amount, 0));
       });
 
       const interaction = {
         ...createMockInteraction(),
         options: {
           getSubcommand: jest.fn().mockReturnValue('summary'),
-          getString: jest.fn().mockReturnValue('month')  // period
+          getString: jest.fn().mockReturnValue('month'), // period
         },
-        reply: jest.fn().mockResolvedValue(undefined)
+        reply: jest.fn().mockResolvedValue(undefined),
       };
 
       const budgetSummaryFlow = async () => {
@@ -408,23 +406,23 @@ describe('Command Execution Integration', () => {
           where: {
             userId: interaction.user.id,
             guildId: interaction.guildId,
-            type: 'income'
-          }
+            type: 'income',
+          },
         });
 
         const totalExpenses = await mockBudget.sum('amount', {
           where: {
             userId: interaction.user.id,
             guildId: interaction.guildId,
-            type: 'expense'
-          }
+            type: 'expense',
+          },
         });
 
         const balance = totalIncome - totalExpenses;
 
         await interaction.reply({
           content: `Budget Summary (${period}):\nIncome: $${totalIncome}\nExpenses: $${totalExpenses}\nBalance: $${balance}`,
-          ephemeral: true
+          ephemeral: true,
         });
 
         return { totalIncome, totalExpenses, balance };
@@ -450,7 +448,7 @@ describe('Command Execution Integration', () => {
             if (subcommand === 'add') {
               return await mockTask.create({
                 userId: interaction.user.id,
-                description: interaction.options.getString('description')
+                description: interaction.options.getString('description'),
               });
             }
             break;
@@ -458,7 +456,7 @@ describe('Command Execution Integration', () => {
             if (subcommand === 'add') {
               return await mockBudget.create({
                 userId: interaction.user.id,
-                amount: interaction.options.getNumber('amount')
+                amount: interaction.options.getNumber('amount'),
               });
             }
             break;
@@ -473,8 +471,8 @@ describe('Command Execution Integration', () => {
         commandName: 'task',
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
-          getString: jest.fn().mockReturnValue('Test task')
-        }
+          getString: jest.fn().mockReturnValue('Test task'),
+        },
       };
 
       await commandRouter(taskInteraction);
@@ -486,8 +484,8 @@ describe('Command Execution Integration', () => {
         commandName: 'budget',
         options: {
           getSubcommand: jest.fn().mockReturnValue('add'),
-          getNumber: jest.fn().mockReturnValue(100)
-        }
+          getNumber: jest.fn().mockReturnValue(100),
+        },
       };
 
       await commandRouter(budgetInteraction);
@@ -518,7 +516,7 @@ describe('Command Execution Integration', () => {
 
       const interaction = {
         ...createMockInteraction(),
-        user: { id: 'test-user' }
+        user: { id: 'test-user' },
       };
 
       // Test within rate limit
@@ -555,15 +553,17 @@ describe('Command Execution Integration', () => {
           } catch (error) {
             lastError = error as Error;
             if (attempt === maxRetries - 1) throw lastError;
-            await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt)));
+            await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, attempt)));
           }
         }
       };
 
-      const result = await retryOperation(() => mockTask.create({
-        userId: 'user-1',
-        description: 'Retry test'
-      }));
+      const result = await retryOperation(() =>
+        mockTask.create({
+          userId: 'user-1',
+          description: 'Retry test',
+        })
+      );
 
       expect(result.id).toBe(1);
       expect(attemptCount).toBe(3);
@@ -576,7 +576,7 @@ describe('Command Execution Integration', () => {
         const operation = async () => {
           return await mockTask.create({
             userId: `user-${i}`,
-            description: `Concurrent task ${i}`
+            description: `Concurrent task ${i}`,
           });
         };
         concurrentOperations.push(operation());

@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.next
+out
+build
+*.min.js
+*.min.css
+package-lock.json
+frontend/.next
+backend/dist
+shared/dist
+supabase/migrations

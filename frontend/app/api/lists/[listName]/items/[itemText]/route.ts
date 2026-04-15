@@ -1,105 +1,60 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../../../auth/[...nextauth]/route';
+import { User } from '@database/models/User';
+import List from '@database/models/List';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
-interface ListItem {
-  text: string;
-  completed: boolean;
-  added_at: string;
-}
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * DELETE /api/lists/[listName]/items/[itemText]
  * Remove an item from a list
  */
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { listName: string; itemText: string } },
+  _request: NextRequest,
+  props: { params: Promise<{ listName: string; itemText: string }> }
 ) {
+  const { listName: rawListName, itemText: rawItemText } = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    const listName = decodeURIComponent(params.listName);
-    const itemText = decodeURIComponent(params.itemText);
+    const listName = decodeURIComponent(rawListName);
+    const itemText = decodeURIComponent(rawItemText);
 
-    // Find the list
-    const list = await prisma.list.findFirst({
-      where: {
-        guildId: user.guildId,
-        name: {
-          equals: listName,
-          mode: "insensitive",
-        },
-      },
-    });
+    const updatedList = await List.removeItem(user.guild_id, listName, itemText);
 
-    if (!list) {
+    if (!updatedList) {
       return NextResponse.json(
-        { success: false, error: "List not found" },
-        { status: 404 },
+        { success: false, error: 'List or item not found' },
+        { status: 404 }
       );
     }
-
-    // Parse existing items
-    const items: ListItem[] = Array.isArray(list.items)
-      ? (list.items as unknown as ListItem[])
-      : [];
-
-    // Remove the item (case-insensitive match)
-    const updatedItems = items.filter(
-      (item) => item.text.toLowerCase() !== itemText.toLowerCase(),
-    );
-
-    if (updatedItems.length === items.length) {
-      return NextResponse.json(
-        { success: false, error: "Item not found in list" },
-        { status: 404 },
-      );
-    }
-
-    // Update list with filtered items array
-    const updatedList = await prisma.list.update({
-      where: { id: list.id },
-      data: { items: updatedItems as any },
-    });
 
     return NextResponse.json({
       success: true,
       data: updatedList,
-      message: "Item removed successfully",
+      message: 'Item removed successfully',
     });
   } catch (error) {
-    console.error("[API] Error removing item:", error);
+    console.error('[API] Error removing item:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to remove item",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to remove item',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

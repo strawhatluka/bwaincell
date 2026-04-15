@@ -1,7 +1,7 @@
 # Architecture Diagrams
 
-**Version:** 2.0.0
-**Last Updated** 2026-01-12
+**Version:** 2.1.2
+**Last Updated:** 2026-04-15
 
 Visual documentation of Bwaincell system architecture, component interactions, database relationships, authentication flow, deployment architecture, and data flow using Mermaid diagrams.
 
@@ -21,7 +21,7 @@ Visual documentation of Bwaincell system architecture, component interactions, d
 
 ## 1. System Architecture Diagram
 
-High-level overview of Bwaincell's three-interface architecture showing Discord Bot, REST API, Progressive Web App, and PostgreSQL database.
+High-level overview of Bwaincell's three-interface architecture showing Discord Bot, REST API, Progressive Web App, and Supabase database.
 
 ```mermaid
 graph TB
@@ -38,7 +38,7 @@ graph TB
     end
 
     subgraph "Data Layer"
-        PostgreSQL["PostgreSQL 15<br/>(Sequelize ORM)"]
+        Supabase["Supabase (managed PostgreSQL)<br/>@supabase/supabase-js"]
     end
 
     subgraph "External Services"
@@ -54,8 +54,9 @@ graph TB
     DiscordAPI -->|Interactions| DiscordBot
 
     PWA -->|HTTP Requests<br/>JWT Auth| RestAPI
-    DiscordBot -->|SQL Queries| PostgreSQL
-    RestAPI -->|SQL Queries| PostgreSQL
+    DiscordBot -->|supabase-js| Supabase
+    RestAPI -->|supabase-js| Supabase
+    PWA -->|supabase-js via Next.js API routes| Supabase
 
     RestAPI -->|Verify ID Token| GoogleOAuth
     PWA -->|OAuth Flow| GoogleOAuth
@@ -64,7 +65,7 @@ graph TB
     style DiscordBot fill:#5865F2
     style RestAPI fill:#68A063
     style PWA fill:#000000
-    style PostgreSQL fill:#336791
+    style Supabase fill:#336791
     style DiscordAPI fill:#5865F2
     style GoogleOAuth fill:#4285F4
 ```
@@ -74,7 +75,7 @@ graph TB
 - **Discord Bot:** Primary interface via Discord slash commands
 - **REST API:** Express-based HTTP API with JWT authentication
 - **PWA:** Next.js frontend with offline support
-- **PostgreSQL:** Production-grade relational database
+- **Supabase:** Production-grade relational database
 - **Discord API:** External service for Discord integration
 - **Google OAuth:** External authentication provider
 
@@ -93,7 +94,7 @@ sequenceDiagram
     participant Bot as Discord Bot
     participant Commands as Command Handler
     participant Models as Database Models
-    participant DB as PostgreSQL
+    participant DB as Supabase
     participant Utils as Utils/Helpers
 
     User->>Discord: Types /task add description:"Buy groceries"
@@ -133,7 +134,7 @@ sequenceDiagram
 4. Bot routes interaction to appropriate command handler
 5. Command validates input with Joi schemas
 6. Command calls database model methods
-7. Model executes SQL query via Sequelize ORM
+7. Model executes SQL query via the Supabase client (supabase-js) ORM
 8. Model returns data to command handler
 9. Command builds Discord embed response
 10. Bot sends final response to Discord
@@ -145,7 +146,7 @@ sequenceDiagram
 
 ## 3. Database ER Diagram
 
-Entity-Relationship diagram showing all 6 core tables with their fields, data types, and relationships.
+Entity-Relationship diagram showing all 12 tables with their fields, data types, and relationships. For the authoritative schema with every column, see [database-schema.md](database-schema.md).
 
 ```mermaid
 erDiagram
@@ -155,6 +156,12 @@ erDiagram
     USERS ||--o{ REMINDERS : creates
     USERS ||--o{ SCHEDULES : creates
     USERS ||--o{ BUDGETS : creates
+    USERS ||--o{ RECIPES : creates
+    USERS ||--o{ MEAL_PLANS : edits
+    USERS ||--o{ EVENT_CONFIGS : configures
+    USERS ||--o{ SUNSET_CONFIGS : configures
+    USERS ||--o{ RECIPE_PREFERENCES : configures
+    MEAL_PLANS }o--|{ RECIPES : references
 
     USERS {
         int id PK
@@ -230,9 +237,61 @@ erDiagram
         string category "Expense category"
         decimal amount "Amount value"
         text description "Optional description"
-        date date "Transaction date"
+        timestamptz date "Transaction date"
         string user_id FK "Creator Discord ID"
         string guild_id "Discord server ID"
+    }
+
+    EVENT_CONFIGS {
+        int id PK
+        string guild_id UK
+        string user_id
+        string location
+        string announcement_channel_id
+        int schedule_day
+        int schedule_hour
+        int schedule_minute
+        string timezone
+        bool is_enabled
+    }
+
+    SUNSET_CONFIGS {
+        int id PK
+        string guild_id UK
+        string user_id
+        int advance_minutes
+        string channel_id
+        string zip_code
+        string timezone
+        bool is_enabled
+    }
+
+    RECIPES {
+        int id PK
+        string name
+        text source_url
+        enum source_type
+        jsonb ingredients
+        jsonb instructions
+        bool is_favorite
+        string user_id
+        string guild_id
+    }
+
+    MEAL_PLANS {
+        int id PK
+        int[] recipe_ids
+        int[] servings_per_recipe
+        date week_start
+        bool archived
+        string guild_id
+    }
+
+    RECIPE_PREFERENCES {
+        int id PK
+        string guild_id UK
+        jsonb dietary_restrictions
+        jsonb excluded_cuisines
     }
 ```
 
@@ -241,8 +300,8 @@ erDiagram
 - **No Foreign Key Constraints:** Simplified schema for easier migration and flexibility
 - **Guild-Based Isolation:** All tables filter by `guild_id` for shared household model
 - **User ID for Audit:** `user_id` stored for audit trail but not enforced in queries
-- **JSONB for Lists:** Flexible item storage using PostgreSQL JSONB type
-- **Array Types for Tags:** PostgreSQL native array type for note tags
+- **JSONB for Lists:** Flexible item storage using Supabase JSONB type
+- **Array Types for Tags:** Supabase native array type for note tags
 
 **Relationships:**
 
@@ -268,7 +327,7 @@ sequenceDiagram
     participant Google as Google OAuth
     participant API as REST API
     participant GoogleLib as google-auth-library
-    participant DB as PostgreSQL
+    participant DB as Supabase
     participant JWT as JWT Service
 
     User->>PWA: Click "Sign in with Google"
@@ -341,7 +400,7 @@ sequenceDiagram
 
 ## 5. Deployment Architecture Diagram
 
-Infrastructure diagram showing production deployment on Raspberry Pi 4B with Docker Compose, PostgreSQL, and Vercel frontend.
+Infrastructure diagram showing production deployment on Raspberry Pi 4B with Docker Compose, Supabase, and Vercel frontend.
 
 ```mermaid
 graph TB
@@ -357,15 +416,15 @@ graph TB
         subgraph "Docker Compose Stack"
             direction LR
             Backend["Backend Container<br/>bwaincell-backend<br/>Port 3000<br/>512MB RAM<br/>Node.js 18"]
-            Postgres["PostgreSQL Container<br/>bwaincell-db<br/>Port 5433<br/>512MB RAM<br/>PostgreSQL 15"]
+            SupabaseStack["Supabase Stack<br/>(managed by Supabase CLI)<br/>Port 54321 (API) / 54322 (DB)"]
         end
 
         Logs["/logs Volume<br/>Winston Logs<br/>Max 75MB"]
         Data["/postgres-data Volume<br/>Database Storage<br/>Persistent"]
 
         Backend -.->|Write| Logs
-        Postgres -.->|Store| Data
-        Backend -->|SQL Queries| Postgres
+        SupabaseStack -.->|Store| Data
+        Backend -->|SQL Queries| SupabaseStack
     end
 
     subgraph "Vercel Serverless - Global CDN"
@@ -397,7 +456,7 @@ graph TB
     Actions -->|Deploy| Frontend
 
     style Backend fill:#68A063
-    style Postgres fill:#336791
+    style SupabaseStack fill:#336791
     style Frontend fill:#000000
     style DiscordAPI fill:#5865F2
     style GoogleAuth fill:#4285F4
@@ -406,14 +465,14 @@ graph TB
 
 **Deployment Details:**
 
-**Raspberry Pi 4B (Backend + Database):**
+**Raspberry Pi 4B (Backend + Self-Hosted Supabase):**
 
 - OS: Raspberry Pi OS 64-bit
-- Docker: Backend + PostgreSQL containers
+- Docker: Backend container (`docker compose up -d`) + Supabase stack (`supabase start`)
 - Network: Local network (192.168.x.x)
-- Resource Limits: 512MB RAM per container
-- Volumes: Logs (/logs), Database (/postgres-data)
-- Health Checks: Every 30 seconds
+- Supabase: self-hosted, API on `:54321`, DB on `:54322`
+- Volumes: Winston logs, Supabase-managed Postgres data
+- Health Checks: `GET /health` on backend, `supabase status` for Supabase
 
 **Vercel (Frontend):**
 
@@ -459,8 +518,8 @@ flowchart TD
     ValidateInput -->|Valid| ExtractData[Extract user_id, guild_id, params]
     ExtractData --> CallModel[Call Database Model Method]
 
-    CallModel --> BuildQuery[Build SQL Query with Sequelize]
-    BuildQuery --> ExecuteQuery[Execute Query on PostgreSQL]
+    CallModel --> BuildQuery[Build SQL Query with the Supabase client (supabase-js)]
+    BuildQuery --> ExecuteQuery[Execute Query on Supabase]
 
     ExecuteQuery --> CheckResult{Query<br/>Successful?}
     CheckResult -->|No| LogError[Log Error with Winston]
@@ -503,8 +562,8 @@ flowchart TD
 6. **Input Validation:** Command validates parameters with Joi schemas
 7. **Data Extraction:** Command extracts user_id, guild_id, and parameters
 8. **Model Call:** Command calls database model method
-9. **Query Building:** Sequelize builds parameterized SQL query
-10. **Query Execution:** PostgreSQL executes query with guild_id filtering
+9. **Query Building:** the Supabase client (supabase-js) builds parameterized SQL query
+10. **Query Execution:** Supabase executes query with guild_id filtering
 11. **Result Processing:** Model processes database results into objects
 12. **Response Building:** Command builds Discord embed with results
 13. **Interactive Components:** Optionally add buttons for quick actions
@@ -691,7 +750,7 @@ When architecture changes, update diagrams in this file:
 
 - [ ] Component names match codebase
 - [ ] Data flows reflect actual implementation
-- [ ] Database schema matches Sequelize models
+- [ ] Database schema matches the Supabase client (supabase-js) models
 - [ ] Deployment architecture matches docker-compose.yml
 - [ ] Colors consistent across diagrams
 - [ ] Labels clear and concise
@@ -706,7 +765,7 @@ When architecture changes, update diagrams in this file:
 - Discord Bot: `#5865F2` (Discord brand blue)
 - REST API: `#68A063` (Node.js green)
 - PWA Frontend: `#000000` (Next.js black)
-- PostgreSQL: `#336791` (PostgreSQL brand blue)
+- Supabase: `#336791` (Supabase brand blue)
 - Google OAuth: `#4285F4` (Google brand blue)
 - Success/End: `#68A063` (green)
 - Error/Warning: `#FF6B6B` (red)

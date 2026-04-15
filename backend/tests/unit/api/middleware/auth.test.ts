@@ -327,4 +327,5 @@ describe('Basic Auth Middleware (auth.ts)', () => {
       expect(typeof jsonCall.error).toBe('string');
     });
   });
+
 });

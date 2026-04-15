@@ -1,8 +1,8 @@
 /**
  * Unit Tests: Random Button Handlers
  *
- * Tests all random-related button interactions including movie reroll,
- * dinner reroll, save dinner, date reroll, question reroll, and coin flip.
+ * Tests random-related button interactions: movie reroll, recipe reroll,
+ * date reroll, question reroll, and coin flip.
  * Coverage target: 80%
  */
 
@@ -14,18 +14,6 @@ jest.mock('../../../../shared/utils/logger', () => ({
     warn: jest.fn(),
     debug: jest.fn(),
   },
-}));
-
-// Mock database helper
-const mockList = {
-  findOne: jest.fn(),
-  createList: jest.fn(),
-  addItem: jest.fn(),
-};
-
-jest.mock('../../../../utils/interactions/helpers/databaseHelper', () => ({
-  __esModule: true,
-  getModels: jest.fn().mockResolvedValue({ List: mockList }),
 }));
 
 // Mock recipeData
@@ -45,22 +33,6 @@ jest.mock('../../../../utils/recipeData', () => ({
       link: 'https://imdb.com/inception',
     },
   },
-  dinnerOptions: {
-    'Pasta Carbonara': {
-      description: 'Classic Italian pasta',
-      image: 'https://example.com/carbonara.jpg',
-      prepTime: '30 min',
-      difficulty: 'Medium',
-      recipe: 'https://example.com/carbonara-recipe',
-    },
-    'Chicken Stir Fry': {
-      description: 'Quick Asian dish',
-      image: 'https://example.com/stirfry.jpg',
-      prepTime: '20 min',
-      difficulty: 'Easy',
-      recipe: 'https://example.com/stirfry-recipe',
-    },
-  },
 }));
 
 // Mock GeminiService
@@ -69,6 +41,15 @@ jest.mock('../../../../utils/geminiService', () => ({
   GeminiService: {
     generateQuestion: jest.fn(),
   },
+}));
+
+// Mock Recipe model
+const mockRecipe = {
+  getRandom: jest.fn(),
+};
+jest.mock('../../../../../supabase/models/Recipe', () => ({
+  __esModule: true,
+  default: mockRecipe,
 }));
 
 // Mock error responses
@@ -156,130 +137,6 @@ describe('Random Button Handlers', () => {
 
       expect(interaction.deferUpdate).not.toHaveBeenCalled();
       expect(interaction.editReply).toHaveBeenCalled();
-    });
-  });
-
-  describe('random_dinner_reroll', () => {
-    it('should pick a random dinner and display embed with save button', async () => {
-      const interaction = createMockInteraction({ customId: 'random_dinner_reroll' });
-
-      await handleRandomButton(interaction);
-
-      expect(interaction.deferUpdate).toHaveBeenCalled();
-      expect(interaction.editReply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          embeds: expect.any(Array),
-          components: expect.any(Array),
-        })
-      );
-    });
-  });
-
-  describe('save_dinner_{name}', () => {
-    it('should save dinner to Meal Ideas list when list exists', async () => {
-      mockList.findOne.mockResolvedValue({
-        name: 'Meal Ideas',
-        items: [],
-        user_id: 'user-456',
-        guild_id: 'guild-123',
-      });
-      mockList.addItem.mockResolvedValue(true);
-
-      const interaction = createMockInteraction({
-        customId: 'save_dinner_Pasta%20Carbonara',
-      });
-
-      await handleRandomButton(interaction);
-
-      expect(mockList.findOne).toHaveBeenCalledWith({
-        where: { user_id: 'user-456', guild_id: 'guild-123', name: 'Meal Ideas' },
-      });
-      expect(mockList.addItem).toHaveBeenCalledWith('guild-123', 'Meal Ideas', 'Pasta Carbonara');
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.stringContaining('Added "Pasta Carbonara" to your Meal Ideas list'),
-          ephemeral: true,
-        })
-      );
-    });
-
-    it('should create Meal Ideas list if it does not exist', async () => {
-      mockList.findOne.mockResolvedValue(null);
-      mockList.createList.mockResolvedValue({
-        name: 'Meal Ideas',
-        items: [],
-        user_id: 'user-456',
-        guild_id: 'guild-123',
-      });
-      mockList.addItem.mockResolvedValue(true);
-
-      const interaction = createMockInteraction({
-        customId: 'save_dinner_Chicken%20Stir%20Fry',
-      });
-
-      await handleRandomButton(interaction);
-
-      expect(mockList.createList).toHaveBeenCalledWith('guild-123', 'Meal Ideas', 'user-456');
-      expect(mockList.addItem).toHaveBeenCalledWith('guild-123', 'Meal Ideas', 'Chicken Stir Fry');
-    });
-
-    it('should reply with error when addItem fails', async () => {
-      mockList.findOne.mockResolvedValue({
-        name: 'Meal Ideas',
-        items: [],
-      });
-      mockList.addItem.mockResolvedValue(null);
-
-      const interaction = createMockInteraction({
-        customId: 'save_dinner_Pasta%20Carbonara',
-      });
-
-      await handleRandomButton(interaction);
-
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.stringContaining('Could not add item to list'),
-          ephemeral: true,
-        })
-      );
-    });
-
-    it('should use followUp when already deferred (success)', async () => {
-      mockList.findOne.mockResolvedValue({ name: 'Meal Ideas', items: [] });
-      mockList.addItem.mockResolvedValue(true);
-
-      const interaction = createMockInteraction({
-        customId: 'save_dinner_Pasta%20Carbonara',
-        deferred: true,
-      });
-
-      await handleRandomButton(interaction);
-
-      expect(interaction.followUp).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.stringContaining('Added'),
-          ephemeral: true,
-        })
-      );
-    });
-
-    it('should use followUp when already deferred (failure)', async () => {
-      mockList.findOne.mockResolvedValue({ name: 'Meal Ideas', items: [] });
-      mockList.addItem.mockResolvedValue(null);
-
-      const interaction = createMockInteraction({
-        customId: 'save_dinner_Pasta%20Carbonara',
-        deferred: true,
-      });
-
-      await handleRandomButton(interaction);
-
-      expect(interaction.followUp).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.stringContaining('Could not add item'),
-          ephemeral: true,
-        })
-      );
     });
   });
 
@@ -388,10 +245,10 @@ describe('Random Button Handlers', () => {
   describe('Error Handling', () => {
     it('should call handleInteractionError on error', async () => {
       const error = new Error('Unexpected error');
-      mockList.findOne.mockRejectedValue(error);
+      mockRecipe.getRandom.mockRejectedValueOnce(error);
 
       const interaction = createMockInteraction({
-        customId: 'save_dinner_test',
+        customId: 'random_recipe_reroll',
       });
 
       await handleRandomButton(interaction);
@@ -400,6 +257,53 @@ describe('Random Button Handlers', () => {
         interaction,
         error,
         'random button handler'
+      );
+    });
+  });
+
+  describe('random_recipe_reroll', () => {
+    function makeRecipeRow(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 1,
+        name: 'Test Recipe',
+        cuisine: 'italian',
+        difficulty: 'easy',
+        dietary_tags: [],
+        servings: 4,
+        prep_time_minutes: 10,
+        cook_time_minutes: 20,
+        ingredients: [{ name: 'flour', quantity: 1, unit: 'cup' }],
+        image_url: null,
+        ...overrides,
+      };
+    }
+
+    it('picks a fresh random recipe and editReplies with a reroll button', async () => {
+      mockRecipe.getRandom.mockResolvedValueOnce(makeRecipeRow({ name: 'Soup' }));
+      const interaction = createMockInteraction({
+        customId: 'random_recipe_reroll',
+        deferred: true,
+      });
+
+      await handleRandomButton(interaction);
+
+      expect(mockRecipe.getRandom).toHaveBeenCalledWith('guild-123');
+      const call = interaction.editReply.mock.calls.at(-1)[0];
+      expect(call.embeds[0].data.title).toContain('Soup');
+      expect(call.components[0].components[0].data.custom_id).toBe('random_recipe_reroll');
+    });
+
+    it('handles empty guild state gracefully', async () => {
+      mockRecipe.getRandom.mockResolvedValueOnce(null);
+      const interaction = createMockInteraction({
+        customId: 'random_recipe_reroll',
+        deferred: true,
+      });
+
+      await handleRandomButton(interaction);
+
+      expect(interaction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('No recipes') })
       );
     });
   });

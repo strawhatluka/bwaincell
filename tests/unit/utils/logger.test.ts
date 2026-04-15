@@ -9,12 +9,12 @@ const mockWinston = {
     errors: jest.fn(),
     colorize: jest.fn(),
     printf: jest.fn(),
-    json: jest.fn()
+    json: jest.fn(),
   },
   transports: {
     Console: jest.fn(),
-    File: jest.fn()
-  }
+    File: jest.fn(),
+  },
 };
 
 jest.mock('winston', () => mockWinston);
@@ -29,7 +29,7 @@ beforeAll(() => {
     error: jest.fn(),
     warn: jest.fn(),
     info: jest.fn(),
-    debug: jest.fn()
+    debug: jest.fn(),
   };
 });
 
@@ -48,7 +48,7 @@ describe('Logger Utilities', () => {
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       };
 
       mockWinston.createLogger.mockReturnValue(mockLogger);
@@ -66,7 +66,7 @@ describe('Logger Utilities', () => {
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       };
 
       mockWinston.createLogger.mockReturnValue(mockLogger);
@@ -84,7 +84,7 @@ describe('Logger Utilities', () => {
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       };
 
       mockWinston.createLogger.mockReturnValue(mockLogger);
@@ -101,7 +101,7 @@ describe('Logger Utilities', () => {
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       };
 
       mockWinston.createLogger.mockReturnValue(mockLogger);
@@ -130,7 +130,7 @@ describe('Logger Utilities', () => {
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       };
 
       mockWinston.createLogger.mockReturnValue(mockLogger);
@@ -139,7 +139,7 @@ describe('Logger Utilities', () => {
       const testObject = {
         userId: '12345',
         action: 'create_task',
-        metadata: { priority: 'high' }
+        metadata: { priority: 'high' },
       };
 
       mockLogger.info('User action', testObject);
@@ -174,12 +174,12 @@ describe('Logger Utilities', () => {
 
       const transport = new ConsoleTransport({
         level: 'info',
-        format: mockWinston.format.combine()
+        format: mockWinston.format.combine(),
       });
 
       expect(ConsoleTransport).toHaveBeenCalledWith({
         level: 'info',
-        format: expect.anything()
+        format: expect.anything(),
       });
       expect(transport).toHaveProperty('type', 'console');
     });
@@ -190,12 +190,12 @@ describe('Logger Utilities', () => {
 
       const transport = new FileTransport({
         filename: 'app.log',
-        level: 'error'
+        level: 'error',
       });
 
       expect(FileTransport).toHaveBeenCalledWith({
         filename: 'app.log',
-        level: 'error'
+        level: 'error',
       });
       expect(transport).toHaveProperty('type', 'file');
     });
@@ -207,7 +207,7 @@ describe('Logger Utilities', () => {
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       };
 
       mockWinston.createLogger.mockReturnValue(mockLogger);
@@ -215,13 +215,13 @@ describe('Logger Utilities', () => {
       const logger = mockWinston.createLogger({
         level: 'info',
         format: mockWinston.format.combine(),
-        transports: [new mockWinston.transports.Console()]
+        transports: [new mockWinston.transports.Console()],
       });
 
       expect(mockWinston.createLogger).toHaveBeenCalledWith({
         level: 'info',
         format: expect.anything(),
-        transports: expect.any(Array)
+        transports: expect.any(Array),
       });
       expect(logger).toBe(mockLogger);
     });
@@ -231,7 +231,7 @@ describe('Logger Utilities', () => {
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       };
 
       mockWinston.createLogger.mockReturnValue(mockLogger);
@@ -240,16 +240,13 @@ describe('Logger Utilities', () => {
         level: 'debug',
         transports: [
           new mockWinston.transports.Console(),
-          new mockWinston.transports.File({ filename: 'error.log', level: 'error' })
-        ]
+          new mockWinston.transports.File({ filename: 'error.log', level: 'error' }),
+        ],
       });
 
       expect(mockWinston.createLogger).toHaveBeenCalledWith({
         level: 'debug',
-        transports: expect.arrayContaining([
-          expect.anything(),
-          expect.anything()
-        ])
+        transports: expect.arrayContaining([expect.anything(), expect.anything()]),
       });
       expect(logger).toBe(mockLogger);
     });
@@ -286,12 +283,12 @@ describe('Logger Utilities', () => {
     test('should accept valid log levels', () => {
       const validLevels = ['error', 'warn', 'info', 'debug'];
 
-      validLevels.forEach(level => {
+      validLevels.forEach((level) => {
         const mockLogger = {
           info: jest.fn(),
           error: jest.fn(),
           warn: jest.fn(),
-          debug: jest.fn()
+          debug: jest.fn(),
         };
 
         mockWinston.createLogger.mockReturnValue(mockLogger);
@@ -307,7 +304,7 @@ describe('Logger Utilities', () => {
         info: jest.fn(),
         error: jest.fn(),
         warn: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
       };
 
       mockWinston.createLogger.mockReturnValue(mockLogger);

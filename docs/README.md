@@ -1,127 +1,85 @@
 # Documentation
 
-Comprehensive documentation for Bwaincell - a unified monorepo productivity platform.
+Comprehensive documentation for Bwaincell — a unified monorepo productivity platform (Discord bot + REST API + Next.js PWA) backed by Supabase.
 
 ## Documentation Structure
 
 - **[Guides](guides/)** - How-to guides and tutorials
-- **[API](api/)** - REST API reference and authentication
-- **[Architecture](architecture/)** - System design and tech stack
-- **[Reference](reference/)** - CLI commands, environment variables, dependencies
+- **[API](api/)** - REST API reference, Discord command reference, and authentication
+- **[Architecture](architecture/)** - System design, Supabase schema, ADRs
+- **[Reference](reference/)** - CLI commands, environment variables, glossary
 
 ## Quick Start
 
-1. **[Getting Started](guides/getting-started.md)** - Installation and setup
+1. **[Getting Started](guides/getting-started.md)** - Installation, Supabase setup, and quick start
 2. **[Architecture Overview](architecture/overview.md)** - System design and tech stack
 3. **[API Documentation](api/)** - REST API endpoints and authentication
+
+## Tech Stack Summary
+
+- **Runtime:** Node.js 18+, TypeScript 5.9 (strict)
+- **Backend:** Express 4.21 + Discord.js 14.14 (single process)
+- **Frontend:** Next.js 14 (App Router) + React 18 + NextAuth
+- **Database:** Supabase (managed PostgreSQL) with typed model wrappers in `supabase/models/`
+- **AI:** Google Gemini (`@google/genai`) for recipe normalization, shopping-list generation, `/random` date suggestions
+- **Scheduling:** `node-cron` for reminders, sunset announcements, event announcements
+
+## Discord Commands (12)
+
+`/budget`, `/events`, `/issues`, `/list`, `/note`, `/quote`, `/random`, `/recipe`, `/remind`, `/schedule`, `/sunset`, `/task`
+
+See [api/discord-commands.md](api/discord-commands.md) for full reference.
+
+## Feature Highlights
+
+- **Task / List / Note / Reminder / Budget / Schedule** — Core productivity models shared across Discord + PWA
+- **Recipe Management** — Scrape recipes from URL/video/manual, normalize ingredients via Gemini, store per guild
+- **AI Shopping List** — Generate a consolidated shopping list from the active weekly meal plan (ingredient canonicalization + Gemini-assisted merging)
+- **Weekly Meal Plans** — One active meal plan per guild, 7 recipe slots with per-slot serving overrides
+- **Sunset Scheduler** — `/sunset` configures per-guild daily sunset announcements (zip-code lookup + node-cron)
+- **Local Events** — `/events` configures weekly local-events announcements per guild
+- **Google OAuth + JWT** — Email/Discord-ID mapping, NextAuth on the frontend, JWT for backend REST
 
 ## Documentation Categories
 
 ### Guides
 
-**Getting Started:**
-
-- [Getting Started](guides/getting-started.md) - Installation, configuration, and quick start
-- [Troubleshooting](guides/troubleshooting.md) - Comprehensive troubleshooting (40+ issues)
-
-**Advanced Guides:**
-
-- [Security Best Practices](guides/security-best-practices.md) - OWASP Top 10, JWT, OAuth2, secrets management
-- [Performance Optimization](guides/performance-optimization.md) - Database, API, frontend optimization
-- [Monitoring and Logging](guides/monitoring-and-logging.md) - Winston logger, structured logging, alerting
-- [CI/CD Pipeline](guides/ci-cd-pipeline.md) - GitHub Actions, quality gates, automated testing
-- [PWA Features](guides/pwa-features.md) - Service workers, offline mode, dark mode
-- [Docker Development](guides/docker-development.md) - Multi-stage builds, orchestration, debugging
-
-**Coming Soon:**
-
-- API Development Guide
-- Discord Bot Development
-- Testing Guide
-- Deployment Guide
-- Database Migrations
-
-### API Documentation
-
-**Authentication:**
-
-- [API Overview](api/) - Authentication flow and response format
-- Google OAuth 2.0 verification
-- JWT token management
-- Refresh token handling
-
-**Endpoints:**
-
-- Tasks API - Task management (create, list, update, delete)
-- Lists API - List management and items
-- Notes API - Note-taking and search
-- Reminders API - Scheduled reminders
-- Budget API - Budget tracking and summaries
-
-**Examples:**
-
-- JavaScript/TypeScript code examples
-- Python code examples
-- Error handling patterns
-
-### Architecture
-
-**System Architecture:**
-
-- [Architecture Overview](architecture/overview.md) - Complete system design
-- Three-Interface Pattern (Discord Bot + REST API + PWA)
-- Monorepo Architecture
-- Technology Stack
-
-**Technical Details:**
-
-- Database Schema (PostgreSQL + Sequelize)
-- Authentication & Authorization (OAuth + JWT)
-- User Isolation Strategy
-- Deployment Architecture
-
-**Design Decisions:**
-
-- Why Monorepo?
-- Why Three Interfaces?
-- Why PostgreSQL?
-- Why Discord User ID for Auth?
-
-### Reference
-
-**CLI Commands:**
-
-- [Reference Documentation](reference/) - All npm scripts and commands
-- Monorepo scripts (dev, build, test, lint)
-- Backend scripts (Discord bot, API server)
-- Frontend scripts (Next.js, Prisma)
-- Docker commands
-
-**Environment Variables:**
-
-- Required variables (Discord, Database, API, Google OAuth)
-- Optional variables (Deployment, Application settings)
-- How to generate secrets
-
-**Dependencies:**
-
-- Production dependencies (Core, Authentication, Utilities)
-- Development dependencies (Testing, TypeScript, Linting)
-- Frontend dependencies (Framework, UI, State)
-
-## Documentation Index
-
-**Guides (9):**
-
-- [Getting Started](guides/getting-started.md)
+- [Getting Started](guides/getting-started.md) — Installation and Supabase setup
 - [Troubleshooting](guides/troubleshooting.md)
 - [FAQ](guides/faq.md)
-- [Security Best Practices](guides/security-best-practices.md)
+- [Security Best Practices](guides/security-best-practices.md) — Includes Supabase RLS guidance
 - [Performance Optimization](guides/performance-optimization.md)
 - [Monitoring and Logging](guides/monitoring-and-logging.md)
 - [CI/CD Pipeline](guides/ci-cd-pipeline.md)
 - [PWA Features](guides/pwa-features.md)
 - [Docker Development](guides/docker-development.md)
+- [API Development](guides/api-development.md)
+- [Discord Bot Development](guides/discord-bot-development.md)
+- [Testing](guides/testing.md)
+- [Deployment](guides/deployment.md)
+- [Database Migrations](guides/database-migrations.md)
+
+### API Documentation
+
+- [API Overview](api/) — Authentication flow, response format, endpoint groups
+- [Discord Bot Commands](api/discord-commands.md) — All 12 commands
+- Endpoint groups covered: Tasks, Lists, Notes, Reminders, Budget, Schedule, Recipes, MealPlans, Sunset, Events
+
+### Architecture
+
+- [Architecture Overview](architecture/overview.md)
+- [Database Schema](architecture/database-schema.md) — 12 tables, Supabase migrations
+- [Architecture Diagrams](architecture/diagrams.md)
+
+### Reference
+
+- [Reference Documentation](reference/)
+- [Quick Reference](reference/quick-reference.md)
+- [Glossary](reference/glossary.md)
+
+## Documentation Index
+
+**Guides (14):** see above
 
 **API (2):**
 
@@ -142,22 +100,19 @@ Comprehensive documentation for Bwaincell - a unified monorepo productivity plat
 
 ## Additional Resources
 
-### Repository Files
-
-- **[README.md](../README.md)** - Project overview and quick reference
+- **[README.md](../README.md)** - Project overview
 - **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Contribution guidelines
 - **[.env.example](../.env.example)** - Environment variable template
 
 ### External Links
 
-- **GitHub Repository:** [github.com/lukadfagundes/bwaincell](https://github.com/lukadfagundes/bwaincell)
-- **Discord.js Documentation:** [discord.js.org](https://discord.js.org/)
-- **Next.js Documentation:** [nextjs.org/docs](https://nextjs.org/docs)
-- **Sequelize Documentation:** [sequelize.org](https://sequelize.org/)
+- GitHub Repository: [github.com/lukadfagundes/bwaincell](https://github.com/lukadfagundes/bwaincell)
+- Discord.js: [discord.js.org](https://discord.js.org/)
+- Next.js: [nextjs.org/docs](https://nextjs.org/docs)
+- Supabase: [supabase.com/docs](https://supabase.com/docs)
+- Google Gemini (`@google/genai`): [ai.google.dev](https://ai.google.dev/)
 
 ## Contributing to Documentation
-
-Documentation improvements are welcome! Please follow these guidelines:
 
 1. Use clear, concise language
 2. Include code examples where applicable
@@ -168,41 +123,13 @@ Documentation improvements are welcome! Please follow these guidelines:
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for general contribution guidelines.
 
-## Documentation Status
-
-✅ **Completed:**
-
-- Getting Started Guide
-- Troubleshooting Guide (40+ issues across 6 categories)
-- Security Best Practices Guide (OWASP Top 10, JWT, OAuth2, secrets)
-- Performance Optimization Guide (database, API, frontend, caching)
-- Monitoring and Logging Guide (Winston, structured logging, alerting)
-- CI/CD Pipeline Guide (GitHub Actions, quality gates, testing)
-- PWA Features Guide (service workers, offline mode, dark mode)
-- Docker Development Guide (multi-stage builds, orchestration)
-- API Documentation (complete with examples)
-- Discord Bot Commands Reference (13 commands)
-- Architecture Overview (auto-generated from codebase)
-- Database Schema Documentation (6 models with ER diagram)
-- Reference Documentation (CLI commands, env vars, dependencies)
-- Navigation Structure
-
-📋 **Planned:**
-
-- API Development Guide
-- Discord Bot Development Guide
-- Testing Guide (unit, integration, E2E)
-- Deployment Guide (Raspberry Pi + Vercel)
-- Database Migrations Guide
-
 ## Support
 
-- **Documentation Issues:** [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
+- **Issues:** [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
 - **Questions:** [GitHub Discussions](https://github.com/lukadfagundes/bwaincell/discussions)
-- **Contact:** Via GitHub profile
 
 ---
 
-**Last Updated** 2026-01-12
-**Version:** 2.1.0
+**Last Updated:** 2026-04-15
+**Version:** 2.1.2
 **Maintained by:** [lukadfagundes](https://github.com/lukadfagundes)

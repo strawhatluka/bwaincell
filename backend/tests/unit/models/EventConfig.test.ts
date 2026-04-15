@@ -15,7 +15,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import EventConfig from '../../../database/models/EventConfig';
+import EventConfig from '../../../../supabase/models/EventConfig';
 import { DateTime } from 'luxon';
 
 describe('EventConfig Model', () => {
@@ -25,7 +25,7 @@ describe('EventConfig Model', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Create mock configuration object
+    // Create mock configuration object (plain row, no Sequelize instance methods)
     mockConfig = {
       id: 1,
       guild_id: 'guild-123',
@@ -38,56 +38,25 @@ describe('EventConfig Model', () => {
       timezone: 'America/Los_Angeles',
       is_enabled: true,
       last_announcement: null,
-      created_at: new Date(),
-      updated_at: new Date(),
-      update: jest.fn().mockImplementation(function (this: any, values: any) {
-        Object.assign(this, values);
-        return Promise.resolve(this);
-      }),
-      save: jest.fn().mockResolvedValue(mockConfig),
-      getNextRunTime: jest.fn().mockImplementation(function (this: any) {
-        const now = DateTime.now().setZone(this.timezone);
-        let target = now.set({
-          hour: this.schedule_hour,
-          minute: this.schedule_minute,
-          second: 0,
-          millisecond: 0,
-        });
-
-        const currentDayOfWeek = now.weekday; // 1=Monday, 7=Sunday
-        const targetDayOfWeek = this.schedule_day === 0 ? 7 : this.schedule_day;
-
-        if (currentDayOfWeek === targetDayOfWeek && now.hour < this.schedule_hour) {
-          return target.toJSDate();
-        }
-
-        const daysUntilTarget = (targetDayOfWeek - currentDayOfWeek + 7) % 7 || 7;
-        target = target.plus({ days: daysUntilTarget });
-        return target.toJSDate();
-      }),
-      formatSchedule: jest.fn().mockImplementation(function (this: any) {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const dayName = days[this.schedule_day];
-        const hour = this.schedule_hour % 12 || 12;
-        const ampm = this.schedule_hour >= 12 ? 'PM' : 'AM';
-        const minute = String(this.schedule_minute).padStart(2, '0');
-        return `every ${dayName} at ${hour}:${minute} ${ampm}`;
-      }),
-      getCronExpression: jest.fn().mockImplementation(function (this: any) {
-        return `${this.schedule_minute} ${this.schedule_hour} * * ${this.schedule_day}`;
-      }),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     // Mock static methods
     jest
       .spyOn(EventConfig, 'upsertConfig')
-      .mockImplementation(async (guildId, userId, location, channelId) => {
+      .mockImplementation(async (guildId, userId, location, channelId, options?) => {
         return {
           ...mockConfig,
           guild_id: guildId,
           user_id: userId,
           location,
           announcement_channel_id: channelId,
+          schedule_day: options?.scheduleDay ?? mockConfig.schedule_day,
+          schedule_hour: options?.scheduleHour ?? mockConfig.schedule_hour,
+          schedule_minute: options?.scheduleMinute ?? mockConfig.schedule_minute,
+          timezone: options?.timezone ?? mockConfig.timezone,
+          is_enabled: options?.isEnabled ?? mockConfig.is_enabled,
         };
       });
 
@@ -122,17 +91,9 @@ describe('EventConfig Model', () => {
 
     jest.spyOn(EventConfig, 'updateLastAnnouncement').mockImplementation(async (guildId) => {
       if (guildId === 'guild-123') {
-        mockConfig.last_announcement = new Date();
-        return mockConfig;
+        mockConfig.last_announcement = new Date().toISOString();
       }
-      return null;
     });
-
-    jest.spyOn(EventConfig, 'findOne').mockResolvedValue(mockConfig);
-    jest.spyOn(EventConfig, 'findAll').mockResolvedValue([mockConfig]);
-    jest.spyOn(EventConfig, 'count').mockResolvedValue(1);
-    jest.spyOn(EventConfig, 'create').mockResolvedValue(mockConfig);
-    jest.spyOn(EventConfig, 'destroy').mockResolvedValue(1);
   });
 
   describe('Model Creation', () => {
@@ -181,57 +142,43 @@ describe('EventConfig Model', () => {
       expect(updated.location).toBe('San Francisco, CA');
       expect(updated.announcement_channel_id).toBe('channel-999');
 
-      // Verify only one config exists
-      const count = await EventConfig.count({ where: { guild_id: 'guild-123' } });
-      expect(count).toBe(1);
+      // Verify upsertConfig was called twice (upsert handles uniqueness)
+      expect(EventConfig.upsertConfig).toHaveBeenCalledTimes(2);
     });
 
-    test('should require guild_id for creation', async () => {
-      // Mock create to reject without guild_id
-      (EventConfig.create as jest.Mock).mockRejectedValueOnce(new Error('guild_id is required'));
+    test('should handle upsertConfig failure gracefully', async () => {
+      (EventConfig.upsertConfig as jest.Mock).mockRejectedValueOnce(
+        new Error('guild_id is required')
+      );
 
       await expect(
-        EventConfig.create({
-          user_id: 'user-456',
-          location: 'Los Angeles, CA',
-          announcement_channel_id: 'channel-789',
-        } as any)
+        EventConfig.upsertConfig('', 'user-456', 'Los Angeles, CA', 'channel-789')
       ).rejects.toThrow('guild_id is required');
     });
 
-    test('should require location for creation', async () => {
-      // Mock create to reject without location
-      (EventConfig.create as jest.Mock).mockRejectedValueOnce(new Error('location is required'));
+    test('should handle missing location in upsertConfig', async () => {
+      (EventConfig.upsertConfig as jest.Mock).mockRejectedValueOnce(
+        new Error('location is required')
+      );
 
       await expect(
-        EventConfig.create({
-          guild_id: 'guild-123',
-          user_id: 'user-456',
-          announcement_channel_id: 'channel-789',
-        } as any)
+        EventConfig.upsertConfig('guild-123', 'user-456', '', 'channel-789')
       ).rejects.toThrow('location is required');
     });
 
-    test('should require announcement_channel_id for creation', async () => {
-      // Mock create to reject without announcement_channel_id
-      (EventConfig.create as jest.Mock).mockRejectedValueOnce(
+    test('should handle missing announcement_channel_id in upsertConfig', async () => {
+      (EventConfig.upsertConfig as jest.Mock).mockRejectedValueOnce(
         new Error('announcement_channel_id is required')
       );
 
       await expect(
-        EventConfig.create({
-          guild_id: 'guild-123',
-          user_id: 'user-456',
-          location: 'Los Angeles, CA',
-        } as any)
+        EventConfig.upsertConfig('guild-123', 'user-456', 'Los Angeles, CA', '')
       ).rejects.toThrow('announcement_channel_id is required');
     });
   });
 
   describe('Static Methods', () => {
     test('getGuildConfig() should return config for valid guild', async () => {
-      await EventConfig.upsertConfig('guild-123', 'user-456', 'Los Angeles, CA', 'channel-789');
-
       const config = await EventConfig.getGuildConfig('guild-123');
       expect(config).toBeDefined();
       expect(config?.guild_id).toBe('guild-123');
@@ -243,26 +190,13 @@ describe('EventConfig Model', () => {
     });
 
     test('getEnabledConfigs() should return only enabled configurations', async () => {
-      // Create enabled config
-      await EventConfig.upsertConfig('guild-123', 'user-456', 'Los Angeles, CA', 'channel-789');
-
-      // Create disabled config
-      const _disabled = await EventConfig.upsertConfig(
-        'guild-456',
-        'user-789',
-        'New York, NY',
-        'channel-999'
-      );
-      await EventConfig.toggleEnabled('guild-456', false);
-
       const enabled = await EventConfig.getEnabledConfigs();
       expect(enabled).toHaveLength(1);
       expect(enabled[0].guild_id).toBe('guild-123');
+      expect(enabled[0].is_enabled).toBe(true);
     });
 
     test('updateSchedule() should update schedule values', async () => {
-      await EventConfig.upsertConfig('guild-123', 'user-456', 'Los Angeles, CA', 'channel-789');
-
       const updated = await EventConfig.updateSchedule('guild-123', 5, 18, 30);
       expect(updated?.schedule_day).toBe(5); // Friday
       expect(updated?.schedule_hour).toBe(18); // 6 PM
@@ -274,16 +208,15 @@ describe('EventConfig Model', () => {
       expect(updated).toBeNull();
     });
 
-    test('toggleEnabled() should enable disabled configuration', async () => {
-      await EventConfig.upsertConfig('guild-123', 'user-456', 'Los Angeles, CA', 'channel-789');
+    test('toggleEnabled() should disable configuration', async () => {
+      const result = await EventConfig.toggleEnabled('guild-123', false);
+      expect(result?.is_enabled).toBe(false);
+    });
 
-      await EventConfig.toggleEnabled('guild-123', false);
-      let config = await EventConfig.getGuildConfig('guild-123');
-      expect(config?.is_enabled).toBe(false);
-
-      await EventConfig.toggleEnabled('guild-123', true);
-      config = await EventConfig.getGuildConfig('guild-123');
-      expect(config?.is_enabled).toBe(true);
+    test('toggleEnabled() should enable configuration', async () => {
+      mockConfig.is_enabled = false;
+      const result = await EventConfig.toggleEnabled('guild-123', true);
+      expect(result?.is_enabled).toBe(true);
     });
 
     test('toggleEnabled() should return null for non-existent guild', async () => {
@@ -292,167 +225,127 @@ describe('EventConfig Model', () => {
     });
 
     test('updateLastAnnouncement() should update timestamp', async () => {
-      await EventConfig.upsertConfig('guild-123', 'user-456', 'Los Angeles, CA', 'channel-789');
-
-      const beforeUpdate = await EventConfig.getGuildConfig('guild-123');
-      expect(beforeUpdate?.last_announcement).toBeNull();
+      expect(mockConfig.last_announcement).toBeNull();
 
       await EventConfig.updateLastAnnouncement('guild-123');
 
-      const afterUpdate = await EventConfig.getGuildConfig('guild-123');
-      expect(afterUpdate?.last_announcement).toBeDefined();
-      expect(afterUpdate?.last_announcement).toBeInstanceOf(Date);
+      expect(mockConfig.last_announcement).toBeDefined();
+      expect(typeof mockConfig.last_announcement).toBe('string');
+    });
+
+    test('updateLastAnnouncement() should not throw for valid guild', async () => {
+      await expect(EventConfig.updateLastAnnouncement('guild-123')).resolves.toBeUndefined();
     });
   });
 
-  describe('Instance Methods', () => {
-    test('getNextRunTime() should calculate next scheduled run', async () => {
-      const config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
+  describe('Static Helper Methods', () => {
+    test('getNextRunTime() should calculate next scheduled run', () => {
+      // Use the real static method (not mocked)
+      jest.restoreAllMocks();
 
-      const nextRun = config.getNextRunTime();
+      const config = {
+        ...mockConfig,
+        schedule_day: 1,
+        schedule_hour: 12,
+        schedule_minute: 0,
+        timezone: 'America/Los_Angeles',
+      };
+
+      const nextRun = EventConfig.getNextRunTime(config);
       expect(nextRun).toBeInstanceOf(Date);
 
       // Next run should be in the future
       expect(nextRun.getTime()).toBeGreaterThan(Date.now());
 
-      // Next run should be on a Monday (day 1)
+      // Verify the scheduled time components
       const nextRunDate = DateTime.fromJSDate(nextRun).setZone(config.timezone);
+      // schedule_day 1 = Monday, luxon weekday 1 = Monday
       expect(nextRunDate.weekday).toBe(1); // Monday
       expect(nextRunDate.hour).toBe(12); // Noon
       expect(nextRunDate.minute).toBe(0);
     });
 
-    test('getNextRunTime() should handle different schedules', async () => {
-      const _config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
+    test('getNextRunTime() should handle different schedules', () => {
+      const config = {
+        ...mockConfig,
+        schedule_day: 5,
+        schedule_hour: 18,
+        schedule_minute: 30,
+        timezone: 'America/Los_Angeles',
+      };
 
-      // Update to Friday at 6:30 PM
-      await EventConfig.updateSchedule('guild-123', 5, 18, 30);
-      const updatedConfig = await EventConfig.getGuildConfig('guild-123');
-
-      const nextRun = updatedConfig!.getNextRunTime();
-      const nextRunDate = DateTime.fromJSDate(nextRun).setZone(updatedConfig!.timezone);
+      const nextRun = EventConfig.getNextRunTime(config);
+      const nextRunDate = DateTime.fromJSDate(nextRun).setZone(config.timezone);
 
       expect(nextRunDate.weekday).toBe(5); // Friday
       expect(nextRunDate.hour).toBe(18); // 6 PM
       expect(nextRunDate.minute).toBe(30);
     });
 
-    test('formatSchedule() should return human-readable schedule', async () => {
-      const config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
+    test('formatSchedule() should return human-readable schedule', () => {
+      const config = {
+        ...mockConfig,
+        schedule_day: 1,
+        schedule_hour: 12,
+        schedule_minute: 0,
+        timezone: 'America/Los_Angeles',
+      };
 
-      const formatted = config.formatSchedule();
+      const formatted = EventConfig.formatSchedule(config);
       expect(formatted).toContain('Monday');
       expect(formatted).toContain('12:00 PM');
+      expect(formatted).toContain('America/Los_Angeles');
     });
 
-    test('formatSchedule() should handle different schedules', async () => {
-      const _config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
+    test('formatSchedule() should handle Sunday schedule', () => {
+      const config = {
+        ...mockConfig,
+        schedule_day: 0,
+        schedule_hour: 9,
+        schedule_minute: 30,
+        timezone: 'America/Los_Angeles',
+      };
 
-      await EventConfig.updateSchedule('guild-123', 0, 9, 30);
-      const updatedConfig = await EventConfig.getGuildConfig('guild-123');
-
-      const formatted = updatedConfig!.formatSchedule();
+      const formatted = EventConfig.formatSchedule(config);
       expect(formatted).toContain('Sunday');
       expect(formatted).toContain('9:30 AM');
     });
 
-    test('getCronExpression() should build valid cron expression', async () => {
-      const config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
+    test('formatSchedule() should handle midnight (hour 0)', () => {
+      const config = {
+        ...mockConfig,
+        schedule_day: 3,
+        schedule_hour: 0,
+        schedule_minute: 0,
+        timezone: 'America/Los_Angeles',
+      };
 
-      const cron = config.getCronExpression();
-      expect(cron).toBe('0 12 * * 1'); // Every Monday at noon
+      const formatted = EventConfig.formatSchedule(config);
+      expect(formatted).toContain('Wednesday');
+      expect(formatted).toContain('12:00 AM');
     });
 
-    test('getCronExpression() should handle different schedules', async () => {
-      const _config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
+    test('formatSchedule() should handle PM hours', () => {
+      const config = {
+        ...mockConfig,
+        schedule_day: 5,
+        schedule_hour: 18,
+        schedule_minute: 30,
+        timezone: 'America/Los_Angeles',
+      };
 
-      await EventConfig.updateSchedule('guild-123', 5, 18, 30);
-      const updatedConfig = await EventConfig.getGuildConfig('guild-123');
-
-      const cron = updatedConfig!.getCronExpression();
-      expect(cron).toBe('30 18 * * 5'); // Every Friday at 6:30 PM
-    });
-  });
-
-  describe('Validation', () => {
-    test('should validate schedule_day range (0-6)', async () => {
-      const config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
-
-      // Valid day (0-6)
-      await expect(config.update({ schedule_day: 6 })).resolves.toBeDefined();
-
-      await expect(config.update({ schedule_day: 0 })).resolves.toBeDefined();
-    });
-
-    test('should validate schedule_hour range (0-23)', async () => {
-      const config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
-
-      // Valid hour (0-23)
-      await expect(config.update({ schedule_hour: 23 })).resolves.toBeDefined();
-
-      await expect(config.update({ schedule_hour: 0 })).resolves.toBeDefined();
-    });
-
-    test('should validate schedule_minute range (0-59)', async () => {
-      const config = await EventConfig.upsertConfig(
-        'guild-123',
-        'user-456',
-        'Los Angeles, CA',
-        'channel-789'
-      );
-
-      // Valid minute (0-59)
-      await expect(config.update({ schedule_minute: 59 })).resolves.toBeDefined();
-
-      await expect(config.update({ schedule_minute: 0 })).resolves.toBeDefined();
+      const formatted = EventConfig.formatSchedule(config);
+      expect(formatted).toContain('Friday');
+      expect(formatted).toContain('6:30 PM');
     });
   });
 
   describe('Queries', () => {
-    test('should find by guild_id using unique constraint', async () => {
-      const config = await EventConfig.findOne({ where: { guild_id: 'guild-123' } });
+    test('should find config by guild_id via getGuildConfig', async () => {
+      const config = await EventConfig.getGuildConfig('guild-123');
       expect(config).toBeDefined();
       expect(config?.guild_id).toBe('guild-123');
+      expect(EventConfig.getGuildConfig).toHaveBeenCalledWith('guild-123');
     });
 
     test('should enforce unique guild_id constraint via upsert', async () => {
@@ -466,24 +359,19 @@ describe('EventConfig Model', () => {
       expect(EventConfig.upsertConfig).toHaveBeenCalledTimes(2);
     });
 
-    test('should find all configurations', async () => {
-      // Mock findAll to return multiple configs
-      (EventConfig.findAll as jest.Mock).mockResolvedValueOnce([
-        { ...mockConfig, guild_id: 'guild-1' },
-        { ...mockConfig, guild_id: 'guild-2' },
-        { ...mockConfig, guild_id: 'guild-3' },
-      ]);
-
-      const all = await EventConfig.findAll();
-      expect(all).toHaveLength(3);
+    test('should get all enabled configurations', async () => {
+      const enabled = await EventConfig.getEnabledConfigs();
+      expect(enabled).toHaveLength(1);
+      expect(EventConfig.getEnabledConfigs).toHaveBeenCalled();
     });
 
-    test('should update configuration', async () => {
-      const config = await EventConfig.getGuildConfig('guild-123');
-      await config?.update({ location: 'San Diego, CA' });
-
-      expect(config?.location).toBe('San Diego, CA');
-      expect(config?.update).toHaveBeenCalledWith({ location: 'San Diego, CA' });
+    test('should update schedule via updateSchedule', async () => {
+      const updated = await EventConfig.updateSchedule('guild-123', 3, 15, 45);
+      expect(updated).toBeDefined();
+      expect(updated?.schedule_day).toBe(3);
+      expect(updated?.schedule_hour).toBe(15);
+      expect(updated?.schedule_minute).toBe(45);
+      expect(EventConfig.updateSchedule).toHaveBeenCalledWith('guild-123', 3, 15, 45);
     });
   });
 });

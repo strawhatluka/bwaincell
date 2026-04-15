@@ -25,7 +25,7 @@ jest.mock('../../../config/config', () => ({
   },
 }));
 
-jest.mock('../../../database/models/List', () => ({
+jest.mock('../../../../supabase/models/List', () => ({
   __esModule: true,
   default: {
     createList: jest.fn(),
@@ -40,7 +40,7 @@ jest.mock('../../../database/models/List', () => ({
 
 import { AutocompleteInteraction, ChatInputCommandInteraction } from 'discord.js';
 import listCommand from '../../../commands/list';
-import List from '../../../database/models/List';
+import List from '../../../../supabase/models/List';
 import { logger } from '../../../shared/utils/logger';
 
 describe('/list Discord Command', () => {

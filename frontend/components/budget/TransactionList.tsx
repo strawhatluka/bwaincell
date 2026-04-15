@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { format, parseISO } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { useState } from 'react';
+import { format, parseISO } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,14 +12,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 interface Transaction {
   id: number;
   userId: string;
   guildId: string;
   amount: number;
-  type: "income" | "expense";
+  type: 'income' | 'expense';
   category: string;
   description: string;
   date: string;
@@ -32,10 +32,7 @@ interface TransactionListProps {
   onDelete: (id: number) => void;
 }
 
-export function TransactionList({
-  transactions,
-  onDelete,
-}: TransactionListProps) {
+export function TransactionList({ transactions, onDelete }: TransactionListProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const handleDelete = () => {
@@ -46,16 +43,14 @@ export function TransactionList({
   };
 
   const sortedTransactions = [...transactions].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
   return (
     <>
       <div className="bg-card rounded-lg border border-border">
         <div className="p-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground">
-            Recent Transactions
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground">Recent Transactions</h3>
         </div>
         <div className="divide-y divide-border">
           {sortedTransactions.length === 0 ? (
@@ -64,20 +59,15 @@ export function TransactionList({
             </div>
           ) : (
             sortedTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="p-4 hover:bg-accent transition-colors"
-              >
+              <div key={transaction.id} className="p-4 hover:bg-accent transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div
                       className={`shrink-0 p-2 rounded-lg ${
-                        transaction.type === "income"
-                          ? "bg-green-100"
-                          : "bg-red-100"
+                        transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
                       }`}
                     >
-                      {transaction.type === "income" ? (
+                      {transaction.type === 'income' ? (
                         <ArrowUpCircle className="w-5 h-5 text-green-600" />
                       ) : (
                         <ArrowDownCircle className="w-5 h-5 text-red-600" />
@@ -85,17 +75,13 @@ export function TransactionList({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="font-medium text-foreground">
-                          {transaction.description}
-                        </p>
+                        <p className="font-medium text-foreground">{transaction.description}</p>
                         <p
                           className={`text-lg font-semibold shrink-0 ${
-                            transaction.type === "income"
-                              ? "text-green-600"
-                              : "text-red-600"
+                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                           }`}
                         >
-                          {transaction.type === "income" ? "+" : "-"}$
+                          {transaction.type === 'income' ? '+' : '-'}$
                           {Number(transaction.amount).toFixed(2)}
                         </p>
                       </div>
@@ -104,7 +90,7 @@ export function TransactionList({
                           {transaction.category}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {format(parseISO(transaction.date), "MMM d, yyyy")}
+                          {format(parseISO(transaction.date), 'MMM d, yyyy')}
                         </span>
                       </div>
                     </div>
@@ -130,8 +116,7 @@ export function TransactionList({
           <DialogHeader>
             <DialogTitle>Delete Transaction</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this transaction? This action
-              cannot be undone.
+              Are you sure you want to delete this transaction? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

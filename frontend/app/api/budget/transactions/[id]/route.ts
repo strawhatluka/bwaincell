@@ -1,48 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/[...nextauth]/route";
-import { prisma } from "@/lib/db/prisma";
-import { BudgetType } from "@prisma/client";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../../auth/[...nextauth]/route';
+import { User } from '@database/models/User';
+import Budget from '@database/models/Budget';
+import supabase from '@database/supabase';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * PATCH /api/budget/transactions/[id]
  * Update a budget transaction
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const transactionId = parseInt(params.id, 10);
 
     if (isNaN(transactionId)) {
       return NextResponse.json(
-        { success: false, error: "Invalid transaction ID" },
-        { status: 400 },
+        { success: false, error: 'Invalid transaction ID' },
+        { status: 400 }
       );
     }
 
@@ -52,30 +42,30 @@ export async function PATCH(
     // Build update data object
     const updateData: {
       amount?: number;
-      type?: BudgetType;
+      type?: string;
       category?: string;
       description?: string | null;
-      date?: Date;
+      date?: string;
     } = {};
 
     if (amount !== undefined) {
-      if (typeof amount !== "number") {
+      if (typeof amount !== 'number') {
         return NextResponse.json(
-          { success: false, error: "Amount must be a number" },
-          { status: 400 },
+          { success: false, error: 'Amount must be a number' },
+          { status: 400 }
         );
       }
       updateData.amount = amount;
     }
 
     if (type !== undefined) {
-      if (type !== "income" && type !== "expense") {
+      if (type !== 'income' && type !== 'expense') {
         return NextResponse.json(
           { success: false, error: "Type must be 'income' or 'expense'" },
-          { status: 400 },
+          { status: 400 }
         );
       }
-      updateData.type = type as BudgetType;
+      updateData.type = type;
     }
 
     if (category !== undefined) {
@@ -88,49 +78,41 @@ export async function PATCH(
 
     if (date !== undefined) {
       // Parse date as local timezone, not UTC
+      let d: Date;
       if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        // Append local midnight time to prevent UTC conversion
-        updateData.date = new Date(date + "T00:00:00");
+        d = new Date(date + 'T00:00:00');
       } else {
-        updateData.date = new Date(date);
+        d = new Date(date);
       }
+      updateData.date = d.toISOString();
     }
 
-    // Update transaction
-    const updatedTransaction = await prisma.budget.updateMany({
-      where: {
-        id: transactionId,
-        guildId: user.guildId,
-      },
-      data: updateData,
-    });
+    const { data: updated, error } = await supabase
+      .from('budgets')
+      .update(updateData)
+      .eq('id', transactionId)
+      .eq('guild_id', user.guild_id)
+      .select()
+      .single();
 
-    if (updatedTransaction.count === 0) {
-      return NextResponse.json(
-        { success: false, error: "Transaction not found" },
-        { status: 404 },
-      );
+    if (error || !updated) {
+      return NextResponse.json({ success: false, error: 'Transaction not found' }, { status: 404 });
     }
-
-    // Fetch and return updated transaction
-    const transaction = await prisma.budget.findUnique({
-      where: { id: transactionId },
-    });
 
     return NextResponse.json({
       success: true,
-      data: transaction,
-      message: "Transaction updated successfully",
+      data: updated,
+      message: 'Transaction updated successfully',
     });
   } catch (error) {
-    console.error("[API] Error updating transaction:", error);
+    console.error('[API] Error updating transaction:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to update transaction",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to update transaction',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -139,69 +121,49 @@ export async function PATCH(
  * DELETE /api/budget/transactions/[id]
  * Delete a budget transaction
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { guildId: true },
-    });
+    const user = await User.findByEmail(session.user.email);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
     const transactionId = parseInt(params.id, 10);
 
     if (isNaN(transactionId)) {
       return NextResponse.json(
-        { success: false, error: "Invalid transaction ID" },
-        { status: 400 },
+        { success: false, error: 'Invalid transaction ID' },
+        { status: 400 }
       );
     }
 
-    // Delete transaction
-    const deletedTransaction = await prisma.budget.deleteMany({
-      where: {
-        id: transactionId,
-        guildId: user.guildId,
-      },
-    });
+    const deleted = await Budget.deleteEntry(transactionId, user.guild_id);
 
-    if (deletedTransaction.count === 0) {
-      return NextResponse.json(
-        { success: false, error: "Transaction not found" },
-        { status: 404 },
-      );
+    if (!deleted) {
+      return NextResponse.json({ success: false, error: 'Transaction not found' }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      message: "Transaction deleted successfully",
+      message: 'Transaction deleted successfully',
     });
   } catch (error) {
-    console.error("[API] Error deleting transaction:", error);
+    console.error('[API] Error deleting transaction:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to delete transaction",
-        message: error instanceof Error ? error.message : "Unknown error",
+        error: 'Failed to delete transaction',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -1,9 +1,10 @@
 # Database Schema
 
-**Version:** 2.0.0
-**Last Updated** 2026-01-12
-**Database:** PostgreSQL 15
-**ORM:** Sequelize 6.37.5
+**Version:** 2.1.2
+**Last Updated:** 2026-04-15
+**Database:** Supabase (managed PostgreSQL)
+**Client:** `@supabase/supabase-js` via `supabase/supabase.ts`
+**Authoritative Source:** `supabase/migrations/*.sql` (+ `supabase/init.sql` for bootstrap)
 
 Complete database schema documentation for Bwaincell productivity platform.
 
@@ -11,15 +12,18 @@ Complete database schema documentation for Bwaincell productivity platform.
 
 ## Overview
 
-Bwaincell uses PostgreSQL with Sequelize ORM for data persistence across Discord Bot, REST API, and PWA interfaces. The schema is designed for multi-tenant usage with user isolation by `guild_id` (shared household model) or `user_id` + `guild_id` (per-user isolation).
+Bwaincell uses Supabase (managed PostgreSQL) for data persistence across Discord Bot, REST API, and PWA interfaces. The schema is applied via Supabase-managed migrations in `supabase/migrations/`. Data is shared per Discord guild (household model); `user_id` is retained for audit trails.
 
 **Key Design Decisions:**
 
-- **No Foreign Keys:** Simplified schema for easier migration and flexibility
-- **Guild-Based Isolation:** Default filtering by `guild_id` for shared household access (WO-015)
-- **Auto-Sync Schema:** Database tables created automatically on backend startup
-- **Timestamp Tracking:** Created/updated timestamps for audit trails
-- **JSONB for Complex Data:** Lists use JSONB for flexible item storage
+- **Supabase-managed migrations:** Schema changes live in `supabase/migrations/YYYYMMDDHHMMSS_description.sql`, applied with `supabase db push` / `supabase db reset`.
+- **No Foreign Keys:** Schema currently uses application-level enforcement for easier multi-tenant flexibility. `user_id` / `guild_id` are strings (Discord snowflakes), not FKs to `users.id`.
+- **Guild-Based Isolation:** Default filtering by `guild_id` for shared household access (WO-015).
+- **Timestamp Tracking:** `created_at` / `updated_at` on most tables.
+- **JSONB for Complex Data:** Lists, recipe ingredients/instructions/nutrition/tags, note tags use JSONB.
+- **ENUM types:** `reminder_frequency`, `budget_type`, `recipe_difficulty`, `recipe_source_type`.
+
+**Note on RLS:** Row Level Security policies are not defined in the current migrations (`20260413000000_initial_schema.sql`, `20260414000000_recipes_schema.sql`). The backend uses the Supabase **service role key** and enforces isolation in application code. Adding RLS policies is recommended if/when the frontend begins querying Supabase with the anon key directly. See [security-best-practices.md](../guides/security-best-practices.md).
 
 ---
 
@@ -32,1093 +36,507 @@ erDiagram
     USERS ||--o{ NOTES : creates
     USERS ||--o{ REMINDERS : creates
     USERS ||--o{ SCHEDULES : creates
+    USERS ||--o{ BUDGETS : creates
+    USERS ||--o{ RECIPES : creates
+    USERS ||--o{ MEAL_PLANS : edits
+    USERS ||--o{ EVENT_CONFIGS : configures
+    USERS ||--o{ SUNSET_CONFIGS : configures
+    USERS ||--o{ RECIPE_PREFERENCES : configures
+
+    MEAL_PLANS }o--|{ RECIPES : references
 
     USERS {
-        int id PK
-        string google_id UK
-        string email UK
-        string name
-        string picture
-        string discord_id UK
-        string guild_id
-        string refresh_token
-        timestamp created_at
-        timestamp updated_at
+      int id PK
+      string google_id UK
+      string email UK
+      string name
+      string picture
+      string discord_id
+      string guild_id
+      text refresh_token
+      timestamptz created_at
+      timestamptz updated_at
     }
-
     TASKS {
-        int id PK
-        string description
-        date due_date
-        boolean completed
-        timestamp created_at
-        timestamp completed_at
-        string user_id FK
-        string guild_id
+      int id PK
+      text description
+      timestamptz due_date
+      bool completed
+      timestamptz created_at
+      timestamptz completed_at
+      string user_id
+      string guild_id
     }
-
     LISTS {
-        int id PK
-        string name
-        jsonb items
-        string user_id FK
-        string guild_id
-        timestamp created_at
+      int id PK
+      string name
+      jsonb items
+      string user_id
+      string guild_id
+      timestamptz created_at
     }
-
     NOTES {
-        int id PK
-        string title
-        text content
-        text[] tags
-        timestamp created_at
-        timestamp updated_at
-        string user_id FK
-        string guild_id
+      int id PK
+      string title
+      text content
+      jsonb tags
+      timestamptz created_at
+      timestamptz updated_at
+      string user_id
+      string guild_id
     }
-
     REMINDERS {
-        int id PK
-        string message
-        string time
-        string frequency
-        int day_of_week
-        string channel_id
-        string user_id FK
-        string guild_id
-        boolean active
-        timestamp next_trigger
+      int id PK
+      text message
+      time time
+      enum frequency
+      int day_of_week
+      int day_of_month
+      int month
+      string channel_id
+      string user_id
+      string guild_id
+      bool active
+      timestamptz next_trigger
     }
-
+    BUDGETS {
+      int id PK
+      enum type
+      string category
+      decimal amount
+      text description
+      timestamptz date
+      string user_id
+      string guild_id
+    }
     SCHEDULES {
-        int id PK
-        string event
-        date date
-        time time
-        string description
-        string user_id FK
-        string guild_id
-        timestamp created_at
+      int id PK
+      string event
+      date date
+      time time
+      text description
+      string user_id
+      string guild_id
+      timestamptz created_at
+    }
+    EVENT_CONFIGS {
+      int id PK
+      string guild_id UK
+      string user_id
+      string location
+      string announcement_channel_id
+      int schedule_day
+      int schedule_hour
+      int schedule_minute
+      string timezone
+      bool is_enabled
+      timestamptz last_announcement
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    SUNSET_CONFIGS {
+      int id PK
+      string guild_id UK
+      string user_id
+      int advance_minutes
+      string channel_id
+      string zip_code
+      string timezone
+      bool is_enabled
+      timestamptz last_announcement
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    RECIPES {
+      int id PK
+      string name
+      text source_url
+      enum source_type
+      jsonb ingredients
+      jsonb instructions
+      int servings
+      int prep_time_minutes
+      int cook_time_minutes
+      jsonb nutrition
+      string cuisine
+      enum difficulty
+      jsonb dietary_tags
+      text image_url
+      text notes
+      bool is_favorite
+      timestamptz created_at
+      timestamptz updated_at
+      string user_id
+      string guild_id
+    }
+    MEAL_PLANS {
+      int id PK
+      int[] recipe_ids
+      int[] servings_per_recipe
+      date week_start
+      bool archived
+      timestamptz created_at
+      timestamptz updated_at
+      string user_id
+      string guild_id
+    }
+    RECIPE_PREFERENCES {
+      int id PK
+      string guild_id UK
+      jsonb dietary_restrictions
+      jsonb excluded_cuisines
+      timestamptz created_at
+      timestamptz updated_at
+      string user_id
     }
 ```
+
+---
+
+## ENUM Types
+
+Defined in migrations:
+
+- `reminder_frequency` — `'once' | 'daily' | 'weekly' | 'monthly' | 'yearly'`
+- `budget_type` — `'expense' | 'income'`
+- `recipe_difficulty` — `'easy' | 'medium' | 'hard'`
+- `recipe_source_type` — `'website' | 'video' | 'file' | 'manual'`
+
+Extensions enabled: `uuid-ossp`, `pg_trgm`.
 
 ---
 
 ## Tables
 
-### 1. Users
+### 1. users
 
-Stores authenticated users with Google OAuth credentials and Discord user mapping.
+Authenticated users (Google OAuth) with Discord-ID mapping.
 
-**Table Name:** `users`
+| Column          | Type           | Constraints                                 |
+| --------------- | -------------- | ------------------------------------------- |
+| `id`            | `SERIAL`       | `PRIMARY KEY`                               |
+| `google_id`     | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                        |
+| `email`         | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                        |
+| `name`          | `VARCHAR(255)` | `NOT NULL`                                  |
+| `picture`       | `VARCHAR(255)` |                                             |
+| `discord_id`    | `VARCHAR(255)` | `NOT NULL`                                  |
+| `guild_id`      | `VARCHAR(255)` | `NOT NULL`                                  |
+| `refresh_token` | `TEXT`         |                                             |
+| `created_at`    | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
+| `updated_at`    | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
 
-| Column          | Type          | Constraints                     | Description                 |
-| --------------- | ------------- | ------------------------------- | --------------------------- |
-| `id`            | `INTEGER`     | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique user identifier      |
-| `google_id`     | `STRING(255)` | `UNIQUE`, `NOT NULL`            | Google account ID           |
-| `email`         | `STRING(255)` | `UNIQUE`, `NOT NULL`            | Google email address        |
-| `name`          | `STRING(255)` | `NOT NULL`                      | User's display name         |
-| `picture`       | `STRING(512)` | `NULL`                          | Google profile picture URL  |
-| `discord_id`    | `STRING(255)` | `UNIQUE`, `NOT NULL`            | Discord user ID (snowflake) |
-| `guild_id`      | `STRING(255)` | `NOT NULL`                      | Discord guild/server ID     |
-| `refresh_token` | `TEXT`        | `NULL`                          | JWT refresh token           |
-| `created_at`    | `TIMESTAMP`   | `NOT NULL`, `DEFAULT NOW()`     | Account creation timestamp  |
-| `updated_at`    | `TIMESTAMP`   | `NOT NULL`, `DEFAULT NOW()`     | Last update timestamp       |
+**Indexes:** `idx_users_email`, `idx_users_google_id`.
 
-**Indexes:**
+### 2. tasks
 
-```sql
-CREATE UNIQUE INDEX idx_users_google_id ON users(google_id);
-CREATE UNIQUE INDEX idx_users_email ON users(email);
-CREATE UNIQUE INDEX idx_users_discord_id ON users(discord_id);
-CREATE INDEX idx_users_guild_id ON users(guild_id);
-```
+| Column         | Type           | Constraints                                 |
+| -------------- | -------------- | ------------------------------------------- |
+| `id`           | `SERIAL`       | `PRIMARY KEY`                               |
+| `description`  | `TEXT`         | `NOT NULL`                                  |
+| `due_date`     | `TIMESTAMPTZ`  |                                             |
+| `completed`    | `BOOLEAN`      | `NOT NULL`, `DEFAULT FALSE`                 |
+| `created_at`   | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                 |
+| `completed_at` | `TIMESTAMPTZ`  |                                             |
+| `user_id`      | `VARCHAR(255)` | `NOT NULL`                                  |
+| `guild_id`     | `VARCHAR(255)` | `NOT NULL`                                  |
 
-**Model Definition:**
+**Indexes:** `idx_tasks_guild_id`, `idx_tasks_completed`, `idx_tasks_guild_completed`.
 
-```typescript
-// backend/database/models/User.ts
-export interface UserAttributes {
-  id: number;
-  googleId: string;
-  email: string;
-  name: string;
-  picture: string | null;
-  discordId: string;
-  guildId: string;
-  refreshToken: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
+### 3. notes
 
-**Usage:**
+| Column       | Type           | Constraints                          |
+| ------------ | -------------- | ------------------------------------ |
+| `id`         | `SERIAL`       | `PRIMARY KEY`                        |
+| `title`      | `VARCHAR(255)` | `NOT NULL`                           |
+| `content`    | `TEXT`         | `NOT NULL`                           |
+| `tags`       | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb`    |
+| `created_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
+| `updated_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
+| `user_id`    | `VARCHAR(255)` | `NOT NULL`                           |
+| `guild_id`   | `VARCHAR(255)` | `NOT NULL`                           |
 
-- Authentication: Maps Google OAuth email to Discord user ID
-- JWT token storage: Stores refresh tokens for session management
-- Multi-tenant isolation: Links users to Discord guilds
+**Indexes:** `idx_notes_guild_id`.
 
-**Query Patterns:**
+### 4. lists
 
-```typescript
-// Find user by email
-const user = await User.findOne({ where: { email: "user@gmail.com" } });
+Items stored as JSONB array.
 
-// Find user by Discord ID
-const user = await User.findOne({ where: { discordId: "123456789" } });
+| Column       | Type           | Constraints                          |
+| ------------ | -------------- | ------------------------------------ |
+| `id`         | `SERIAL`       | `PRIMARY KEY`                        |
+| `name`       | `VARCHAR(255)` | `NOT NULL`                           |
+| `items`      | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb`    |
+| `user_id`    | `VARCHAR(255)` | `NOT NULL`                           |
+| `guild_id`   | `VARCHAR(255)` | `NOT NULL`                           |
+| `created_at` | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
 
-// Update refresh token
-await User.update(
-  { refreshToken: newToken },
-  { where: { email: "user@gmail.com" } },
-);
-```
+**Indexes:** `idx_lists_guild_id`.
 
----
+### 5. reminders
 
-### 2. Tasks
+| Column         | Type                   | Constraints                             |
+| -------------- | ---------------------- | --------------------------------------- |
+| `id`           | `SERIAL`               | `PRIMARY KEY`                           |
+| `message`      | `TEXT`                 | `NOT NULL`                              |
+| `time`         | `TIME`                 | `NOT NULL`                              |
+| `frequency`    | `reminder_frequency`   | `NOT NULL`, `DEFAULT 'once'`            |
+| `day_of_week`  | `INTEGER`              |                                         |
+| `day_of_month` | `INTEGER`              |                                         |
+| `month`        | `INTEGER`              |                                         |
+| `channel_id`   | `VARCHAR(255)`         | `NOT NULL`                              |
+| `user_id`      | `VARCHAR(255)`         | `NOT NULL`                              |
+| `guild_id`     | `VARCHAR(255)`         | `NOT NULL`                              |
+| `active`       | `BOOLEAN`              | `NOT NULL`, `DEFAULT TRUE`              |
+| `next_trigger` | `TIMESTAMPTZ`          |                                         |
 
-Stores user tasks with optional due dates and completion tracking.
+**Indexes:** `idx_reminders_guild_id`, `idx_reminders_active`, `idx_reminders_next_trigger` (partial `WHERE active = TRUE`).
 
-**Table Name:** `tasks`
+### 6. budgets
 
-| Column         | Type          | Constraints                     | Description                    |
-| -------------- | ------------- | ------------------------------- | ------------------------------ |
-| `id`           | `INTEGER`     | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique task identifier         |
-| `description`  | `TEXT`        | `NOT NULL`                      | Task description/title         |
-| `due_date`     | `DATEONLY`    | `NULL`                          | Optional due date (YYYY-MM-DD) |
-| `completed`    | `BOOLEAN`     | `NOT NULL`, `DEFAULT FALSE`     | Task completion status         |
-| `created_at`   | `TIMESTAMP`   | `NOT NULL`, `DEFAULT NOW()`     | Task creation timestamp        |
-| `completed_at` | `TIMESTAMP`   | `NULL`                          | Task completion timestamp      |
-| `user_id`      | `STRING(255)` | `NOT NULL`                      | Discord user ID (creator)      |
-| `guild_id`     | `STRING(255)` | `NOT NULL`                      | Discord guild ID               |
+| Column        | Type           | Constraints                          |
+| ------------- | -------------- | ------------------------------------ |
+| `id`          | `SERIAL`       | `PRIMARY KEY`                        |
+| `type`        | `budget_type`  | `NOT NULL`                           |
+| `category`    | `VARCHAR(255)` |                                      |
+| `amount`      | `DECIMAL(10,2)`| `NOT NULL`                           |
+| `description` | `TEXT`         |                                      |
+| `date`        | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
+| `user_id`     | `VARCHAR(255)` | `NOT NULL`                           |
+| `guild_id`    | `VARCHAR(255)` | `NOT NULL`                           |
 
-**Indexes:**
+**Indexes:** `idx_budgets_guild_id`, `idx_budgets_type`, `idx_budgets_date`.
 
-```sql
-CREATE INDEX idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX idx_tasks_guild_id ON tasks(guild_id);
-CREATE INDEX idx_tasks_completed ON tasks(completed);
-CREATE INDEX idx_tasks_due_date ON tasks(due_date) WHERE due_date IS NOT NULL;
-```
+### 7. schedules
 
-**Model Definition:**
+| Column        | Type           | Constraints                          |
+| ------------- | -------------- | ------------------------------------ |
+| `id`          | `SERIAL`       | `PRIMARY KEY`                        |
+| `event`       | `VARCHAR(255)` | `NOT NULL`                           |
+| `date`        | `DATE`         | `NOT NULL`                           |
+| `time`        | `TIME`         | `NOT NULL`                           |
+| `description` | `TEXT`         |                                      |
+| `user_id`     | `VARCHAR(255)` | `NOT NULL`                           |
+| `guild_id`    | `VARCHAR(255)` | `NOT NULL`                           |
+| `created_at`  | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`          |
 
-```typescript
-// backend/database/models/Task.ts
-interface TaskAttributes {
-  id: number;
-  description: string;
-  due_date?: Date | null;
-  completed: boolean;
-  created_at: Date;
-  completed_at?: Date | null;
-  user_id: string;
-  guild_id: string;
-}
-```
+**Indexes:** `idx_schedules_guild_id`, `idx_schedules_date`.
 
-**Data Isolation:**
+### 8. event_configs
 
-```typescript
-// NOTE: Filters by guild_id only for shared household access (WO-015)
-static async getUserTasks(
-  guildId: string,
-  filter: 'all' | 'pending' | 'completed' = 'all'
-): Promise<Task[]> {
-  const where: Record<string, unknown> = { guild_id: guildId };
+Per-guild local-events discovery + announcement scheduling.
 
-  if (filter === 'pending') where.completed = false;
-  else if (filter === 'completed') where.completed = true;
+| Column                     | Type           | Constraints                                              |
+| -------------------------- | -------------- | -------------------------------------------------------- |
+| `id`                       | `SERIAL`       | `PRIMARY KEY`                                            |
+| `guild_id`                 | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                                     |
+| `user_id`                  | `VARCHAR(255)` | `NOT NULL`                                               |
+| `location`                 | `VARCHAR(255)` | `NOT NULL`                                               |
+| `announcement_channel_id`  | `VARCHAR(255)` | `NOT NULL`                                               |
+| `schedule_day`             | `INTEGER`      | `NOT NULL`, `DEFAULT 1`                                  |
+| `schedule_hour`            | `INTEGER`      | `NOT NULL`, `DEFAULT 12`                                 |
+| `schedule_minute`          | `INTEGER`      | `NOT NULL`, `DEFAULT 0`                                  |
+| `timezone`                 | `VARCHAR(255)` | `NOT NULL`, `DEFAULT 'America/Los_Angeles'`              |
+| `is_enabled`               | `BOOLEAN`      | `NOT NULL`, `DEFAULT TRUE`                               |
+| `last_announcement`        | `TIMESTAMPTZ`  |                                                          |
+| `created_at`               | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                              |
+| `updated_at`               | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                              |
 
-  return await Task.findAll({
-    where,
-    order: [['created_at', 'DESC']]
-  });
-}
-```
+**Indexes:** `idx_event_configs_is_enabled`.
 
-**Query Patterns:**
+### 9. sunset_configs
 
-```typescript
-// Get all tasks for guild
-const tasks = await Task.getUserTasks(guildId, "all");
+Per-guild sunset announcement settings.
 
-// Get pending tasks
-const pending = await Task.getUserTasks(guildId, "pending");
+| Column               | Type           | Constraints                                    |
+| -------------------- | -------------- | ---------------------------------------------- |
+| `id`                 | `SERIAL`       | `PRIMARY KEY`                                  |
+| `guild_id`           | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                           |
+| `user_id`            | `VARCHAR(255)` | `NOT NULL`                                     |
+| `advance_minutes`    | `INTEGER`      | `NOT NULL`, `DEFAULT 60`                       |
+| `channel_id`         | `VARCHAR(255)` | `NOT NULL`                                     |
+| `zip_code`           | `VARCHAR(255)` | `NOT NULL`                                     |
+| `timezone`           | `VARCHAR(255)` | `NOT NULL`, `DEFAULT 'America/Los_Angeles'`    |
+| `is_enabled`         | `BOOLEAN`      | `NOT NULL`, `DEFAULT TRUE`                     |
+| `last_announcement`  | `TIMESTAMPTZ`  |                                                |
+| `created_at`         | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                    |
+| `updated_at`         | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                    |
 
-// Create task
-const task = await Task.createTask(
-  guildId,
-  "Buy groceries",
-  new Date("2026-01-15"),
-);
+**Indexes:** `idx_sunset_configs_is_enabled`.
 
-// Complete task
-const updated = await Task.completeTask(taskId, guildId);
+### 10. recipes
 
-// Edit task
-const edited = await Task.editTask(
-  taskId,
-  guildId,
-  "Updated description",
-  null,
-);
+Recipes are shared per guild (household-level access). `user_id` is an audit trail of who added it.
 
-// Delete task
-const deleted = await Task.deleteTask(taskId, guildId);
-```
+| Column               | Type                 | Constraints                                                           |
+| -------------------- | -------------------- | --------------------------------------------------------------------- |
+| `id`                 | `SERIAL`             | `PRIMARY KEY`                                                         |
+| `name`               | `VARCHAR(255)`       | `NOT NULL`                                                            |
+| `source_url`         | `TEXT`               |                                                                       |
+| `source_type`        | `recipe_source_type` | `NOT NULL`, `DEFAULT 'manual'`                                        |
+| `ingredients`        | `JSONB`              | `NOT NULL` — `[{ name, quantity, unit, category }]`                   |
+| `instructions`       | `JSONB`              | `NOT NULL` — `string[]`                                               |
+| `servings`           | `INTEGER`            |                                                                       |
+| `prep_time_minutes`  | `INTEGER`            |                                                                       |
+| `cook_time_minutes`  | `INTEGER`            |                                                                       |
+| `nutrition`          | `JSONB`              | `{ calories, protein, carbs, fat, fiber, sugar, sodium }`             |
+| `cuisine`            | `VARCHAR(100)`       |                                                                       |
+| `difficulty`         | `recipe_difficulty`  |                                                                       |
+| `dietary_tags`       | `JSONB`              | `NOT NULL`, `DEFAULT '[]'::jsonb` — e.g. `["vegetarian", "gluten-free"]` |
+| `image_url`          | `TEXT`               |                                                                       |
+| `notes`              | `TEXT`               |                                                                       |
+| `is_favorite`        | `BOOLEAN`            | `NOT NULL`, `DEFAULT FALSE`                                           |
+| `created_at`         | `TIMESTAMPTZ`        | `NOT NULL`, `DEFAULT NOW()`                                           |
+| `updated_at`         | `TIMESTAMPTZ`        | `NOT NULL`, `DEFAULT NOW()`                                           |
+| `user_id`            | `VARCHAR(255)`       | `NOT NULL` (audit)                                                    |
+| `guild_id`           | `VARCHAR(255)`       | `NOT NULL`                                                            |
 
----
+**Indexes:** `idx_recipes_guild_id`, `idx_recipes_guild_favorite`, `idx_recipes_cuisine`, `idx_recipes_difficulty`.
 
-### 3. Lists
+### 11. meal_plans
 
-Stores named lists with items (shopping lists, checklists, etc.).
+Exactly one active plan per guild (partial unique index). `recipe_ids` and `servings_per_recipe` are parallel 7-element arrays.
 
-**Table Name:** `lists`
-
-| Column       | Type          | Constraints                     | Description                 |
-| ------------ | ------------- | ------------------------------- | --------------------------- |
-| `id`         | `INTEGER`     | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique list identifier      |
-| `name`       | `STRING(255)` | `NOT NULL`                      | List name/title             |
-| `items`      | `JSONB`       | `NOT NULL`, `DEFAULT '[]'`      | Array of list items (JSONB) |
-| `user_id`    | `STRING(255)` | `NOT NULL`                      | Discord user ID (creator)   |
-| `guild_id`   | `STRING(255)` | `NOT NULL`                      | Discord guild ID            |
-| `created_at` | `TIMESTAMP`   | `NOT NULL`, `DEFAULT NOW()`     | List creation timestamp     |
-
-**Indexes:**
-
-```sql
-CREATE INDEX idx_lists_guild_id ON lists(guild_id);
-CREATE INDEX idx_lists_name ON lists(name);
-```
-
-**JSONB Structure (items column):**
-
-```json
-[
-  {
-    "text": "Milk",
-    "completed": false,
-    "added_at": "2026-01-11T12:00:00.000Z"
-  },
-  {
-    "text": "Bread",
-    "completed": true,
-    "added_at": "2026-01-11T12:05:00.000Z"
-  }
-]
-```
-
-**Model Definition:**
-
-```typescript
-// backend/database/models/List.ts
-export interface ListItem {
-  text: string;
-  completed: boolean;
-  added_at: Date;
-}
-
-interface ListAttributes {
-  id: number;
-  name: string;
-  items: ListItem[];
-  user_id: string;
-  guild_id: string;
-  created_at: Date;
-}
-```
-
-**Query Patterns:**
-
-```typescript
-// Create list
-const list = await List.createList(guildId, "Shopping List");
-
-// Add item to list
-const updated = await List.addItem(guildId, "Shopping List", "Milk");
-
-// Remove item
-const removed = await List.removeItem(guildId, "Shopping List", "Milk");
-
-// Toggle item completion
-const toggled = await List.toggleItem(guildId, "Shopping List", "Milk");
-
-// Get specific list
-const list = await List.getList(guildId, "Shopping List");
-
-// Get all lists for guild
-const lists = await List.getUserLists(guildId);
-
-// Clear completed items
-const cleared = await List.clearCompleted(guildId, "Shopping List");
-
-// Delete list
-const deleted = await List.deleteList(guildId, "Shopping List");
-```
-
-**Note:** List names are case-insensitive (e.g., "shopping list" matches "Shopping List").
-
----
-
-### 4. Notes
-
-Stores text notes with tagging support and full-text search.
-
-**Table Name:** `notes`
-
-| Column       | Type          | Constraints                     | Description               |
-| ------------ | ------------- | ------------------------------- | ------------------------- |
-| `id`         | `INTEGER`     | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique note identifier    |
-| `title`      | `STRING(500)` | `NOT NULL`                      | Note title                |
-| `content`    | `TEXT`        | `NOT NULL`                      | Note content/body         |
-| `tags`       | `TEXT[]`      | `DEFAULT ARRAY[]::TEXT[]`       | Array of tags             |
-| `created_at` | `TIMESTAMP`   | `NOT NULL`, `DEFAULT NOW()`     | Note creation timestamp   |
-| `updated_at` | `TIMESTAMP`   | `NOT NULL`, `DEFAULT NOW()`     | Last update timestamp     |
-| `user_id`    | `STRING(255)` | `NOT NULL`                      | Discord user ID (creator) |
-| `guild_id`   | `STRING(255)` | `NOT NULL`                      | Discord guild ID          |
+| Column                  | Type             | Constraints                              |
+| ----------------------- | ---------------- | ---------------------------------------- |
+| `id`                    | `SERIAL`         | `PRIMARY KEY`                            |
+| `recipe_ids`            | `INTEGER[]`      | `NOT NULL` (length 7)                    |
+| `servings_per_recipe`   | `INTEGER[]`      | `NOT NULL` (length 7, parallel)          |
+| `week_start`            | `DATE`           | `NOT NULL`                               |
+| `archived`              | `BOOLEAN`        | `NOT NULL`, `DEFAULT FALSE`              |
+| `created_at`            | `TIMESTAMPTZ`    | `NOT NULL`, `DEFAULT NOW()`              |
+| `updated_at`            | `TIMESTAMPTZ`    | `NOT NULL`, `DEFAULT NOW()`              |
+| `user_id`               | `VARCHAR(255)`   | `NOT NULL` (audit)                       |
+| `guild_id`              | `VARCHAR(255)`   | `NOT NULL`                               |
 
 **Indexes:**
 
-```sql
-CREATE INDEX idx_notes_guild_id ON notes(guild_id);
-CREATE INDEX idx_notes_tags ON notes USING GIN(tags);
-CREATE INDEX idx_notes_created_at ON notes(created_at);
-```
+- `idx_meal_plans_guild_active` — `UNIQUE` on `(guild_id)` `WHERE archived = FALSE` (one active plan per guild)
+- `idx_meal_plans_guild_archived` — `(guild_id, archived, created_at DESC)`
 
-**Model Definition:**
+### 12. recipe_preferences
 
-```typescript
-// backend/database/models/Note.ts
-interface NoteAttributes {
-  id: number;
-  title: string;
-  content: string;
-  tags: string[];
-  created_at: Date;
-  updated_at: Date;
-  user_id: string;
-  guild_id: string;
-}
+Per-guild recipe preferences.
 
-interface NoteUpdateAttributes {
-  title?: string;
-  content?: string;
-  tags?: string[];
-}
-```
-
-**Query Patterns:**
-
-```typescript
-// Create note
-const note = await Note.createNote(
-  guildId,
-  "Meeting Notes",
-  "Discussed Q1 roadmap...",
-  ["work", "meetings"],
-);
-
-// Get all notes
-const notes = await Note.getNotes(guildId);
-
-// Get specific note
-const note = await Note.getNote(noteId, guildId);
-
-// Update note
-const updated = await Note.updateNote(noteId, guildId, {
-  title: "Updated Title",
-  content: "Updated content",
-  tags: ["work", "important"],
-});
-
-// Search notes (title or content)
-const results = await Note.searchNotes(guildId, "roadmap");
-
-// Get notes by tag
-const workNotes = await Note.getNotesByTag(guildId, "work");
-
-// Get all tags for guild
-const allTags = await Note.getAllTags(guildId);
-
-// Delete note
-const deleted = await Note.deleteNote(noteId, guildId);
-```
-
-**Search Implementation:**
-
-```typescript
-// backend/database/models/Note.ts
-static async searchNotes(guildId: string, keyword: string): Promise<Note[]> {
-  return await Note.findAll({
-    where: {
-      guild_id: guildId,
-      [Op.or]: [
-        { title: { [Op.like]: `%${keyword}%` } },
-        { content: { [Op.like]: `%${keyword}%` } }
-      ]
-    },
-    order: [['created_at', 'DESC']]
-  });
-}
-```
+| Column                  | Type           | Constraints                                |
+| ----------------------- | -------------- | ------------------------------------------ |
+| `id`                    | `SERIAL`       | `PRIMARY KEY`                              |
+| `guild_id`              | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`                       |
+| `dietary_restrictions`  | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb`          |
+| `excluded_cuisines`     | `JSONB`        | `NOT NULL`, `DEFAULT '[]'::jsonb`          |
+| `created_at`            | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                |
+| `updated_at`            | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                |
+| `user_id`               | `VARCHAR(255)` | `NOT NULL` (audit)                         |
 
 ---
 
-### 5. Reminders
+## Supabase Client
 
-Stores scheduled reminders with frequency support (once, daily, weekly).
+**File:** `supabase/supabase.ts`
 
-**Table Name:** `reminders`
+Lazily initializes a `SupabaseClient` behind a `Proxy` so that importing the client does not force env-var resolution at module load time. Keys used:
 
-| Column         | Type          | Constraints                     | Description                                     |
-| -------------- | ------------- | ------------------------------- | ----------------------------------------------- |
-| `id`           | `INTEGER`     | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique reminder identifier                      |
-| `message`      | `TEXT`        | `NOT NULL`                      | Reminder message text                           |
-| `time`         | `STRING(10)`  | `NOT NULL`                      | Time in 24h format (e.g., "17:00")              |
-| `frequency`    | `ENUM`        | `NOT NULL`, `DEFAULT 'once'`    | 'once', 'daily', 'weekly'                       |
-| `day_of_week`  | `INTEGER`     | `NULL`                          | Day of week (0=Sun, 6=Sat) for weekly reminders |
-| `channel_id`   | `STRING(255)` | `NOT NULL`                      | Discord channel ID for reminder                 |
-| `user_id`      | `STRING(255)` | `NOT NULL`                      | Discord user ID (creator)                       |
-| `guild_id`     | `STRING(255)` | `NOT NULL`                      | Discord guild ID                                |
-| `active`       | `BOOLEAN`     | `NOT NULL`, `DEFAULT TRUE`      | Active status                                   |
-| `next_trigger` | `TIMESTAMP`   | `NULL`                          | Next scheduled trigger time                     |
-
-**Indexes:**
-
-```sql
-CREATE INDEX idx_reminders_guild_id ON reminders(guild_id);
-CREATE INDEX idx_reminders_active ON reminders(active);
-CREATE INDEX idx_reminders_next_trigger ON reminders(next_trigger) WHERE active = TRUE;
-CREATE INDEX idx_reminders_guild_active ON reminders(guild_id, active);
-```
-
-**Model Definition:**
+- `SUPABASE_URL` (required)
+- `SUPABASE_SERVICE_ROLE_KEY` (preferred; server-side) OR `SUPABASE_ANON_KEY` (fallback)
 
 ```typescript
-// backend/database/models/Reminder.ts
-type ReminderFrequency = "once" | "daily" | "weekly";
+import supabase from '../../supabase/supabase';
 
-interface ReminderAttributes {
-  id: number;
-  message: string;
-  time: string;
-  frequency: ReminderFrequency;
-  day_of_week?: number | null;
-  channel_id: string;
-  user_id: string;
-  guild_id: string;
-  active: boolean;
-  next_trigger?: Date | null;
-}
+const { data, error } = await supabase
+  .from('tasks')
+  .select('*')
+  .eq('guild_id', guildId)
+  .order('created_at', { ascending: false });
 ```
 
-**Timezone Handling:**
-
-```typescript
-// backend/database/models/Reminder.ts
-import { DateTime } from 'luxon';
-import config from '../../config/config';
-
-/**
- * Calculate the next trigger time for a reminder in the configured timezone.
- * Uses Luxon DateTime to handle timezone-aware date calculations.
- */
-static calculateNextTrigger(
-  time: string,
-  frequency: ReminderFrequency,
-  dayOfWeek: number | null
-): Date {
-  const timezone = config.settings.timezone; // e.g., 'America/Los_Angeles'
-  const now = DateTime.now().setZone(timezone);
-  const [hours, minutes] = time.split(':').map(Number);
-
-  let nextTrigger = DateTime.now().setZone(timezone).set({
-    hour: hours,
-    minute: minutes,
-    second: 0,
-    millisecond: 0
-  });
-
-  if (frequency === 'once') {
-    if (nextTrigger <= now) {
-      nextTrigger = nextTrigger.plus({ days: 1 });
-    }
-  } else if (frequency === 'daily') {
-    if (nextTrigger <= now) {
-      nextTrigger = nextTrigger.plus({ days: 1 });
-    }
-  } else if (frequency === 'weekly' && dayOfWeek !== null) {
-    // Calculate days until target day of week
-    const luxonWeekday = dayOfWeek === 0 ? 7 : dayOfWeek;
-    const currentWeekday = now.weekday;
-    let daysUntilNext = (luxonWeekday - currentWeekday + 7) % 7;
-
-    if (daysUntilNext === 0 && nextTrigger <= now) {
-      daysUntilNext = 7;
-    }
-
-    nextTrigger = nextTrigger.plus({ days: daysUntilNext });
-  }
-
-  return nextTrigger.toJSDate();
-}
-```
-
-**Query Patterns:**
-
-```typescript
-// Create reminder
-const reminder = await Reminder.createReminder(
-  guildId,
-  channelId,
-  "Team meeting",
-  "15:00",
-  "daily",
-);
-
-// Create weekly reminder
-const weeklyReminder = await Reminder.createReminder(
-  guildId,
-  channelId,
-  "Weekly report",
-  "10:00",
-  "weekly",
-  1, // Monday
-);
-
-// Get active reminders
-const active = await Reminder.getActiveReminders();
-
-// Get user's reminders
-const userReminders = await Reminder.getUserReminders(guildId);
-
-// Get triggered reminders (for scheduler)
-const triggered = await Reminder.getTriggeredReminders();
-
-// Update next trigger after firing
-const updated = await Reminder.updateNextTrigger(reminderId);
-
-// Delete reminder
-const deleted = await Reminder.deleteReminder(reminderId, guildId);
-```
-
-**Scheduler Integration:**
-
-```typescript
-// backend/utils/scheduler.ts
-async function checkReminders() {
-  const triggered = await Reminder.getTriggeredReminders();
-
-  for (const reminder of triggered) {
-    // Send Discord message
-    const channel = await client.channels.fetch(reminder.channel_id);
-    await channel.send(reminder.message);
-
-    // Update next trigger or deactivate
-    await Reminder.updateNextTrigger(reminder.id);
-  }
-}
-
-// Run every minute
-setInterval(checkReminders, 60000);
-```
+`verifyConnection()` is invoked during bot startup to confirm reachability.
 
 ---
 
-### 6. Schedules
+## Model Wrappers
 
-Stores scheduled events with date, time, and optional descriptions.
+Each table has a typed wrapper in `supabase/models/`:
 
-**Table Name:** `schedules`
+- `User.ts`, `Task.ts`, `List.ts`, `Note.ts`, `Reminder.ts`, `Schedule.ts`, `Budget.ts`
+- `EventConfig.ts`, `SunsetConfig.ts`
+- `Recipe.ts`, `MealPlan.ts`, `RecipePreferences.ts`
 
-| Column        | Type          | Constraints                     | Description                 |
-| ------------- | ------------- | ------------------------------- | --------------------------- |
-| `id`          | `INTEGER`     | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique schedule identifier  |
-| `event`       | `STRING(255)` | `NOT NULL`                      | Event name/title            |
-| `date`        | `DATEONLY`    | `NOT NULL`                      | Event date (YYYY-MM-DD)     |
-| `time`        | `TIME`        | `NOT NULL`                      | Event time (HH:MM:SS)       |
-| `description` | `TEXT`        | `NULL`                          | Optional event description  |
-| `user_id`     | `STRING(255)` | `NOT NULL`                      | Discord user ID (creator)   |
-| `guild_id`    | `STRING(255)` | `NOT NULL`                      | Discord guild ID            |
-| `created_at`  | `TIMESTAMP`   | `NOT NULL`, `DEFAULT NOW()`     | Schedule creation timestamp |
-
-**Indexes:**
-
-```sql
-CREATE INDEX idx_schedules_guild_id ON schedules(guild_id);
-CREATE INDEX idx_schedules_date ON schedules(date);
-CREATE INDEX idx_schedules_guild_date ON schedules(guild_id, date);
-```
-
-**Model Definition:**
-
-```typescript
-// backend/database/models/Schedule.ts
-type ScheduleFilter = "upcoming" | "past" | "all";
-
-interface ScheduleAttributes {
-  id: number;
-  event: string;
-  date: string; // DATEONLY type (YYYY-MM-DD)
-  time: string; // TIME type (HH:MM:SS)
-  description?: string | null;
-  user_id: string;
-  guild_id: string;
-  created_at: Date;
-}
-
-interface CountdownResult {
-  event: Schedule;
-  timeLeft: string;
-}
-```
-
-**Query Patterns:**
-
-```typescript
-// Add event
-const event = await Schedule.addEvent(
-  guildId,
-  "Birthday Party",
-  "2026-01-20",
-  "18:00:00",
-  "John's birthday celebration",
-);
-
-// Get upcoming events
-const upcoming = await Schedule.getEvents(guildId, "upcoming");
-
-// Get past events
-const past = await Schedule.getEvents(guildId, "past");
-
-// Get all events
-const all = await Schedule.getEvents(guildId, "all");
-
-// Get today's events
-const today = await Schedule.getTodaysEvents(guildId);
-
-// Get events in next N days
-const nextWeek = await Schedule.getUpcomingEvents(guildId, 7);
-
-// Get countdown to event
-const countdown = await Schedule.getCountdown(guildId, "Birthday");
-// Returns: { event, timeLeft: "9 days, 6 hours, 30 minutes" }
-
-// Delete event
-const deleted = await Schedule.deleteEvent(eventId, guildId);
-```
-
-**Countdown Implementation:**
-
-```typescript
-// backend/database/models/Schedule.ts
-static async getCountdown(
-  guildId: string,
-  eventName: string
-): Promise<CountdownResult | null> {
-  const event = await Schedule.findOne({
-    where: {
-      guild_id: guildId,
-      event: { [Op.like]: `%${eventName}%` }
-    },
-    order: [['date', 'ASC'], ['time', 'ASC']]
-  });
-
-  if (!event) return null;
-
-  const eventDateTime = new Date(`${event.date} ${event.time}`);
-  const now = new Date();
-  const diff = eventDateTime.getTime() - now.getTime();
-
-  if (diff <= 0) return { event, timeLeft: 'Event has passed' };
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-  const parts: string[] = [];
-  if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
-  if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
-  if (minutes > 0) parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
-
-  return {
-    event,
-    timeLeft: parts.length > 0 ? parts.join(', ') : 'Less than a minute'
-  };
-}
-```
+These wrappers expose CRUD and domain-specific methods (e.g., `Task.getUserTasks`, `List.addItem`, `Reminder.calculateNextTrigger`, `MealPlan.getActiveForGuild`). They encapsulate all Supabase queries so Discord commands, Express routes, and Next.js API routes share a single data-access layer.
 
 ---
 
-## Sequelize Configuration
+## Migration Workflow
 
-### Database Connection
-
-**Configuration File:** `backend/database/config.js`
-
-```javascript
-require("dotenv").config();
-
-module.exports = {
-  development: {
-    use_env_variable: "DATABASE_URL",
-    dialect: "postgres",
-    logging: console.log,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-  },
-  test: {
-    use_env_variable: "DATABASE_URL",
-    dialect: "postgres",
-    logging: false,
-  },
-  production: {
-    use_env_variable: "DATABASE_URL",
-    dialect: "postgres",
-    logging: false,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
-    pool: {
-      max: 10,
-      min: 2,
-      acquire: 30000,
-      idle: 10000,
-    },
-  },
-};
-```
-
-**Environment Variable:**
+**Author a new migration:**
 
 ```bash
-# Development
-DATABASE_URL=postgresql://bwaincell:password@localhost:5433/bwaincell
-
-# Production
-DATABASE_URL=postgresql://user:pass@db.example.com:5432/bwaincell?sslmode=require
+supabase migration new <description>
+# Creates supabase/migrations/YYYYMMDDHHMMSS_<description>.sql
 ```
 
----
-
-### Model Initialization
-
-**Database Index:** `backend/database/index.ts`
-
-```typescript
-import { Sequelize } from "sequelize";
-import config from "./config";
-import User from "./models/User";
-import Task from "./models/Task";
-import List from "./models/List";
-import Note from "./models/Note";
-import Reminder from "./models/Reminder";
-import Schedule from "./models/Schedule";
-
-const env = process.env.NODE_ENV || "development";
-const dbConfig = config[env];
-
-// Initialize Sequelize
-const sequelize = dbConfig.use_env_variable
-  ? new Sequelize(process.env[dbConfig.use_env_variable], dbConfig)
-  : new Sequelize(
-      dbConfig.database,
-      dbConfig.username,
-      dbConfig.password,
-      dbConfig,
-    );
-
-// Initialize models
-User.init(sequelize);
-Task.init(sequelize);
-List.init(sequelize);
-Note.init(sequelize);
-Reminder.init(sequelize);
-Schedule.init(sequelize);
-
-// Export sequelize instance and models
-export { sequelize };
-export { User, Task, List, Note, Reminder, Schedule };
-```
-
----
-
-### Associations
-
-**Note:** Bwaincell currently does NOT use Sequelize associations or foreign key constraints. All relationships are managed at the application level.
-
-**Potential Future Associations:**
-
-```typescript
-// If implementing associations
-User.hasMany(Task, { foreignKey: "user_id", sourceKey: "discordId" });
-Task.belongsTo(User, { foreignKey: "user_id", targetKey: "discordId" });
-
-User.hasMany(List, { foreignKey: "user_id", sourceKey: "discordId" });
-List.belongsTo(User, { foreignKey: "user_id", targetKey: "discordId" });
-
-// Similar for other models
-```
-
-**Why No Associations?**
-
-- Simplified schema for easier migration
-- Flexibility for multi-tenant architecture
-- No cascading delete complexities
-- Manual relationship management in application code
-
----
-
-## Migration History
-
-### Migration Strategy
-
-**Current Approach:** Sequelize auto-sync (`sequelize.sync()`)
-
-```typescript
-// backend/src/bot.ts
-async function loadModels() {
-  await sequelize.authenticate();
-  await sequelize.sync(); // Creates/updates tables automatically
-  logger.info("Database synced successfully", {
-    models: Object.keys(sequelize.models),
-  });
-}
-```
-
-**Pros:**
-
-- No manual migration files
-- Tables created automatically on startup
-- Fast prototyping
-
-**Cons:**
-
-- No version control for schema changes
-- Cannot rollback changes
-- Not recommended for production
-
----
-
-### Migration to Production Approach
-
-**Recommended:** Use Sequelize migrations for production
+**Apply:**
 
 ```bash
-# Generate migration
-npx sequelize-cli migration:generate --name create-tasks-table
-
-# Run migrations
-npx sequelize-cli db:migrate
-
-# Rollback migration
-npx sequelize-cli db:migrate:undo
+supabase db push      # apply to linked remote
+supabase db reset     # local: wipe + re-run all migrations + seed
 ```
 
-**Example Migration:**
+**File naming:** `YYYYMMDDHHMMSS_<description>.sql` — timestamps determine order.
 
-```javascript
-// migrations/20260111-create-tasks-table.js
-module.exports = {
-  up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("tasks", {
-      id: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      description: {
-        type: Sequelize.TEXT,
-        allowNull: false,
-      },
-      due_date: {
-        type: Sequelize.DATEONLY,
-        allowNull: true,
-      },
-      completed: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-      },
-      created_at: {
-        type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW,
-      },
-      completed_at: {
-        type: Sequelize.DATE,
-        allowNull: true,
-      },
-      user_id: {
-        type: Sequelize.STRING(255),
-        allowNull: false,
-      },
-      guild_id: {
-        type: Sequelize.STRING(255),
-        allowNull: false,
-      },
-    });
-
-    // Add indexes
-    await queryInterface.addIndex("tasks", ["guild_id"]);
-    await queryInterface.addIndex("tasks", ["user_id"]);
-    await queryInterface.addIndex("tasks", ["completed"]);
-  },
-
-  down: async (queryInterface) => {
-    await queryInterface.dropTable("tasks");
-  },
-};
-```
+See [guides/database-migrations.md](../guides/database-migrations.md).
 
 ---
 
 ## Indexes and Performance
 
-### Index Strategy
-
-**Current Indexes:** See individual table documentation above
-
-**Performance Considerations:**
-
-1. **Guild-based queries:** All tables have `guild_id` index
-2. **User-based queries:** Tables have `user_id` index
-3. **Status filters:** Indexes on `completed`, `active` columns
-4. **Date filters:** Indexes on `date`, `due_date`, `next_trigger` columns
-5. **Array/JSONB:** GIN indexes on `tags` column
-
----
-
-### Query Optimization
-
-**Example: Optimized Task Query**
-
-```sql
-EXPLAIN ANALYZE
-SELECT * FROM tasks
-WHERE guild_id = '987654321'
-  AND completed = false
-ORDER BY created_at DESC
-LIMIT 50;
-
--- Result: Uses idx_tasks_guild_id + idx_tasks_completed
--- Execution time: ~2ms for 1000 rows
-```
-
-**Example: Slow Query (Missing Index)**
-
-```sql
--- Before adding index
-EXPLAIN ANALYZE
-SELECT * FROM notes
-WHERE content LIKE '%meeting%';
-
--- Result: Seq Scan on notes (Slow!)
--- Execution time: ~500ms for 10000 rows
-
--- Solution: Add full-text search index or use external search
-```
+1. **Guild-based queries:** every multi-tenant table has a `guild_id` index
+2. **Status filters:** partial indexes on `active` / `completed` where relevant
+3. **Date filters:** indexes on `date`, `next_trigger`, `due_date` columns
+4. **Meal-plan uniqueness:** partial unique index enforces one active plan per guild
+5. **`pg_trgm`** extension enabled for fuzzy matching / trigram search
 
 ---
 
 ## Data Isolation
 
-### Guild-Based Isolation (Default)
-
-**Implementation:** All queries filter by `guild_id`
+### Guild-Based (Default)
 
 ```typescript
-// Example: Task model
-static async getUserTasks(guildId: string): Promise<Task[]> {
-  return await Task.findAll({
-    where: { guild_id: guildId },
-    order: [['created_at', 'DESC']]
-  });
+// supabase/models/Task.ts
+export async function getGuildTasks(guildId: string) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('guild_id', guildId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
 }
 ```
 
-**Use Case:** Shared household where all members see all data
+### User-Scoped
 
----
-
-### User-Based Isolation (Optional)
-
-**Implementation:** Queries filter by `user_id` AND `guild_id`
-
-```typescript
-// Example: Per-user task isolation
-static async getUserTasks(userId: string, guildId: string): Promise<Task[]> {
-  return await Task.findAll({
-    where: {
-      user_id: userId,
-      guild_id: guildId
-    },
-    order: [['created_at', 'DESC']]
-  });
-}
-```
-
-**Use Case:** Multi-user environment where users have private data
+Where per-user privacy is needed, add `.eq('user_id', userId)` to the filter chain.
 
 ---
 
 ## Backup and Restore
 
-### Backup Strategy
+The self-hosted Supabase instance on the Pi handles its own PostgreSQL volumes. Recommended strategies:
 
-**PostgreSQL Dump:**
-
-```bash
-# Full backup (custom format, compressed)
-pg_dump -U bwaincell -d bwaincell -F c -f "backup-$(date +%Y%m%d-%H%M%S).dump"
-
-# Plain SQL backup (human-readable)
-pg_dump -U bwaincell -d bwaincell -f "backup-$(date +%Y%m%d-%H%M%S).sql"
-
-# Scheduled backups (cron)
-0 2 * * * pg_dump -U bwaincell -d bwaincell -F c -f "/backups/bwaincell-$(date +\%Y\%m\%d).dump"
-```
-
----
-
-### Restore Strategy
-
-**From Custom Format:**
-
-```bash
-# Create fresh database
-psql -U postgres -c "DROP DATABASE IF EXISTS bwaincell;"
-psql -U postgres -c "CREATE DATABASE bwaincell OWNER bwaincell;"
-
-# Restore from dump
-pg_restore -U bwaincell -d bwaincell -c backup.dump
-```
-
-**From SQL File:**
-
-```bash
-psql -U bwaincell -d bwaincell -f backup.sql
-```
+- **Supabase Studio** — backup/restore UI
+- **pg_dump / pg_restore** — standard PostgreSQL tools targeting the Supabase Postgres container
+- **Scheduled cron** — `pg_dump` into an off-Pi location
 
 ---
 
 ## Related Documentation
 
-- [Architecture Overview](overview.md) - Complete system architecture
-- [Getting Started Guide](../guides/getting-started.md) - Database setup instructions
-- [API Documentation](../api/) - API endpoints using database models
-- [Troubleshooting Guide](../guides/troubleshooting.md) - Database troubleshooting
+- [Architecture Overview](overview.md)
+- [Database Migrations Guide](../guides/database-migrations.md)
+- [API Documentation](../api/)
+- [Troubleshooting Guide](../guides/troubleshooting.md)
 
 ---
 
-**Last Updated** 2026-01-12
-**Version:** 2.0.0
+**Last Updated:** 2026-04-15
+**Version:** 2.1.2

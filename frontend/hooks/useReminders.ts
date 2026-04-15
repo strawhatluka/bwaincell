@@ -1,13 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface Reminder {
   id: number;
   userId: string;
   guildId: string;
   message: string;
-  frequency: "once" | "daily" | "weekly";
+  frequency: 'once' | 'daily' | 'weekly';
   time: string;
   dayOfWeek?: number;
   nextTrigger: string;
@@ -20,9 +20,9 @@ export function useReminders() {
   const { toast } = useToast();
 
   const remindersQuery = useQuery({
-    queryKey: ["reminders"],
+    queryKey: ['reminders'],
     queryFn: async () => {
-      const response = await api.get<Reminder[]>("/reminders");
+      const response = await api.get<Reminder[]>('/reminders');
       return response.data || [];
     },
     refetchInterval: 15000, // Poll every 15 seconds
@@ -31,17 +31,17 @@ export function useReminders() {
   const deleteReminderMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/reminders/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
       toast({
-        title: "Reminder deleted",
-        description: "Your reminder has been deleted successfully.",
+        title: 'Reminder deleted',
+        description: 'Your reminder has been deleted successfully.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete reminder",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to delete reminder',
+        variant: 'destructive',
       });
     },
   });

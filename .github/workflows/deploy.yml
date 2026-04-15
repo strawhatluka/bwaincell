@@ -1,0 +1,471 @@
+name: Deploy to Raspberry Pi
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Prevent concurrent deployments
+concurrency:
+  group: deploy-pi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Deploy Frontend to Vercel (Production)
+  # ---------------------------------------------------------------------------
+  deploy-vercel:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Validate Vercel secrets
+        run: |
+          missing=()
+          [ -z "${{ secrets.VERCEL_TOKEN }}" ] && missing+=("VERCEL_TOKEN")
+          [ -z "${{ secrets.VERCEL_ORG_ID }}" ] && missing+=("VERCEL_ORG_ID")
+          [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ] && missing+=("VERCEL_PROJECT_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing secrets: ${missing[*]}. Cannot deploy to Vercel."
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel project configuration
+        working-directory: ./frontend
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build for production
+        working-directory: ./frontend
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to production
+        id: deploy
+        working-directory: ./frontend
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "### Frontend Deployed to Vercel" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** $URL" >> $GITHUB_STEP_SUMMARY
+          echo "**Release:** ${{ github.event.release.tag_name || 'manual' }}" >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
+  # Deploy Bot + Supabase to Raspberry Pi
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to Raspberry Pi
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Backup current state for rollback
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USERNAME }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          timeout: 5m
+          command_timeout: 5m
+          script: |
+            set -e
+
+            echo "🔍 Capturing current deployment state for rollback..."
+            cd ~/bwaincell || exit 0
+
+            # Backup backend image
+            CURRENT_IMAGE=$(docker images bwaincell-backend:latest -q 2>/dev/null || echo "none")
+            if [ "$CURRENT_IMAGE" != "none" ]; then
+              docker tag bwaincell-backend:latest bwaincell-backend:backup 2>/dev/null || true
+              echo "✅ Backend image backed up: $CURRENT_IMAGE"
+            else
+              echo "ℹ️  No previous backend image to backup"
+            fi
+
+            # Backup Supabase database via pg_dump
+            if docker ps --format '{{.Names}}' | grep -q 'supabase_db'; then
+              BACKUP_DIR=~/bwaincell-backups/$(date +%Y-%m-%d-%H%M%S)
+              mkdir -p "$BACKUP_DIR"
+              echo "📦 Creating Supabase database backup..."
+              SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep 'supabase_db' | head -1)
+              docker exec "$SUPABASE_CONTAINER" pg_dump -U postgres postgres > "$BACKUP_DIR/supabase-pre-deploy.sql" || {
+                echo "⚠️  DB backup failed (non-critical — continuing)"
+              }
+              # Keep only last 10 backups
+              ls -1dt ~/bwaincell-backups/*/ 2>/dev/null | tail -n +11 | xargs -r rm -rf
+              echo "✅ Supabase backup saved to $BACKUP_DIR"
+            else
+              echo "ℹ️  Supabase not running yet (first deployment)"
+            fi
+
+      - name: Deploy to Raspberry Pi
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USERNAME }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          timeout: 60m
+          command_timeout: 45m
+          script: |
+            set -e
+
+            echo "================================================"
+            echo "Starting Raspberry Pi Deployment - Bwaincell"
+            echo "================================================"
+
+            cd ~/bwaincell || {
+              echo "❌ Directory ~/bwaincell not found"
+              exit 1
+            }
+
+            # Pull latest code
+            echo "📥 Pulling latest code from GitHub..."
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd || echo "⚠️  Some files could not be cleaned (non-critical)"
+
+            # Verify .env exists
+            if [ ! -f .env ]; then
+              echo "❌ .env not found!"
+              exit 1
+            fi
+
+            echo "✅ Repository updated: $(git log -1 --oneline)"
+
+            # -----------------------------------------------------------------
+            # Supabase Deployment
+            # -----------------------------------------------------------------
+            echo "🗄️  Starting / updating Supabase services..."
+
+            if ! command -v supabase &> /dev/null && ! command -v npx &> /dev/null; then
+              echo "❌ Neither supabase CLI nor npx available on Pi"
+              exit 1
+            fi
+
+            SUPABASE_CMD="supabase"
+            if ! command -v supabase &> /dev/null; then
+              SUPABASE_CMD="npx supabase"
+            fi
+
+            # Ensure Supabase is running (idempotent: start is a no-op if already running)
+            $SUPABASE_CMD status 2>/dev/null || $SUPABASE_CMD start
+
+            # Apply any new migrations
+            echo "📦 Applying Supabase migrations..."
+            $SUPABASE_CMD migration up || {
+              echo "⚠️  Migration up failed — may already be applied or schema is current"
+            }
+
+            echo "✅ Supabase ready"
+
+            # -----------------------------------------------------------------
+            # Backend Deployment
+            # -----------------------------------------------------------------
+            echo "🛑 Stopping existing backend containers..."
+            docker compose down --remove-orphans || true
+            docker rm -f bwaincell-backend 2>/dev/null || true
+
+            # Clean up old images (preserve backup for rollback)
+            LATEST_ID=$(docker images bwaincell-backend:latest -q 2>/dev/null || echo "none")
+            BACKUP_ID=$(docker images bwaincell-backend:backup -q 2>/dev/null || echo "none")
+
+            if [ "$LATEST_ID" != "none" ] && [ "$LATEST_ID" != "$BACKUP_ID" ]; then
+              docker rmi -f bwaincell-backend:latest || true
+            elif [ "$LATEST_ID" != "none" ]; then
+              docker rmi bwaincell-backend:latest || true
+            fi
+
+            docker image prune -f || true
+            docker builder prune -af
+
+            echo "💾 Disk space after cleanup:"
+            df -h / | grep -E "Filesystem|/dev/"
+
+            # Build backend image
+            echo "🔨 Building backend image..."
+            docker build --no-cache \
+              -t bwaincell-backend:latest \
+              -f backend/Dockerfile \
+              . 2>&1 | tee build-backend.log
+
+            if [ ${PIPESTATUS[0]} -ne 0 ]; then
+              echo "❌ Backend image build failed"
+              tail -100 build-backend.log
+              exit 1
+            fi
+
+            echo "✅ Backend image built successfully"
+
+            # Start backend
+            echo "🚀 Starting backend service..."
+            docker compose up -d
+
+            # Wait for startup
+            echo "⏳ Waiting for backend (60s for Pi cold boot)..."
+            sleep 60
+
+            # Deploy Discord slash commands
+            echo "🚀 Deploying Discord slash commands..."
+            if docker compose exec -T backend node dist/src/deploy-commands.js 2>&1 | tee deploy-commands.log; then
+              echo "✅ Discord commands deployed"
+            else
+              echo "⚠️  Command deployment failed — may already be registered (non-critical)"
+            fi
+
+            echo "🔍 Service status:"
+            docker compose ps
+
+            # Health check
+            echo "🔍 Checking bot health..."
+            for i in {1..15}; do
+              HEALTH=$(curl -sf http://localhost:3000/health || echo "failed")
+              if echo "$HEALTH" | grep -q "healthy\|ok\|running"; then
+                echo "✅ Bot health check passed"
+                echo "$HEALTH"
+                break
+              fi
+              echo "Attempt $i/15 — Bot not healthy yet, waiting..."
+              sleep 3
+            done
+
+            # Check Discord connection
+            sleep 5
+            docker compose logs --tail=50 backend | tee backend-logs.txt
+            if grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord" backend-logs.txt; then
+              echo "✅ Bot connected to Discord"
+            else
+              echo "⚠️  Discord connection not confirmed — check logs"
+            fi
+
+            echo "📊 Container resource usage:"
+            timeout 10 docker stats bwaincell-backend --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" || echo "⚠️  Stats timed out"
+
+            docker image prune -f || true
+
+            echo "================================================"
+            echo "✅ Deployment Complete"
+            echo "================================================"
+            echo "Backend:  $(docker inspect -f '{{.State.Health.Status}}' bwaincell-backend 2>/dev/null || echo 'running')"
+            echo "================================================"
+
+      - name: Verify Supabase health
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USERNAME }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          timeout: 5m
+          command_timeout: 3m
+          script: |
+            set -e
+            cd ~/bwaincell
+
+            echo "🔍 Verifying Supabase health..."
+
+            SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep 'supabase_db' | head -1)
+            if [ -z "$SUPABASE_CONTAINER" ]; then
+              echo "❌ No Supabase database container running"
+              exit 1
+            fi
+
+            if docker exec "$SUPABASE_CONTAINER" pg_isready -U postgres -q; then
+              echo "✅ Supabase PostgreSQL is ready"
+            else
+              echo "❌ Supabase PostgreSQL not responding"
+              exit 1
+            fi
+
+            # Check Supabase REST API
+            if curl -sf http://127.0.0.1:54321/rest/v1/ > /dev/null 2>&1; then
+              echo "✅ Supabase REST API reachable"
+            else
+              echo "⚠️  Supabase REST API check inconclusive (may require ANON_KEY)"
+            fi
+
+      - name: Verify deployment health
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USERNAME }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          timeout: 10m
+          command_timeout: 10m
+          script: |
+            set -e
+
+            echo "🔍 Post-Deployment Health Verification"
+            echo "========================================"
+            cd ~/bwaincell
+
+            # Bot health with retries (Pi startup can take 60s+)
+            echo "Checking Bot health endpoint..."
+            MAX_RETRIES=12
+            RETRY_DELAY=10
+
+            for i in $(seq 1 $MAX_RETRIES); do
+              HEALTH_RESPONSE=$(curl -sf http://localhost:3000/health || echo "failed")
+
+              if echo "$HEALTH_RESPONSE" | grep -q "healthy\|ok\|running"; then
+                echo "✅ Bot health check passed (attempt $i/$MAX_RETRIES)"
+                echo "Response: $HEALTH_RESPONSE"
+                break
+              fi
+
+              if [ $i -eq $MAX_RETRIES ]; then
+                echo "❌ Bot health check failed after $MAX_RETRIES attempts"
+                echo "Last response: $HEALTH_RESPONSE"
+                docker ps -a | grep bwaincell
+                docker logs --tail=100 bwaincell-backend 2>&1 || echo "Could not retrieve logs"
+                exit 1
+              fi
+
+              echo "⏳ Health check attempt $i/$MAX_RETRIES failed, retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+            done
+
+            # Backend container status
+            BACKEND_STATUS=$(docker inspect -f '{{.State.Status}}' bwaincell-backend 2>/dev/null || echo "unknown")
+            if [ "$BACKEND_STATUS" != "running" ]; then
+              echo "❌ Backend container not running: $BACKEND_STATUS"
+              docker logs --tail=100 bwaincell-backend
+              exit 1
+            fi
+            echo "✅ Backend container is running"
+
+            # Discord connection
+            sleep 5
+            if docker logs --tail=100 bwaincell-backend 2>&1 | grep -q "Ready!\|logged in\|Bot is ready\|Connected to Discord"; then
+              echo "✅ Bot connected to Discord"
+            else
+              echo "⚠️  Discord connection not confirmed (may still be connecting)"
+              docker logs --tail=50 bwaincell-backend
+            fi
+
+            echo "========================================"
+            echo "✅ All health checks passed"
+
+  # ---------------------------------------------------------------------------
+  # Automatic Rollback (on deployment failure)
+  # ---------------------------------------------------------------------------
+  rollback:
+    name: Automatic Rollback
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: failure()
+
+    steps:
+      - name: Rollback backend and Supabase
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USERNAME }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          timeout: 15m
+          command_timeout: 10m
+          script: |
+            set -e
+
+            echo "================================================"
+            echo "🔄 Starting Automatic Rollback"
+            echo "================================================"
+
+            cd ~/bwaincell || {
+              echo "❌ Directory ~/bwaincell not found"
+              exit 1
+            }
+
+            # Check for backup image
+            BACKUP_IMAGE=$(docker images bwaincell-backend:backup -q 2>/dev/null || echo "none")
+            if [ "$BACKUP_IMAGE" = "none" ]; then
+              echo "⚠️  No backup image available — may be first deployment"
+              exit 1
+            fi
+
+            echo "✅ Backup image found: $BACKUP_IMAGE"
+
+            # Restore backend
+            echo "🛑 Stopping current container..."
+            docker compose down || true
+
+            echo "🔄 Restoring backup image..."
+            docker tag bwaincell-backend:backup bwaincell-backend:latest
+
+            echo "🚀 Starting service with backup image..."
+            docker compose up -d
+
+            echo "⏳ Waiting for services (60s)..."
+            sleep 60
+
+            # Health check
+            for i in {1..15}; do
+              HEALTH=$(curl -sf http://localhost:3000/health || echo "failed")
+              if echo "$HEALTH" | grep -q "healthy\|ok\|running"; then
+                echo "✅ Bot health check passed after rollback"
+                break
+              fi
+              echo "Attempt $i/15 — Bot not healthy yet, waiting..."
+              sleep 3
+            done
+
+            # Note: Supabase DB restore is manual (too risky to automate)
+            LATEST_BACKUP=$(ls -1dt ~/bwaincell-backups/*/ 2>/dev/null | head -1)
+            if [ -n "$LATEST_BACKUP" ] && [ -f "${LATEST_BACKUP}supabase-pre-deploy.sql" ]; then
+              SUPABASE_CONTAINER=$(docker ps --format '{{.Names}}' | grep 'supabase_db' | head -1 || echo "")
+              echo "ℹ️  Supabase backup available at: ${LATEST_BACKUP}supabase-pre-deploy.sql"
+              if [ -n "$SUPABASE_CONTAINER" ]; then
+                echo "ℹ️  Manual restore: docker exec -i $SUPABASE_CONTAINER psql -U postgres postgres < ${LATEST_BACKUP}supabase-pre-deploy.sql"
+              fi
+            fi
+
+            echo "================================================"
+            echo "✅ Rollback Complete"
+            echo "================================================"
+
+      - name: Verify rollback
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USERNAME }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
+          port: ${{ secrets.PI_SSH_PORT || 22 }}
+          timeout: 5m
+          command_timeout: 3m
+          script: |
+            set -e
+            cd ~/bwaincell
+
+            BACKEND_STATUS=$(docker inspect -f '{{.State.Status}}' bwaincell-backend 2>/dev/null || echo "unknown")
+            if [ "$BACKEND_STATUS" != "running" ]; then
+              echo "❌ Backend rollback failed: $BACKEND_STATUS"
+              exit 1
+            fi
+
+            HEALTH=$(curl -sf http://localhost:3000/health || echo "failed")
+            if ! echo "$HEALTH" | grep -q "healthy\|ok\|running"; then
+              echo "❌ Backend health check failed after rollback"
+              exit 1
+            fi
+
+            echo "✅ Backend healthy after rollback"

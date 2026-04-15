@@ -20,6 +20,8 @@ import {
 } from 'discord.js';
 import { getModels } from '../helpers/databaseHelper';
 import { handleInteractionError } from '../responses/errorResponses';
+import supabase from '../../../../supabase/supabase';
+import type { TaskRow } from '../../../../supabase/types';
 
 /**
  * Handles all task-related button interactions from Discord
@@ -38,7 +40,6 @@ import { handleInteractionError } from '../responses/errorResponses';
  */
 export async function handleTaskButton(interaction: ButtonInteraction<CacheType>): Promise<void> {
   const customId = interaction.customId;
-  const userId = interaction.user.id;
   const guildId = interaction.guild?.id;
 
   if (!guildId) {
@@ -177,9 +178,12 @@ export async function handleTaskButton(interaction: ButtonInteraction<CacheType>
     // Edit task modal
     if (customId.startsWith('task_edit_')) {
       const taskId = parseInt(customId.split('_')[2]);
-      const task = await Task.findOne({
-        where: { id: taskId, user_id: userId, guild_id: guildId },
-      });
+      const { data: task } = (await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', taskId)
+        .eq('guild_id', guildId)
+        .single()) as { data: TaskRow | null };
 
       if (!task) {
         // Check if already acknowledged before responding
