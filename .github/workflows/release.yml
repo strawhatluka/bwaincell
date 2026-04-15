@@ -62,7 +62,7 @@ jobs:
   # ---------------------------------------------------------------------------
   release:
     name: Create Draft Release
-    needs: [version, release-notes, validate]
+    needs: [version, release-notes]
     runs-on: ubuntu-latest
     steps:
       - name: Create GitHub Release
