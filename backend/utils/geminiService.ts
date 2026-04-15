@@ -70,7 +70,7 @@ export interface ParsedRecipe {
 /**
  * Allowed ingredient categories (MUST match recipe schema enum)
  */
-const INGREDIENT_CATEGORIES = [
+export const INGREDIENT_CATEGORIES = [
   'meats',
   'produce',
   'dairy',
@@ -80,6 +80,32 @@ const INGREDIENT_CATEGORIES = [
   'bakery',
   'other',
 ] as const;
+export type IngredientCategory = (typeof INGREDIENT_CATEGORIES)[number];
+
+/**
+ * Input to sanitizeShoppingList: one row of the aggregated list.
+ */
+export interface SanitizerInputItem {
+  name: string;
+  quantity: number | string | null;
+  unit: string;
+  category: string;
+}
+
+/**
+ * Output row from sanitizeShoppingList. A single consolidated, clean ingredient.
+ */
+export interface SanitizedItem {
+  name: string;
+  quantity: number | string | null;
+  unit: string;
+  category: IngredientCategory;
+}
+
+export interface SanitizedShoppingList {
+  items: SanitizedItem[];
+  warnings: string[];
+}
 
 /**
  * Hardcoded rules-based ingredient category lookup.
@@ -664,6 +690,202 @@ If you cannot confidently determine a field, OMIT that key rather than guessing.
       });
       throw error;
     }
+  }
+
+  /**
+   * Clean up an aggregated shopping list: merge duplicates the deterministic
+   * aggregator missed, correct miscategorizations, convert awkward decimals
+   * to culinary fractions, strip free-text noise from names. Returns a
+   * single consolidated list — all items remain on the list (the user
+   * decides what's already in the pantry).
+   *
+   * Fails soft: the caller passes through the input unchanged if this
+   * throws. Missing API key throws.
+   *
+   * @param items - Aggregated ingredients with best-guess categories
+   * @returns Cleaned items + non-fatal warnings for logging
+   */
+  public static async sanitizeShoppingList(
+    items: SanitizerInputItem[]
+  ): Promise<SanitizedShoppingList> {
+    if (items.length === 0) return { items: [], warnings: [] };
+
+    this.initialize();
+    if (!this.genAI) {
+      throw new Error('Gemini API not configured');
+    }
+
+    try {
+      const prompt = this.buildShoppingListSanitizePrompt(items);
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+      const text = response.text ?? '';
+      const cleaned = text
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      const parsed = JSON.parse(cleaned);
+
+      return this.validateSanitizedShoppingList(parsed, items);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Failed to sanitize shopping list', {
+        inputCount: items.length,
+        error: errorMessage,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * @private
+   */
+  private static buildShoppingListSanitizePrompt(items: SanitizerInputItem[]): string {
+    const inputJson = JSON.stringify(
+      items.map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        unit: i.unit,
+        category: i.category,
+      })),
+      null,
+      2
+    );
+
+    return `You are a recipe shopping-list cleanup assistant. Given a raw aggregated shopping list, produce a cleaned, consolidated, human-readable version. Every input item must still appear (possibly merged with others) in the output — users decide at the store what they already have; do not drop items.
+
+Rules:
+1. Merge duplicates that differ only by hyphenation, casing, adjective order, or trailing descriptors. Examples:
+   - "low sodium soy sauce" + "low-sodium soy sauce" → single entry
+   - "fresh minced ginger" + "fresh minced ginger root" → single entry
+   - "freshly grated parmesan cheese" + "grated parmesan cheese" → single entry
+   When merging, sum quantities IF units match. If units differ (e.g., "1 cup" + "2 tbsp"), keep them as a single entry with the larger unit's quantity plus a note, OR pick the dominant quantity if the second is trivial. Do not invent conversions.
+
+2. Correct each item's category to exactly one of: "meats", "produce", "dairy", "spices", "pantry", "frozen", "bakery", "other".
+   Guidance:
+   - produce: fresh vegetables, fresh fruits, fresh herbs (cilantro, parsley, basil, mint, rosemary WHEN fresh), garlic, onions, citrus, peppers (fresh)
+   - spices: dried herbs and seasonings (dried oregano, dried thyme, dried basil, ground cumin, paprika, cinnamon, bay leaves, black pepper, chili flakes, whole peppercorns)
+   - meats: poultry, beef, pork, lamb, seafood, sausage, bacon
+   - dairy: milk, cheese, yogurt, butter, cream, eggs
+   - pantry: oils, vinegars, sauces (soy sauce, fish sauce, hoisin, oyster), condiments, dry goods (flour, rice, pasta, sugar, salt), broths/stocks, canned goods
+   - frozen: anything labelled or commonly sold frozen (frozen dumplings, frozen vegetables)
+   - bakery: bread, tortillas, buns, bagels, pizza dough
+   - other: everything else (ginger root, cornstarch, specialty items like chili crisp)
+
+3. Convert awkward decimal quantities to the nearest sensible culinary amount. Prefer common fractions: 1/8, 1/4, 1/3, 3/8, 1/2, 5/8, 2/3, 3/4, 7/8 and their mixed forms. Examples:
+   - 0.57 cup → "1/2 cup" (or "2/3 cup" — pick the nearest common fraction)
+   - 1.29 tbsp → "1 1/4 tbsp"
+   - 0.17 cup → "3 tbsp" (unit change OK when result is cleaner)
+   - 0.03 tsp → "a pinch"
+   - 2.5 eggs → "3" (round up countable items)
+   Never invent precision. If an input already uses a fraction string, keep it.
+
+4. Clean up free-text noise in names:
+   - Remove trailing/leading asterisks ("chicken stock*" → "chicken stock")
+   - Collapse duplicate parentheses ("flour ((114g))" → "flour (114g)" or just "flour")
+   - Drop decorative parentheticals like "(, to taste)", "(, or more, as needed)", "(, for serving)"
+   - Preserve informative notes like "(bone-in, skin-on)", "(thinly sliced)" when a shopper needs them at the store
+   - Use title-case or normal-case, not ALL-CAPS or mixed random casing
+
+5. Keep distinct ingredients distinct:
+   - "chicken thighs" vs "chicken breasts" — different cuts, never merge
+   - "white onion" vs "yellow onion" — different varieties, keep separate
+   - "olive oil" vs "extra virgin olive oil" — keep separate
+
+6. Preserve unparseable quantities as-is when they're informative (e.g., "a pinch", "to taste", "1 bunch"). If an item has no quantity at all and was in the input, keep it with an empty quantity.
+
+Input (JSON array):
+${inputJson}
+
+Return ONLY valid JSON matching this exact shape — no markdown code fences, no commentary:
+{
+  "items": [
+    { "name": "string", "quantity": "string or number or null", "unit": "string", "category": "meats|produce|dairy|spices|pantry|frozen|bakery|other" }
+  ],
+  "warnings": [ "string" ]
+}
+
+Use "warnings" for any cases you couldn't confidently merge or quantify — informational only. Every input ingredient must map to at least one output item.`;
+  }
+
+  /**
+   * Validate Gemini's sanitized shopping list response. Coerces invalid
+   * categories to 'other' and drops output items whose names bear no
+   * resemblance to any input item (anti-hallucination).
+   * @private
+   */
+  private static validateSanitizedShoppingList(
+    parsed: unknown,
+    inputs: SanitizerInputItem[]
+  ): SanitizedShoppingList {
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Sanitizer response is not an object');
+    }
+    const obj = parsed as Record<string, unknown>;
+    if (!Array.isArray(obj.items)) {
+      throw new Error('Sanitizer response missing "items" array');
+    }
+
+    // Build a lowercased set of input name tokens for anti-hallucination fuzzy match.
+    const inputTokens = new Set<string>();
+    for (const input of inputs) {
+      const lower = input.name.toLowerCase();
+      for (const token of lower.split(/[^a-z]+/)) {
+        if (token.length >= 3) inputTokens.add(token);
+      }
+    }
+
+    const validated: SanitizedItem[] = [];
+    const droppedNames: string[] = [];
+    for (const raw of obj.items) {
+      if (!raw || typeof raw !== 'object') continue;
+      const item = raw as Record<string, unknown>;
+
+      const name = typeof item.name === 'string' ? item.name.trim() : '';
+      if (!name) continue;
+
+      // Anti-hallucination: at least one 3+ char token in the output name must match an input token.
+      const outputTokens = name.toLowerCase().split(/[^a-z]+/).filter((t) => t.length >= 3);
+      const hasInputMatch = outputTokens.some((t) => inputTokens.has(t));
+      if (!hasInputMatch && inputTokens.size > 0) {
+        droppedNames.push(name);
+        continue;
+      }
+
+      const unit = typeof item.unit === 'string' ? item.unit : '';
+      let quantity: number | string | null = null;
+      if (typeof item.quantity === 'number' && Number.isFinite(item.quantity)) {
+        quantity = item.quantity;
+      } else if (typeof item.quantity === 'string') {
+        quantity = item.quantity;
+      }
+
+      let category: IngredientCategory = 'other';
+      if (typeof item.category === 'string') {
+        const c = item.category.trim().toLowerCase();
+        if ((INGREDIENT_CATEGORIES as readonly string[]).includes(c)) {
+          category = c as IngredientCategory;
+        }
+      }
+
+      validated.push({ name, quantity, unit, category });
+    }
+
+    const warnings: string[] = [];
+    if (Array.isArray(obj.warnings)) {
+      for (const w of obj.warnings) {
+        if (typeof w === 'string' && w.trim()) warnings.push(w.trim());
+      }
+    }
+    if (droppedNames.length > 0) {
+      warnings.push(
+        `Dropped ${droppedNames.length} output item(s) with no input token match: ${droppedNames.slice(0, 3).join('; ')}`
+      );
+    }
+
+    return { items: validated, warnings };
   }
 
   /**

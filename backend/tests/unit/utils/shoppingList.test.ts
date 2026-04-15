@@ -1,6 +1,49 @@
 /**
- * Unit Tests: shoppingList utilities (pure functions)
+ * Unit Tests: shoppingList utilities.
+ *
+ * generateShoppingList is now async and routes through Gemini's
+ * sanitizeShoppingList. For these tests we mock the sanitizer to return the
+ * input unchanged (coerced to SanitizedItem shape) so the tests exercise the
+ * deterministic aggregation + render pipeline without hitting Gemini.
  */
+
+jest.mock('../../../utils/geminiService', () => {
+  const actual = jest.requireActual('../../../utils/geminiService');
+  return {
+    ...actual,
+    GeminiService: {
+      ...actual.GeminiService,
+      sanitizeShoppingList: jest.fn(async (items: unknown[]) => {
+        const toCategory = (c: unknown): string => {
+          const allowed = [
+            'meats',
+            'produce',
+            'dairy',
+            'spices',
+            'pantry',
+            'frozen',
+            'bakery',
+            'other',
+          ];
+          return allowed.includes(c as string) ? (c as string) : 'other';
+        };
+        return {
+          items: (items as Array<Record<string, unknown>>).map((i) => ({
+            name: i.name,
+            quantity: i.quantity ?? null,
+            unit: i.unit ?? '',
+            category: toCategory(i.category),
+          })),
+          warnings: [],
+        };
+      }),
+    },
+  };
+});
+
+jest.mock('../../../shared/utils/logger', () => ({
+  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+}));
 
 import {
   parseQuantity,
@@ -110,7 +153,7 @@ describe('categorizeIngredient', () => {
 });
 
 describe('generateShoppingList', () => {
-  test('single meal, 1 serving, simple recipe has categories and nutrition', () => {
+  test('single meal, 1 serving, simple recipe has categories and nutrition', async () => {
     const recipe = makeRecipe({
       name: 'Simple',
       servings: 1,
@@ -121,7 +164,7 @@ describe('generateShoppingList', () => {
       nutrition: { calories: 500, protein: 30, carbs: 10, fat: 20, fiber: 5 },
     });
     const meals: RecipeWithServings[] = [{ recipe, targetServings: 1 }];
-    const { markdown, nutrition } = generateShoppingList(meals);
+    const { markdown, nutrition } = await generateShoppingList(meals);
 
     expect(markdown).toContain('# Shopping List');
     expect(markdown).toContain('## Meats');
@@ -132,27 +175,27 @@ describe('generateShoppingList', () => {
     expect(nutrition.totalProtein).toBe(30);
   });
 
-  test('scaling: recipe with 4 servings scaled to 2 halves quantities', () => {
+  test('scaling: recipe with 4 servings scaled to 2 halves quantities', async () => {
     const recipe = makeRecipe({
       servings: 4,
       ingredients: [{ name: 'Chicken', quantity: 4, unit: 'lb' }],
     });
-    const { markdown } = generateShoppingList([{ recipe, targetServings: 2 }]);
+    const { markdown } = await generateShoppingList([{ recipe, targetServings: 2 }]);
     expect(markdown).toContain('2 lb Chicken');
   });
 
-  test('scaling: unit-less count rounds up (2.5 eggs → 3)', () => {
+  test('scaling: unit-less count rounds up (2.5 eggs → 3)', async () => {
     const recipe = makeRecipe({
       servings: 2,
       ingredients: [{ name: 'eggs', quantity: 1, unit: '' }],
     });
     // scale = 5/2 = 2.5 eggs
-    const { markdown } = generateShoppingList([{ recipe, targetServings: 5 }]);
+    const { markdown } = await generateShoppingList([{ recipe, targetServings: 5 }]);
     expect(markdown).toMatch(/3 eggs/);
   });
 
-  test('aggregation: same name+unit across 2 meals sums quantities', () => {
-    const a = makeRecipe({
+  test('aggregation: same name+unit across 2 meals sums quantities', async () => {
+    const a =makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'Chicken', quantity: 2, unit: 'lb' }],
@@ -162,7 +205,7 @@ describe('generateShoppingList', () => {
       servings: 1,
       ingredients: [{ name: 'chicken', quantity: 3, unit: 'lb' }],
     });
-    const { markdown } = generateShoppingList([
+    const { markdown } = await generateShoppingList([
       { recipe: a, targetServings: 1 },
       { recipe: b, targetServings: 1 },
     ]);
@@ -170,8 +213,8 @@ describe('generateShoppingList', () => {
     expect(markdown).toMatch(/5 lb (C|c)hicken/);
   });
 
-  test('aggregation: same name different unit stays separate', () => {
-    const a = makeRecipe({
+  test('aggregation: same name different unit stays separate', async () => {
+    const a =makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'Chicken', quantity: 1, unit: 'lb' }],
@@ -181,7 +224,7 @@ describe('generateShoppingList', () => {
       servings: 1,
       ingredients: [{ name: 'Chicken', quantity: 2, unit: 'kg' }],
     });
-    const { markdown } = generateShoppingList([
+    const { markdown } = await generateShoppingList([
       { recipe: a, targetServings: 1 },
       { recipe: b, targetServings: 1 },
     ]);
@@ -189,25 +232,25 @@ describe('generateShoppingList', () => {
     expect(markdown).toContain('2 kg');
   });
 
-  test('null nutrition is skipped and note is shown', () => {
+  test('null nutrition is skipped and note is shown', async () => {
     const recipe = makeRecipe({
       servings: 1,
       nutrition: null,
       ingredients: [{ name: 'Salt', quantity: 1, unit: 'tsp' }],
     });
-    const { markdown, nutrition } = generateShoppingList([{ recipe, targetServings: 1 }]);
+    const { markdown, nutrition } = await generateShoppingList([{ recipe, targetServings: 1 }]);
     expect(markdown).toContain('Nutrition data missing for 1 recipes');
     expect(nutrition.totalCalories).toBe(0);
   });
 
-  test('empty meals produces minimal markdown', () => {
-    const { markdown, nutrition } = generateShoppingList([]);
+  test('empty meals produces minimal markdown', async () => {
+    const { markdown, nutrition } = await generateShoppingList([]);
     expect(markdown).toContain('# Shopping List');
     expect(markdown).toContain('Generated for 0 meals');
     expect(nutrition.totalCalories).toBe(0);
   });
 
-  test('aggregated nutrition sums per-serving macros across meals (per-person)', () => {
+  test('aggregated nutrition sums per-serving macros across meals (per-person)', async () => {
     const r1 = makeRecipe({
       id: 1,
       servings: 1,
@@ -221,7 +264,7 @@ describe('generateShoppingList', () => {
       nutrition: { calories: 200, protein: 20, carbs: 10, fat: 5, fiber: 2 },
     });
     // Per-person math: 100 + 200 = 300, independent of targetServings.
-    const { nutrition } = generateShoppingList([
+    const { nutrition } = await generateShoppingList([
       { recipe: r1, targetServings: 2 },
       { recipe: r2, targetServings: 1 },
     ]);
@@ -232,30 +275,44 @@ describe('generateShoppingList', () => {
     expect(nutrition.totalFiber).toBe(3);
   });
 
-  test('nutrition is invariant to targetServings (regression)', () => {
+  test('falls back to deterministic output when sanitizer throws', async () => {
+    const { GeminiService } = jest.requireMock('../../../utils/geminiService');
+    GeminiService.sanitizeShoppingList.mockRejectedValueOnce(new Error('API down'));
+
+    const recipe = makeRecipe({
+      servings: 1,
+      ingredients: [{ name: 'Chicken', quantity: 1, unit: 'lb' }],
+    });
+    const { markdown } = await generateShoppingList([{ recipe, targetServings: 1 }]);
+    // Still renders the ingredient even though Gemini bailed.
+    expect(markdown).toContain('Chicken');
+    expect(markdown).toContain('## Meats');
+  });
+
+  test('nutrition is invariant to targetServings (regression)', async () => {
     const recipe = makeRecipe({
       id: 1,
       servings: 2,
       ingredients: [],
       nutrition: { calories: 500, protein: 30, carbs: 40, fat: 15, fiber: 5 },
     });
-    const { nutrition: n1 } = generateShoppingList([{ recipe, targetServings: 1 }]);
-    const { nutrition: n4 } = generateShoppingList([{ recipe, targetServings: 4 }]);
+    const { nutrition: n1 } = await generateShoppingList([{ recipe, targetServings: 1 }]);
+    const { nutrition: n4 } = await generateShoppingList([{ recipe, targetServings: 4 }]);
     expect(n1.totalCalories).toBe(500);
     expect(n4.totalCalories).toBe(500);
     expect(n1.totalProtein).toBe(n4.totalProtein);
   });
 
-  test('unparseable quantity preserved as rawNote', () => {
+  test('unparseable quantity preserved as rawNote', async () => {
     const recipe = makeRecipe({
       servings: 1,
       ingredients: [{ name: 'salt', quantity: 'a pinch', unit: '' }],
     });
-    const { markdown } = generateShoppingList([{ recipe, targetServings: 1 }]);
+    const { markdown } = await generateShoppingList([{ recipe, targetServings: 1 }]);
     expect(markdown).toContain('a pinch');
   });
 
-  test('ingredients are sorted alphabetically within category', () => {
+  test('ingredients are sorted alphabetically within category', async () => {
     const recipe = makeRecipe({
       servings: 1,
       ingredients: [
@@ -263,7 +320,7 @@ describe('generateShoppingList', () => {
         { name: 'Apple', quantity: 1, unit: '' },
       ],
     });
-    const { markdown } = generateShoppingList([{ recipe, targetServings: 1 }]);
+    const { markdown } = await generateShoppingList([{ recipe, targetServings: 1 }]);
     const appleIdx = markdown.indexOf('Apple');
     const zucchiniIdx = markdown.indexOf('Zucchini');
     expect(appleIdx).toBeGreaterThan(-1);
@@ -272,7 +329,7 @@ describe('generateShoppingList', () => {
 });
 
 describe('aggregateIngredients', () => {
-  test('handles zero baseline servings gracefully', () => {
+  test('handles zero baseline servings gracefully', async () => {
     const recipe = makeRecipe({
       servings: 0,
       ingredients: [{ name: 'salt', quantity: 1, unit: 'tsp' }],
@@ -282,7 +339,7 @@ describe('aggregateIngredients', () => {
     expect(result[0].quantity).toBe(1);
   });
 
-  test('handles null servings (undefined baseline → 1)', () => {
+  test('handles null servings (undefined baseline → 1)', async () => {
     const recipe = makeRecipe({
       servings: null,
       ingredients: [{ name: 'salt', quantity: 1, unit: 'tsp' }],
@@ -291,8 +348,8 @@ describe('aggregateIngredients', () => {
     expect(result[0].quantity).toBe(2);
   });
 
-  test('accumulates rawParts for unparseable and parseable', () => {
-    const a = makeRecipe({
+  test('accumulates rawParts for unparseable and parseable', async () => {
+    const a =makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'salt', quantity: 'a pinch', unit: '' }],
@@ -309,8 +366,8 @@ describe('aggregateIngredients', () => {
     expect(result[0].rawNote).toContain('a pinch');
   });
 
-  test('collapses garlic variants across recipes into one entry', () => {
-    const a = makeRecipe({
+  test('collapses garlic variants across recipes into one entry', async () => {
+    const a =makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: '1 clove garlic (, minced)', quantity: 1, unit: 'clove' }],
@@ -335,8 +392,8 @@ describe('aggregateIngredients', () => {
     expect(result[0].unit).toBe('clove');
   });
 
-  test('sums chicken thighs stored with lb and pounds into one entry', () => {
-    const a = makeRecipe({
+  test('sums chicken thighs stored with lb and pounds into one entry', async () => {
+    const a =makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'chicken thighs', quantity: 1, unit: 'lb' }],
@@ -355,8 +412,8 @@ describe('aggregateIngredients', () => {
     expect(result[0].unit).toBe('lb');
   });
 
-  test('keeps chicken thighs and chicken breasts as separate entries', () => {
-    const a = makeRecipe({
+  test('keeps chicken thighs and chicken breasts as separate entries', async () => {
+    const a =makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'chicken thighs', quantity: 1, unit: 'lb' }],
@@ -373,8 +430,8 @@ describe('aggregateIngredients', () => {
     expect(result).toHaveLength(2);
   });
 
-  test('strips parentheticals and comma prep notes when keying', () => {
-    const a = makeRecipe({
+  test('strips parentheticals and comma prep notes when keying', async () => {
+    const a =makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'salt (, to taste)', quantity: 1, unit: 'tsp' }],
@@ -393,8 +450,8 @@ describe('aggregateIngredients', () => {
     expect(result[0].unit).toBe('tsp');
   });
 
-  test('first-occurrence display name is preserved on merge', () => {
-    const a = makeRecipe({
+  test('first-occurrence display name is preserved on merge', async () => {
+    const a =makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'chicken thighs (bone in + skin on)', quantity: 1, unit: 'lb' }],
@@ -410,5 +467,77 @@ describe('aggregateIngredients', () => {
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('chicken thighs (bone in + skin on)');
+  });
+});
+
+describe('generateShoppingList — sanitizer integration', () => {
+  test('uses Gemini sanitizer output for rendering (categories, names, quantities)', async () => {
+    const { GeminiService } = jest.requireMock('../../../utils/geminiService');
+
+    // Seven recipes with messy data that the deterministic layer won't fully clean.
+    const meals: RecipeWithServings[] = Array.from({ length: 7 }, (_, i) =>
+      ({
+        recipe: makeRecipe({
+          id: i + 1,
+          name: `Recipe ${i + 1}`,
+          servings: 1,
+          ingredients: [
+            { name: 'fresh minced garlic', quantity: 1, unit: 'clove' },
+            { name: 'Dried oregano', quantity: 0.3, unit: 'tsp' },
+            { name: 'cilantro (, for garnish)', quantity: 1, unit: 'bunch' },
+          ],
+        }),
+        targetServings: 2,
+      })
+    );
+
+    // Mock Gemini to return the cleaned, consolidated version we'd expect.
+    GeminiService.sanitizeShoppingList.mockResolvedValueOnce({
+      items: [
+        { name: 'garlic', quantity: 7, unit: 'clove', category: 'produce' },
+        { name: 'dried oregano', quantity: '2 1/4', unit: 'tsp', category: 'spices' },
+        { name: 'cilantro', quantity: 7, unit: 'bunch', category: 'produce' },
+      ],
+      warnings: [],
+    });
+
+    const { markdown } = await generateShoppingList(meals);
+
+    // Cilantro is in Produce, not Bakery or Other.
+    expect(markdown).toContain('## Produce');
+    expect(markdown.match(/cilantro/gi)?.length).toBe(1); // single entry
+    expect(markdown).toContain('garlic');
+
+    // Dried oregano lives under Spices.
+    expect(markdown).toContain('## Spices');
+    const oreganoMatches = markdown.match(/oregano/gi);
+    expect(oreganoMatches?.length).toBe(1);
+
+    // Awkward decimals (0.3 scaled by 2 = 0.6 across 7 recipes = 4.2 tsp) are replaced
+    // with the sanitizer's fraction string "2 1/4".
+    expect(markdown).toContain('2 1/4 tsp dried oregano');
+    expect(markdown).not.toMatch(/0\.\d/);
+  });
+
+  test('falls back to deterministic aggregation when sanitizer throws, preserving all items', async () => {
+    const { GeminiService } = jest.requireMock('../../../utils/geminiService');
+    GeminiService.sanitizeShoppingList.mockRejectedValueOnce(new Error('network'));
+
+    const meals: RecipeWithServings[] = [
+      {
+        recipe: makeRecipe({
+          id: 1,
+          servings: 1,
+          ingredients: [
+            { name: 'garlic', quantity: 2, unit: 'clove' },
+            { name: 'oregano', quantity: 1, unit: 'tsp' },
+          ],
+        }),
+        targetServings: 1,
+      },
+    ];
+    const { markdown } = await generateShoppingList(meals);
+    expect(markdown).toContain('garlic');
+    expect(markdown).toContain('oregano');
   });
 });

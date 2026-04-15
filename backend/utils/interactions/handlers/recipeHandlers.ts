@@ -323,7 +323,7 @@ async function finalizePlan(
     return { recipe, targetServings: session.servingsCollected[idx] };
   });
 
-  const { markdown, nutrition } = generateShoppingList(meals);
+  const { markdown, nutrition } = await generateShoppingList(meals);
   const attachment = new AttachmentBuilder(Buffer.from(markdown, 'utf-8'), {
     name: 'Shopping-List.md',
   });
@@ -1112,7 +1112,7 @@ async function handleSwapMealSelect(
     if (!r) throw new Error(`Recipe #${id} no longer exists.`);
     return { recipe: r, targetServings: updated.servings_per_recipe[idx] };
   });
-  const { markdown } = generateShoppingList(meals);
+  const { markdown } = await generateShoppingList(meals);
   const attachment = new AttachmentBuilder(Buffer.from(markdown, 'utf-8'), {
     name: 'Shopping-List.md',
   });

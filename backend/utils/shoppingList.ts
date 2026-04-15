@@ -1,6 +1,9 @@
 import type { RecipeRow, RecipeIngredient } from '../../supabase/types';
 import { formatQuantity as formatQtyAsFraction } from './fractionFormat';
 import { canonicalizeIngredient } from './ingredientCanonical';
+import { GeminiService } from './geminiService';
+import type { SanitizedItem, SanitizerInputItem } from './geminiService';
+import { logger } from '../shared/utils/logger';
 
 export interface RecipeWithServings {
   recipe: RecipeRow;
@@ -264,12 +267,10 @@ export function aggregateIngredients(meals: RecipeWithServings[]): AggregatedIng
   return result;
 }
 
-function formatIngredientLine(ing: AggregatedIngredient): string {
+function formatIngredientLine(ing: SanitizedItem): string {
   const parts: string[] = [];
-  if (ing.quantity !== null && ing.quantity !== undefined) {
+  if (ing.quantity !== null && ing.quantity !== undefined && ing.quantity !== '') {
     parts.push(formatQtyAsFraction(ing.quantity));
-  } else if (ing.rawNote) {
-    parts.push(ing.rawNote);
   }
   if (ing.unit && ing.unit.trim()) {
     parts.push(ing.unit);
@@ -302,17 +303,61 @@ const CATEGORY_ORDER: string[] = [
 ];
 
 /**
+ * Run the aggregated list through Gemini's sanitizer. On any failure,
+ * fall back to the deterministic aggregated output (converted to the
+ * sanitized shape so the renderer has one consistent input format).
+ */
+async function sanitizeAggregatedList(
+  aggregated: AggregatedIngredient[]
+): Promise<SanitizedItem[]> {
+  if (aggregated.length === 0) return [];
+
+  const sanitizerInput: SanitizerInputItem[] = aggregated.map((a) => ({
+    name: a.name,
+    quantity: a.quantity !== null ? a.quantity : a.rawNote ?? null,
+    unit: a.unit,
+    category: a.category,
+  }));
+
+  try {
+    const result = await GeminiService.sanitizeShoppingList(sanitizerInput);
+    if (result.warnings.length > 0) {
+      logger.info('[shoppingList] Sanitizer returned warnings', {
+        warnings: result.warnings.slice(0, 5),
+      });
+    }
+    return result.items;
+  } catch (err) {
+    logger.warn('[shoppingList] Sanitizer failed; using deterministic output', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+    return aggregated.map((a) => ({
+      name: a.name,
+      quantity: a.quantity !== null ? a.quantity : a.rawNote ?? null,
+      unit: a.unit,
+      category: normalizeCategory(a.category),
+    }));
+  }
+}
+
+function normalizeCategory(cat: string): SanitizedItem['category'] {
+  const known = ['meats', 'produce', 'dairy', 'spices', 'pantry', 'frozen', 'bakery', 'other'];
+  return (known.includes(cat) ? cat : 'other') as SanitizedItem['category'];
+}
+
+/**
  * Build a shopping list markdown + weekly nutrition totals from the provided meals.
  */
-export function generateShoppingList(meals: RecipeWithServings[]): {
+export async function generateShoppingList(meals: RecipeWithServings[]): Promise<{
   markdown: string;
   nutrition: WeeklyNutrition;
-} {
+}> {
   const aggregated = aggregateIngredients(meals);
+  const sanitizedItems = await sanitizeAggregatedList(aggregated);
 
-  // Group by category
-  const grouped: Record<string, AggregatedIngredient[]> = {};
-  for (const ing of aggregated) {
+  // Group by category (using sanitized items)
+  const grouped: Record<string, SanitizedItem[]> = {};
+  for (const ing of sanitizedItems) {
     const cat = ing.category || 'other';
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(ing);

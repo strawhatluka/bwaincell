@@ -514,4 +514,90 @@ ${JSON.stringify(expectedResponse)}
       expect(callArg.config?.tools).toEqual(expect.arrayContaining([{ googleSearch: {} }]));
     });
   });
+
+  describe('sanitizeShoppingList', () => {
+    const aggregated = [
+      { name: 'garlic', quantity: 3, unit: 'clove', category: 'produce' },
+      { name: 'Dried oregano', quantity: 1, unit: 'tsp', category: 'spices' },
+      { name: 'cilantro', quantity: 1, unit: 'bunch', category: 'bakery' }, // miscategorized
+    ];
+
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    it('returns empty output for empty input without calling Gemini', async () => {
+      const result = await GeminiService.sanitizeShoppingList([]);
+      expect(result).toEqual({ items: [], warnings: [] });
+      expect(mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('parses a valid response and coerces invalid categories to "other"', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          items: [
+            { name: 'garlic', quantity: 3, unit: 'clove', category: 'produce' },
+            { name: 'dried oregano', quantity: 1, unit: 'tsp', category: 'produce' }, // valid category but wrong-ish
+            { name: 'cilantro', quantity: 1, unit: 'bunch', category: 'unrecognized-cat' },
+          ],
+          warnings: [],
+        }),
+      });
+      const result = await GeminiService.sanitizeShoppingList(aggregated);
+      expect(result.items).toHaveLength(3);
+      expect(result.items.find((i) => i.name === 'cilantro')?.category).toBe('other');
+      expect(result.items.find((i) => i.name === 'garlic')?.category).toBe('produce');
+    });
+
+    it('drops hallucinated items whose names have no input-token match', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          items: [
+            { name: 'garlic', quantity: 3, unit: 'clove', category: 'produce' },
+            { name: 'unicorn horn shavings', quantity: 1, unit: 'tsp', category: 'spices' },
+          ],
+          warnings: [],
+        }),
+      });
+      const result = await GeminiService.sanitizeShoppingList(aggregated);
+      expect(result.items.map((i) => i.name)).toEqual(['garlic']);
+      expect(result.warnings.join(' ')).toContain('unicorn horn shavings');
+    });
+
+    it('throws when API key is missing', async () => {
+      delete process.env.GEMINI_API_KEY;
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+      await expect(GeminiService.sanitizeShoppingList(aggregated)).rejects.toThrow(
+        'not configured'
+      );
+    });
+
+    it('propagates errors from the model call', async () => {
+      mockGenerateContent.mockRejectedValueOnce(new Error('quota exceeded'));
+      await expect(GeminiService.sanitizeShoppingList(aggregated)).rejects.toThrow(
+        'quota exceeded'
+      );
+    });
+
+    it('throws on malformed response (non-object)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: '"just a string"' });
+      await expect(GeminiService.sanitizeShoppingList(aggregated)).rejects.toThrow();
+    });
+
+    it('throws when items array is missing', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({ warnings: [] }),
+      });
+      await expect(GeminiService.sanitizeShoppingList(aggregated)).rejects.toThrow('items');
+    });
+
+    it('strips markdown code fences', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: '```json\n{"items":[{"name":"garlic","quantity":3,"unit":"clove","category":"produce"}],"warnings":[]}\n```',
+      });
+      const result = await GeminiService.sanitizeShoppingList(aggregated);
+      expect(result.items).toHaveLength(1);
+    });
+  });
 });

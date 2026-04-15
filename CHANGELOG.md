@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `describe('sanitizeShoppingList', ...)` test suite to `backend/tests/unit/utils/geminiService.test.ts` to cover shopping list sanitation logic (issue #44)
+- Add `INGREDIENT_CATEGORIES` export to `backend/utils/geminiService.ts`
+- Add `IngredientCategory`, `SanitizerInputItem`, `SanitizedItem`, and `SanitizedShoppingList` type exports to `backend/utils/geminiService.ts`
+- Add `sanitizeShoppingList` function to `backend/utils/geminiService.ts` to clean up and categorize aggregated shopping lists using Gemini (issue #44)
+- Add `sanitizeAggregatedList` helper function to `backend/utils/shoppingList.ts` to integrate Gemini's shopping list sanitation (issue #44)
+
 - Add `Recipe` model import to `backend/commands/random.ts` (issue #44)
 - Add `formatQuantity` and `RecipeIngredient` imports to `backend/commands/random.ts` (issue #44)
 - Add imports for `ingestRecipeFromUrl`, `summarizeProvenance`, `FieldProvenance` to `backend/commands/recipe.ts` (issue #44)
@@ -77,6 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update unit tests in `backend/tests/unit/utils/shoppingList.test.ts` to mock `GeminiService.sanitizeShoppingList` and reflect the new async nature of `generateShoppingList` (issue #44)
+- Update `generateShoppingList` in `backend/utils/shoppingList.ts` to be an `async` function and integrate `GeminiService` for list sanitation (issue #44)
+- Update `formatIngredientLine` in `backend/utils/shoppingList.ts` to accept `SanitizedItem` as input, aligning with the new shopping list processing flow
+- Modify calls to `generateShoppingList` in `backend/utils/interactions/handlers/recipeHandlers.ts` to `await` its result, reflecting its new async nature (issue #44)
 - Change `dinner` subcommand to `recipe` subcommand in `backend/commands/random.ts` for picking a random saved recipe (issue #44)
 - Update random command's response in `backend/commands/random.ts` to display details of a randomly selected `Recipe` from the database (issue #44)
 - Update `add` subcommand description in `backend/commands/recipe.ts` to focus on link-based ingestion (issue #44)
