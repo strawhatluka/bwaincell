@@ -1,4 +1,6 @@
 import type { RecipeRow, RecipeIngredient } from '../../supabase/types';
+import { formatQuantity as formatQtyAsFraction } from './fractionFormat';
+import { canonicalizeIngredient } from './ingredientCanonical';
 
 export interface RecipeWithServings {
   recipe: RecipeRow;
@@ -222,7 +224,8 @@ export function aggregateIngredients(meals: RecipeWithServings[]): AggregatedIng
 
     const ingredients: RecipeIngredient[] = recipe.ingredients ?? [];
     for (const ing of ingredients) {
-      const key = `${ing.name.toLowerCase()}|${(ing.unit ?? '').toLowerCase()}`;
+      const canon = canonicalizeIngredient(ing.name, ing.unit ?? '');
+      const key = `${canon.canonicalName}|${canon.canonicalUnit}`;
       const parsed = parseQuantity(ing.quantity);
       const scaledQty = parsed !== null ? parsed * scale : null;
 
@@ -234,9 +237,10 @@ export function aggregateIngredients(meals: RecipeWithServings[]): AggregatedIng
           existing.rawParts.push(String(ing.quantity));
         }
       } else {
+        // First occurrence wins for display name; canonical unit on display for consistency.
         map.set(key, {
           name: ing.name,
-          unit: ing.unit ?? '',
+          unit: canon.canonicalUnit,
           category: categorizeIngredient(ing),
           quantity: scaledQty,
           rawParts: scaledQty === null ? [String(ing.quantity)] : [],
@@ -260,15 +264,10 @@ export function aggregateIngredients(meals: RecipeWithServings[]): AggregatedIng
   return result;
 }
 
-function formatQuantity(qty: number): string {
-  if (Number.isInteger(qty)) return String(qty);
-  return String(qty);
-}
-
 function formatIngredientLine(ing: AggregatedIngredient): string {
   const parts: string[] = [];
   if (ing.quantity !== null && ing.quantity !== undefined) {
-    parts.push(formatQuantity(ing.quantity));
+    parts.push(formatQtyAsFraction(ing.quantity));
   } else if (ing.rawNote) {
     parts.push(ing.rawNote);
   }
@@ -328,17 +327,19 @@ export function generateShoppingList(meals: RecipeWithServings[]): {
     totalFiber: 0,
   };
   let missingNutritionCount = 0;
-  for (const { recipe, targetServings } of meals) {
+  // Nutrition is per-person: sum per-serving macros across meals, regardless
+  // of how many people each meal serves. Each person eats one serving per meal.
+  for (const { recipe } of meals) {
     const n = recipe.nutrition;
     if (!n) {
       missingNutritionCount++;
       continue;
     }
-    nutrition.totalCalories += (n.calories ?? 0) * targetServings;
-    nutrition.totalProtein += (n.protein ?? 0) * targetServings;
-    nutrition.totalCarbs += (n.carbs ?? 0) * targetServings;
-    nutrition.totalFat += (n.fat ?? 0) * targetServings;
-    nutrition.totalFiber += (n.fiber ?? 0) * targetServings;
+    nutrition.totalCalories += n.calories ?? 0;
+    nutrition.totalProtein += n.protein ?? 0;
+    nutrition.totalCarbs += n.carbs ?? 0;
+    nutrition.totalFat += n.fat ?? 0;
+    nutrition.totalFiber += n.fiber ?? 0;
   }
 
   const totalPeople = meals.reduce((sum, m) => sum + m.targetServings, 0);

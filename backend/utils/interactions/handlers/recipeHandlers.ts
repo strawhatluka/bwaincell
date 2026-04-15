@@ -38,7 +38,11 @@ import {
   sanitizeFilename,
   PlanSession,
 } from '../../../commands/recipe';
-import type { RecipeUpdate, RecipeIngredient } from '../../../../supabase/types';
+import type {
+  RecipeUpdate,
+  RecipeIngredient,
+  RecipeNutrition,
+} from '../../../../supabase/types';
 
 const RECIPES_PER_PAGE = 25;
 
@@ -235,7 +239,9 @@ function buildServingsEmbed(session: PlanSession, recipes: RecipeRow[]): EmbedBu
         session.servingsCollected[idx] === undefined || session.servingsCollected[idx] === null
     );
   const pendingStr =
-    pending.length > 0 ? `\n\nFill servings for: ${pending.map((i) => i + 1).join(', ')}` : '';
+    pending.length > 0
+      ? '\n\n_Click each meal and enter the number of servings you wish to make._'
+      : '';
   return new EmbedBuilder()
     .setTitle('🍽️ How Many Servings Per Meal?')
     .setDescription(`${lines.join('\n')}${pendingStr}`)
@@ -291,7 +297,10 @@ async function transitionToServings(
 }
 
 async function finalizePlan(
-  interaction: ModalSubmitInteraction<CacheType>,
+  interaction:
+    | ModalSubmitInteraction<CacheType>
+    | StringSelectMenuInteraction<CacheType>
+    | ButtonInteraction<CacheType>,
   session: PlanSession
 ): Promise<void> {
   const guildId = session.guildId;
@@ -325,10 +334,10 @@ async function finalizePlan(
 
   const embed = new EmbedBuilder()
     .setTitle('✅ Meal Plan Created!')
-    .setDescription(mealsList)
+    .setDescription(`${mealsList}\n\n_Nutrition totals below are per person for the week._`)
     .setColor(0x00ff00)
     .addFields(
-      { name: '🔥 Weekly Calories', value: `${Math.round(nutrition.totalCalories)}`, inline: true },
+      { name: '🔥 Calories', value: `${Math.round(nutrition.totalCalories)}`, inline: true },
       { name: '🥩 Protein', value: `${Math.round(nutrition.totalProtein)} g`, inline: true },
       { name: '🍞 Carbs', value: `${Math.round(nutrition.totalCarbs)} g`, inline: true },
       { name: '🥑 Fat', value: `${Math.round(nutrition.totalFat)} g`, inline: true },
@@ -509,25 +518,21 @@ async function handleAcceptAllAI(interaction: ButtonInteraction<CacheType>): Pro
   await transitionToServings(interaction, session);
 }
 
-async function handleOpenServingsModal(interaction: ButtonInteraction<CacheType>): Promise<void> {
+/**
+ * Serving values offered in the select menu. Realistic culinary range — anything
+ * beyond 20 can be set post-creation via /recipe edit.
+ */
+const SERVINGS_OPTIONS: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20];
+
+async function handleOpenServingsSelect(
+  interaction: ButtonInteraction<CacheType>
+): Promise<void> {
   const session = requireSession(interaction);
-  if (!session) {
-    // Can't editReply — interaction is NOT deferred (see bot.ts modalButtons list).
-    try {
-      await interaction.reply({
-        content:
-          '❌ Your meal plan session has expired or was not found. Start again with `/recipe plan`.',
-        ephemeral: true,
-      });
-    } catch {
-      // ignore
-    }
-    return;
-  }
+  if (!session) return sessionError(interaction);
 
   const slotIndex = parseInt(interaction.customId.replace('recipe_plan_servings_', ''), 10);
   if (Number.isNaN(slotIndex) || slotIndex < 0 || slotIndex > 6) {
-    await interaction.reply({ content: '❌ Invalid slot.', ephemeral: true });
+    await interaction.editReply({ content: '❌ Invalid slot.' });
     return;
   }
 
@@ -536,23 +541,23 @@ async function handleOpenServingsModal(interaction: ButtonInteraction<CacheType>
   const recipe = recipes.find((r) => r.id === recipeId);
   const name = recipe?.name ?? `Meal ${slotIndex + 1}`;
 
-  const modal = new ModalBuilder()
-    .setCustomId(`recipe_plan_servings_modal_${slotIndex}`)
-    .setTitle(truncateLabel(`Servings: ${name}`, 45));
+  const options = SERVINGS_OPTIONS.map((n) =>
+    new StringSelectMenuOptionBuilder().setLabel(`${n} serving${n === 1 ? '' : 's'}`).setValue(String(n))
+  );
+  const select = new StringSelectMenuBuilder()
+    .setCustomId(`recipe_plan_servings_select_${slotIndex}`)
+    .setPlaceholder(truncateLabel(`Servings for: ${name}`, 100))
+    .setMinValues(1)
+    .setMaxValues(1)
+    .addOptions(options);
 
-  const defaultServings = recipe?.servings ? String(recipe.servings) : '';
-  const input = new TextInputBuilder()
-    .setCustomId('recipe_plan_servings_value')
-    .setLabel('Number of servings (1-50)')
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-    .setMinLength(1)
-    .setMaxLength(2)
-    .setValue(defaultServings);
+  const embed = buildServingsEmbed(session, recipes);
+  embed.setFooter({ text: `Select servings for meal ${slotIndex + 1}: ${name}` });
 
-  modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
-
-  await interaction.showModal(modal);
+  await interaction.editReply({
+    embeds: [embed],
+    components: [new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select)],
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -623,22 +628,21 @@ async function handleSwapSelect(
 // Modal handlers
 // ---------------------------------------------------------------------------
 
-async function handleServingsModal(interaction: ModalSubmitInteraction<CacheType>): Promise<void> {
+async function handleServingsSelect(
+  interaction: StringSelectMenuInteraction<CacheType>
+): Promise<void> {
   const session = requireSession(interaction);
   if (!session) return sessionError(interaction);
 
-  const slotIndex = parseInt(interaction.customId.replace('recipe_plan_servings_modal_', ''), 10);
+  const slotIndex = parseInt(interaction.customId.replace('recipe_plan_servings_select_', ''), 10);
   if (Number.isNaN(slotIndex) || slotIndex < 0 || slotIndex > 6) {
     await interaction.editReply({ content: '❌ Invalid slot.' });
     return;
   }
 
-  const raw = interaction.fields.getTextInputValue('recipe_plan_servings_value').trim();
-  const servings = parseInt(raw, 10);
+  const servings = parseInt(interaction.values[0], 10);
   if (Number.isNaN(servings) || servings < 1 || servings > 50) {
-    await interaction.editReply({
-      content: '❌ Invalid servings. Enter a whole number from 1 to 50.',
-    });
+    await interaction.editReply({ content: '❌ Invalid servings.' });
     return;
   }
 
@@ -666,8 +670,7 @@ async function handleServingsModal(interaction: ModalSubmitInteraction<CacheType
     return;
   }
 
-  // Modal's reply is ephemeral/separate; update the main plan message via followUp not needed.
-  // Instead, acknowledge and re-render the servings selector as the modal reply.
+  // Re-render the servings selector (buttons view) so the user can pick the next meal.
   const recipes = await Recipe.getRecipes(session.guildId);
   const embed = buildServingsEmbed(session, recipes);
   const rows = buildServingsButtons(session, recipes);
@@ -848,6 +851,8 @@ async function handleEditFieldSelect(
     difficulty: 'Difficulty (easy/medium/hard)',
     dietary_tags: 'Dietary Tags (comma-separated)',
     notes: 'Notes',
+    image_url: 'Photo URL',
+    nutrition: 'Nutrition (JSON)',
   };
   const label = fieldLabels[field];
   if (!label) {
@@ -887,9 +892,15 @@ async function handleEditFieldSelect(
     case 'notes':
       currentValue = recipe.notes ?? '';
       break;
+    case 'nutrition':
+      currentValue = recipe.nutrition ? JSON.stringify(recipe.nutrition) : '';
+      break;
+    case 'image_url':
+      currentValue = recipe.image_url ?? '';
+      break;
   }
 
-  const multiLineFields = new Set(['ingredients', 'instructions', 'notes']);
+  const multiLineFields = new Set(['ingredients', 'instructions', 'notes', 'nutrition']);
   const style = multiLineFields.has(field) ? TextInputStyle.Paragraph : TextInputStyle.Short;
   const maxLen = multiLineFields.has(field) ? 4000 : 200;
 
@@ -969,10 +980,14 @@ async function handleEditModal(interaction: ModalSubmitInteraction<CacheType>): 
         }
         break;
       }
-      case 'cuisine':
+      case 'cuisine': {
+        const v = raw.trim().toLowerCase();
+        update.cuisine = v === '' ? null : v;
+        break;
+      }
       case 'notes': {
         const v = raw.trim();
-        update[field] = v === '' ? null : v;
+        update.notes = v === '' ? null : v;
         break;
       }
       case 'difficulty': {
@@ -992,6 +1007,41 @@ async function handleEditModal(interaction: ModalSubmitInteraction<CacheType>): 
           .map((t) => t.trim().toLowerCase())
           .filter((t) => t.length > 0);
         update.dietary_tags = tags;
+        break;
+      }
+      case 'image_url': {
+        const v = raw.trim();
+        if (v === '') {
+          update.image_url = null;
+        } else if (!/^https?:\/\/\S+$/i.test(v)) {
+          throw new Error('Photo URL must start with http:// or https://');
+        } else {
+          update.image_url = v;
+        }
+        break;
+      }
+      case 'nutrition': {
+        const v = raw.trim();
+        if (v === '') {
+          update.nutrition = null;
+        } else {
+          const parsed = JSON.parse(v);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('Nutrition must be a JSON object.');
+          }
+          const allowed = ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'];
+          const nutrition: RecipeNutrition = {};
+          for (const key of allowed) {
+            const val = (parsed as Record<string, unknown>)[key];
+            if (val === undefined || val === null) continue;
+            const num = typeof val === 'number' ? val : Number(val);
+            if (!Number.isFinite(num) || num < 0) {
+              throw new Error(`Nutrition field ${key} must be a non-negative number.`);
+            }
+            (nutrition as Record<string, number>)[key] = num;
+          }
+          update.nutrition = nutrition;
+        }
         break;
       }
       default:
@@ -1174,7 +1224,7 @@ export async function handleRecipeButton(interaction: ButtonInteraction<CacheTyp
   ) {
     return handleSwapSlot(interaction);
   }
-  if (customId.startsWith('recipe_plan_servings_')) return handleOpenServingsModal(interaction);
+  if (customId.startsWith('recipe_plan_servings_')) return handleOpenServingsSelect(interaction);
 
   // Non-plan recipe buttons
   if (customId.startsWith('recipe_view_full_')) return handleViewFull(interaction);
@@ -1194,6 +1244,8 @@ export async function handleRecipeSelect(
 ): Promise<void> {
   const customId = interaction.customId;
   if (customId.startsWith('recipe_plan_swap_select_')) return handleSwapSelect(interaction);
+  if (customId.startsWith('recipe_plan_servings_select_'))
+    return handleServingsSelect(interaction);
   if (customId.startsWith('recipe_plan_pick_')) return handlePickSelect(interaction);
 
   // Non-plan recipe select menus
@@ -1214,7 +1266,6 @@ export async function handleRecipeModal(
   interaction: ModalSubmitInteraction<CacheType>
 ): Promise<void> {
   const customId = interaction.customId;
-  if (customId.startsWith('recipe_plan_servings_modal_')) return handleServingsModal(interaction);
   if (customId.startsWith('recipe_edit_modal_')) return handleEditModal(interaction);
 
   logger.warn('[RECIPE] Unknown recipe modal customId', { customId });

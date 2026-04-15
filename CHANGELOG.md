@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `Recipe` model import to `backend/commands/random.ts` (issue #44)
+- Add `formatQuantity` and `RecipeIngredient` imports to `backend/commands/random.ts` (issue #44)
+- Add imports for `ingestRecipeFromUrl`, `summarizeProvenance`, `FieldProvenance` to `backend/commands/recipe.ts` (issue #44)
+- Add `node-html-parser` dependency to `backend/package.json`
+- Add mock for `Recipe` model with `getRandom` method to `backend/tests/unit/commands/random.test.ts`
+- Add tests for the new `recipe` subcommand to `backend/tests/unit/commands/random.test.ts` (issue #44)
+- Add mock implementation for `summarizeProvenance` and `ingestRecipeFromUrl` to `backend/tests/unit/commands/recipe.test.ts` (issue #44)
+- Add tests for updating and clearing `image_url` via `recipe_edit_modal` in `backend/tests/unit/interactions/handlers/recipeHandlers.test.ts`
+- Add unit tests for the `researchMissingFields` function in `backend/tests/unit/utils/geminiService.test.ts`
+- Add regression test to ensure nutrition calculation is invariant to `targetServings` in `backend/tests/unit/utils/shoppingList.test.ts`
+- Add `ALLOWED_GAPS` constant, `ResearchableField` type, and `ResearchedFields` interface to `backend/utils/geminiService.ts`
+- Add `researchMissingFields` function to `backend/utils/geminiService.ts` for AI research (issue #44)
+- Add `Recipe` model import to `backend/utils/interactions/handlers/randomHandlers.ts` (issue #44)
+- Add `formatQuantity` and `RecipeIngredient` imports to `backend/utils/interactions/handlers/randomHandlers.ts` (issue #44)
+- Add logic for `random_recipe_reroll` button interaction in `backend/utils/interactions/handlers/randomHandlers.ts` (issue #44)
+- Add `RecipeNutrition` type import to `backend/utils/interactions/handlers/recipeHandlers.ts`
+- Add `SERVINGS_OPTIONS` constant for select menu choices in `backend/utils/interactions/handlers/recipeHandlers.ts`
+- Add `formatQuantity as formatQtyAsFraction` and `canonicalizeIngredient` imports to `backend/utils/shoppingList.ts`
+- Add `node-html-parser` and its transitive dependencies to `package-lock.json`
+- Add unit tests for the `Recipe.searchByFilters` method in `backend/tests/unit/models/Recipe.searchByFilters.test.ts`
+- Add unit tests for the `fractionFormat` utility in `backend/tests/unit/utils/fractionFormat.test.ts`
+- Add unit tests for the `ingredientCanonical` utility in `backend/tests/unit/utils/ingredientCanonical.test.ts`
+- Add unit tests for the `recipeIngestion` utility in `backend/tests/unit/utils/recipeIngestion.test.ts` (issue #44)
+- Add unit tests for the `recipeNormalize` utility in `backend/tests/unit/utils/recipeNormalize.test.ts`
+- Add unit tests for the `recipeScraper` utility in `backend/tests/unit/utils/recipeScraper.test.ts` (issue #44)
+- Add `fractionFormat` utility for converting numbers to fraction strings in `backend/utils/fractionFormat.ts`
+- Add `ingredientCanonical` utility for standardizing ingredient names and units in `backend/utils/ingredientCanonical.ts`
+- Add `recipeIngestion` utility for orchestrating recipe parsing, scraping, and AI research from URLs in `backend/utils/recipeIngestion.ts` (issue #44)
+- Add `recipeNormalize` utility for standardizing recipe data structure in `backend/utils/recipeNormalize.ts`
+- Add `recipeScraper` utility for extracting recipe data from web pages in `backend/utils/recipeScraper.ts` (issue #44)
 - Add `renderFullRecipeMarkdown` function to `backend/utils/interactions/handlers/recipeHandlers.ts` for displaying comprehensive recipe details (issue #44)
 - Add new unit tests for `recipeHandlers.ts` in `backend/tests/unit/interactions/handlers/recipeHandlers.test.ts` (issue #44)
 - Add `recipe` command for managing recipes and meal plans (issue #44)
@@ -47,6 +77,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Change `dinner` subcommand to `recipe` subcommand in `backend/commands/random.ts` for picking a random saved recipe (issue #44)
+- Update random command's response in `backend/commands/random.ts` to display details of a randomly selected `Recipe` from the database (issue #44)
+- Update `add` subcommand description in `backend/commands/recipe.ts` to focus on link-based ingestion (issue #44)
+- Change quantity formatting in `backend/commands/recipe.ts` to use `formatQuantity` from `fractionFormat` (issue #44)
+- Implement new recipe ingestion workflow in `backend/commands/recipe.ts` using `ingestRecipeFromUrl` for parsing recipes from external links (issue #44)
+- Update subcommand list in `backend/tests/unit/commands/random.test.ts` test description to replace `dinner` with `recipe`
+- Update test description in `backend/tests/unit/interactions/handlers/randomHandlers.test.ts` to replace `dinner` reroll with `recipe` reroll
+- Change nutrition aggregation test in `backend/tests/unit/utils/shoppingList.test.ts` to reflect per-person calculation
+- Change meal plan embed description in `backend/utils/interactions/handlers/recipeHandlers.ts` to clarify nutrition totals are per person
+- Update error handling for expired or missing meal plan sessions in `handleOpenServingsModal` in `backend/utils/interactions/handlers/recipeHandlers.ts`
+- Change ingredient key generation in `backend/utils/shoppingList.ts` to use `canonicalizeIngredient` for consistent grouping
+- Change nutrition aggregation in `backend/utils/shoppingList.ts` to sum per-serving macros across meals, reflecting per-person totals
+- Change recipe filter queries in `supabase/models/Recipe.ts` to use `ilike` for case-insensitive matching on `cuisine` and `difficulty`
+- Change recipe filter query for `dietary_tags` in `supabase/models/Recipe.ts` to convert tag to lowercase for matching
 - Make `scaleIngredient` and `sanitizeFilename` functions exportable in `backend/commands/recipe.ts` (issue #44)
 - Modify select menu interaction deferral logic in `backend/src/bot.ts` to prevent deferring select menus that open modals, aligning with Discord API requirements (issue #44)
 - Import `scaleIngredient`, `sanitizeFilename`, `RecipeUpdate`, and `RecipeIngredient` types into `backend/utils/interactions/handlers/recipeHandlers.ts` to support new recipe functionalities (issue #44)
@@ -145,6 +189,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Remove static `dinnerOptions` import and usage from `backend/commands/random.ts`
+- Remove `dinner` subcommand logic from `backend/commands/random.ts`
+- Remove `Attachment` import and file-based recipe ingestion options from `backend/commands/recipe.ts`
+- Remove `SUPPORTED_FILE_MIME_TYPES` constant from `backend/commands/recipe.ts`
+- Remove `random` subcommand definition from `backend/commands/recipe.ts` (issue #44)
+- Remove `recipe_plan_servings_` prefix from custom ID handling in `backend/src/bot.ts` interaction listener
+- Remove mock for `dinnerOptions` from `backend/tests/unit/commands/random.test.ts`
+- Remove tests specific to the `dinner` subcommand from `backend/tests/unit/commands/random.test.ts`
+- Remove tests for scenarios where neither link nor file is provided, or both are provided from `backend/tests/unit/commands/recipe.test.ts`
+- Remove mock for `databaseHelper` and `dinnerOptions` from `backend/tests/unit/interactions/handlers/randomHandlers.test.ts`
+- Remove tests for `random_dinner_reroll` and `save_dinner_to_shopping_list` from `backend/tests/unit/interactions/handlers/randomHandlers.test.ts`
+- Remove `recipeData` unit test file `backend/tests/unit/utils/recipeData.test.ts`
+- Remove outdated comment about quantity type from `backend/utils/geminiService.ts`
+- Remove `dinnerOptions` and `getModels` imports from `backend/utils/interactions/handlers/randomHandlers.ts`
+- Remove logic for `random_dinner_reroll` and `save_dinner_to_shopping_list` from `backend/utils/interactions/handlers/randomHandlers.ts`
+- Remove `save_dinner_` prefix from custom ID check for random interactions in `backend/utils/interactions/index.ts`
+- Remove `dinnerOptions` constant and its associated data from `backend/utils/recipeData.ts`
+- Remove internal `formatQuantity` function from `backend/utils/shoppingList.ts`
 - Remove `docker-compose.dev.yml` file
 - Remove `scripts/migrate-sqlite-to-postgres.ts` script
 - Remove `tests/integration/database-postgres.test.ts`

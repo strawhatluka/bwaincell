@@ -53,8 +53,48 @@ jest.mock('../../../utils/geminiService', () => ({
     parseRecipeFromUrl: jest.fn(),
     parseRecipeFromFile: jest.fn(),
     suggestDietaryTags: jest.fn(),
+    researchMissingFields: jest.fn().mockResolvedValue({}),
   },
 }));
+
+// Mock the ingestion orchestrator so existing /recipe add tests continue to
+// drive behavior via GeminiService.parseRecipeFromUrl / parseRecipeFromFile mocks.
+// The orchestrator internally scrapes + calls Gemini; here we short-circuit
+// to delegate to the Gemini mock (looked up at call time via require) and build
+// a plausible IngestionResult.
+jest.mock('../../../utils/recipeIngestion', () => {
+  return {
+    __esModule: true,
+    summarizeProvenance: () => ({
+      sourceCount: 0,
+      researchedCount: 2,
+      unknownCount: 0,
+      researchedFields: ['name', 'ingredients'],
+    }),
+    ingestRecipeFromUrl: jest.fn(async (url: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { GeminiService } = require('../../../utils/geminiService');
+      const parsed = await GeminiService.parseRecipeFromUrl(url);
+      return {
+        recipe: { ...parsed, dietary_tags: [] },
+        provenance: { name: 'researched', ingredients: 'researched' },
+        pass1Source: 'gemini-url',
+        researchRan: false,
+      };
+    }),
+    ingestRecipeFromFile: jest.fn(async (buf: Buffer, mime: string, name: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { GeminiService } = require('../../../utils/geminiService');
+      const parsed = await GeminiService.parseRecipeFromFile(buf, mime, name);
+      return {
+        recipe: { ...parsed, dietary_tags: [] },
+        provenance: { name: 'researched', ingredients: 'researched' },
+        pass1Source: 'gemini-file',
+        researchRan: false,
+      };
+    }),
+  };
+});
 
 // Mock global fetch for file-mode add
 const mockFetch = jest.fn().mockResolvedValue({
@@ -155,28 +195,6 @@ describe('/recipe Slash Command', () => {
       mockInteraction.options.getSubcommand.mockReturnValue('add');
     });
 
-    it('errors when neither link nor file', async () => {
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-      expect(mockInteraction.editReply).toHaveBeenLastCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('either') })
-      );
-    });
-
-    it('errors when both link and file provided', async () => {
-      mockInteraction.options.getString.mockImplementation((n: string) =>
-        n === 'link' ? 'https://example.com' : null
-      );
-      mockInteraction.options.getAttachment.mockReturnValue({
-        name: 'x.png',
-        url: 'https://cdn.discord/x.png',
-        contentType: 'image/png',
-      });
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-      expect(mockInteraction.editReply).toHaveBeenLastCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('only one') })
-      );
-    });
-
     it('creates recipe from link', async () => {
       mockInteraction.options.getString.mockImplementation((n: string) =>
         n === 'link' ? 'https://example.com/recipe' : null
@@ -201,46 +219,6 @@ describe('/recipe Slash Command', () => {
 
       expect(GeminiService.parseRecipeFromUrl).toHaveBeenCalledWith('https://example.com/recipe');
       expect(Recipe.createRecipe).toHaveBeenCalled();
-    });
-
-    it('creates recipe from file', async () => {
-      mockInteraction.options.getAttachment.mockReturnValue({
-        name: 'recipe.png',
-        url: 'https://cdn.discord/x.png',
-        contentType: 'image/png',
-      });
-      (GeminiService.parseRecipeFromFile as jest.Mock).mockResolvedValue({
-        name: 'Soup',
-        ingredients: [{ name: 'water', quantity: 1, unit: 'L' }],
-        instructions: ['Boil'],
-        servings: 2,
-        prep_time_minutes: 5,
-        cook_time_minutes: 10,
-        nutrition: null,
-        cuisine: null,
-        difficulty: null,
-        image_url: null,
-      });
-      (GeminiService.suggestDietaryTags as jest.Mock).mockResolvedValue([]);
-      (Recipe.searchByName as jest.Mock).mockResolvedValue([]);
-      (Recipe.createRecipe as jest.Mock).mockResolvedValue(makeRecipe({ id: 6, name: 'Soup' }));
-
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-
-      expect(GeminiService.parseRecipeFromFile).toHaveBeenCalled();
-      expect(Recipe.createRecipe).toHaveBeenCalled();
-    });
-
-    it('rejects unsupported file mime type', async () => {
-      mockInteraction.options.getAttachment.mockReturnValue({
-        name: 'data.bin',
-        url: 'https://cdn.discord/x.bin',
-        contentType: 'application/octet-stream',
-      });
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-      expect(mockInteraction.editReply).toHaveBeenLastCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('Unsupported') })
-      );
     });
 
     it('handles parse failure', async () => {
@@ -409,27 +387,6 @@ describe('/recipe Slash Command', () => {
     });
   });
 
-  describe('Subcommand: random', () => {
-    beforeEach(() => {
-      mockInteraction.options.getSubcommand.mockReturnValue('random');
-    });
-
-    it('returns a random recipe embed', async () => {
-      (Recipe.getRandom as jest.Mock).mockResolvedValue(makeRecipe());
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-      const call = mockInteraction.editReply.mock.calls.at(-1)[0];
-      expect(call.embeds).toBeDefined();
-    });
-
-    it('shows empty state when no recipes', async () => {
-      (Recipe.getRandom as jest.Mock).mockResolvedValue(null);
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-      expect(mockInteraction.editReply).toHaveBeenCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('No recipes') })
-      );
-    });
-  });
-
   describe('Subcommand: favorite', () => {
     beforeEach(() => {
       mockInteraction.options.getSubcommand.mockReturnValue('favorite');
@@ -450,51 +407,6 @@ describe('/recipe Slash Command', () => {
       expect(mockInteraction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({ content: expect.stringContaining('not found') })
       );
-    });
-  });
-
-  describe('Subcommand: photo', () => {
-    beforeEach(() => {
-      mockInteraction.options.getSubcommand.mockReturnValue('photo');
-    });
-
-    it('rejects non-image attachment', async () => {
-      mockInteraction.options.getString.mockReturnValue('1');
-      mockInteraction.options.getAttachment.mockReturnValue({
-        url: 'https://x',
-        contentType: 'application/pdf',
-      });
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-      expect(mockInteraction.editReply).toHaveBeenLastCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('must be an image') })
-      );
-    });
-
-    it('errors when recipe not found', async () => {
-      mockInteraction.options.getString.mockReturnValue('999');
-      mockInteraction.options.getAttachment.mockReturnValue({
-        url: 'https://x/p.png',
-        contentType: 'image/png',
-      });
-      (Recipe.getRecipe as jest.Mock).mockResolvedValue(null);
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-      expect(mockInteraction.editReply).toHaveBeenLastCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('not found') })
-      );
-    });
-
-    it('updates photo successfully', async () => {
-      mockInteraction.options.getString.mockReturnValue('1');
-      mockInteraction.options.getAttachment.mockReturnValue({
-        url: 'https://x/p.png',
-        contentType: 'image/png',
-      });
-      (Recipe.getRecipe as jest.Mock).mockResolvedValue(makeRecipe());
-      (Recipe.updateRecipe as jest.Mock).mockResolvedValue(
-        makeRecipe({ image_url: 'https://x/p.png' })
-      );
-      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
-      expect(Recipe.updateRecipe).toHaveBeenCalled();
     });
   });
 
@@ -713,8 +625,9 @@ describe('/recipe Slash Command', () => {
 
   describe('Error handling', () => {
     it('catches model errors and replies gracefully', async () => {
-      mockInteraction.options.getSubcommand.mockReturnValue('random');
-      (Recipe.getRandom as jest.Mock).mockRejectedValue(new Error('db down'));
+      mockInteraction.options.getSubcommand.mockReturnValue('favorite');
+      mockInteraction.options.getString.mockReturnValue('1');
+      (Recipe.toggleFavorite as jest.Mock).mockRejectedValue(new Error('db down'));
       await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
       expect(mockInteraction.editReply).toHaveBeenCalledWith(
         expect.objectContaining({ content: expect.stringContaining('error occurred') })

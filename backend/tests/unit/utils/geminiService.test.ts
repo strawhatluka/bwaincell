@@ -389,4 +389,129 @@ ${JSON.stringify(expectedResponse)}
       });
     });
   });
+
+  describe('researchMissingFields', () => {
+    const basePartial = {
+      name: 'Test Soup',
+      ingredients: [
+        { name: 'chicken', quantity: 1, unit: 'lb' },
+        { name: 'carrot', quantity: 2, unit: '' },
+      ],
+      instructions: ['Boil water', 'Add ingredients'],
+      servings: 4,
+    };
+
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    it('returns {} when gaps is empty without calling the API', async () => {
+      const result = await GeminiService.researchMissingFields(basePartial, null, []);
+      expect(result).toEqual({});
+      expect(mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('requests ONLY the fields listed in gaps and returns them', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          cuisine: 'American',
+          difficulty: 'easy',
+        }),
+      });
+      const result = await GeminiService.researchMissingFields(
+        basePartial,
+        'https://example.com/soup',
+        ['cuisine', 'difficulty']
+      );
+      expect(result.cuisine).toBe('American');
+      expect(result.difficulty).toBe('easy');
+      const promptArg = mockGenerateContent.mock.calls[0][0].contents;
+      expect(promptArg).toContain('"cuisine"');
+      expect(promptArg).toContain('"difficulty"');
+      expect(promptArg).not.toContain('"nutrition"');
+    });
+
+    it('drops fields not in the requested gaps even if the model returns them', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          cuisine: 'Italian',
+          nutrition: { calories: 500, protein: 20, carbs: 30, fat: 25 },
+        }),
+      });
+      const result = await GeminiService.researchMissingFields(basePartial, null, ['cuisine']);
+      expect(result.cuisine).toBe('Italian');
+      expect(result.nutrition).toBeUndefined();
+    });
+
+    it('accepts researched nutrition when macros sanity-check passes', async () => {
+      // 25g*4 + 30g*4 + 15g*9 = 100 + 120 + 135 = 355 kcal → well within 25% of 350
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          nutrition: { calories: 350, protein: 25, carbs: 30, fat: 15 },
+        }),
+      });
+      const result = await GeminiService.researchMissingFields(basePartial, null, ['nutrition']);
+      expect(result.nutrition).toEqual(
+        expect.objectContaining({ calories: 350, protein: 25, carbs: 30, fat: 15 })
+      );
+    });
+
+    it('drops hallucinated nutrition where macros disagree with calories by >25%', async () => {
+      // 10g*4 + 10g*4 + 5g*9 = 125 kcal; reported 1000 → ~700% off
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          nutrition: { calories: 1000, protein: 10, carbs: 10, fat: 5 },
+        }),
+      });
+      const result = await GeminiService.researchMissingFields(basePartial, null, ['nutrition']);
+      expect(result.nutrition).toBeUndefined();
+    });
+
+    it('rejects invalid difficulty values', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({ difficulty: 'extreme' }),
+      });
+      const result = await GeminiService.researchMissingFields(basePartial, null, ['difficulty']);
+      expect(result.difficulty).toBeUndefined();
+    });
+
+    it('filters dietary_tags to the allowed list only', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          dietary_tags: ['vegetarian', 'paleo', 'keto-friendly', 'INVALID'],
+        }),
+      });
+      const result = await GeminiService.researchMissingFields(basePartial, null, [
+        'dietary_tags',
+      ]);
+      expect(result.dietary_tags).toEqual(
+        expect.arrayContaining(['vegetarian', 'keto-friendly'])
+      );
+      expect(result.dietary_tags).not.toContain('paleo');
+      expect(result.dietary_tags).not.toContain('INVALID');
+    });
+
+    it('parses prep_time_minutes/cook_time_minutes as positive integers', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          prep_time_minutes: 15,
+          cook_time_minutes: 30,
+        }),
+      });
+      const result = await GeminiService.researchMissingFields(basePartial, null, [
+        'prep_time_minutes',
+        'cook_time_minutes',
+      ]);
+      expect(result.prep_time_minutes).toBe(15);
+      expect(result.cook_time_minutes).toBe(30);
+    });
+
+    it('uses Google Search grounding in the request config', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: '{}' });
+      await GeminiService.researchMissingFields(basePartial, null, ['cuisine']);
+      const callArg = mockGenerateContent.mock.calls[0][0];
+      expect(callArg.config?.tools).toEqual(expect.arrayContaining([{ googleSearch: {} }]));
+    });
+  });
 });

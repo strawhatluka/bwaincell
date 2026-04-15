@@ -6,11 +6,13 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from 'discord.js';
-import { dinnerOptions, movieData } from '../../recipeData';
-import { getModels } from '../helpers/databaseHelper';
+import { movieData } from '../../recipeData';
 import { handleInteractionError } from '../responses/errorResponses';
 import { GeminiService } from '../../geminiService';
 import { logger } from '../../../shared/utils/logger';
+import Recipe from '../../../../supabase/models/Recipe';
+import { formatQuantity } from '../../fractionFormat';
+import type { RecipeIngredient } from '../../../../supabase/types';
 
 const dateIdeas = [
   'Picnic in the park',
@@ -51,7 +53,6 @@ const conversationStarters = [
 
 export async function handleRandomButton(interaction: ButtonInteraction<CacheType>): Promise<void> {
   const customId = interaction.customId;
-  const userId = interaction.user.id;
   const guildId = interaction.guild?.id;
 
   if (!guildId) {
@@ -110,91 +111,81 @@ export async function handleRandomButton(interaction: ButtonInteraction<CacheTyp
       return;
     }
 
-    // Dinner reroll
-    if (customId === 'random_dinner_reroll') {
-      const dinnerNames = Object.keys(dinnerOptions);
-      const dinner = dinnerNames[Math.floor(Math.random() * dinnerNames.length)];
-      const details = dinnerOptions[dinner as keyof typeof dinnerOptions];
+    // Recipe reroll (pick from user's saved recipes)
+    if (customId === 'random_recipe_reroll') {
+      const recipe = await Recipe.getRandom(guildId);
+      if (!recipe) {
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferUpdate();
+        }
+        await interaction.editReply({
+          content: '❌ No recipes yet. Add some with `/recipe add`.',
+          embeds: [],
+          components: [],
+        });
+        return;
+      }
+
+      const descParts: string[] = [];
+      if (recipe.cuisine) descParts.push(`🍽️ ${recipe.cuisine}`);
+      if (recipe.difficulty) descParts.push(`⚙️ ${recipe.difficulty}`);
+      if (recipe.dietary_tags && recipe.dietary_tags.length > 0) {
+        descParts.push(`🥗 ${recipe.dietary_tags.join(', ')}`);
+      }
 
       const embed = new EmbedBuilder()
-        .setTitle('🍽️ Random Dinner Pick')
-        .setDescription(`**${dinner}**\n${details.description}`)
-        .setImage(details.image)
-        .addFields(
-          { name: '⏱️ Prep Time', value: details.prepTime, inline: true },
-          { name: '📊 Difficulty', value: details.difficulty, inline: true }
-        )
-        .setColor(0x9932cc)
+        .setTitle(`🎲 Bwaincell Picks: ${recipe.name}`)
+        .setColor(0x9b59b6)
         .setTimestamp()
-        .setFooter({ text: 'Click below for the full recipe!' });
+        .setFooter({ text: 'Use /recipe view to cook this' });
+      if (descParts.length > 0) embed.setDescription(descParts.join(' • '));
+      if (recipe.image_url) embed.setImage(recipe.image_url);
+      embed.addFields(
+        {
+          name: '🍽️ Servings',
+          value: recipe.servings !== null ? String(recipe.servings) : '?',
+          inline: true,
+        },
+        {
+          name: '⏱️ Prep Time',
+          value: recipe.prep_time_minutes !== null ? `${recipe.prep_time_minutes} min` : '?',
+          inline: true,
+        },
+        {
+          name: '🔥 Cook Time',
+          value: recipe.cook_time_minutes !== null ? `${recipe.cook_time_minutes} min` : '?',
+          inline: true,
+        }
+      );
+
+      const firstFive = recipe.ingredients
+        .slice(0, 5)
+        .map((ing: RecipeIngredient) => {
+          const qty = formatQuantity(ing.quantity);
+          const unit = ing.unit ? ` ${ing.unit}` : '';
+          const prefix = qty ? `${qty}${unit} ` : '';
+          return `- ${prefix}${ing.name}`.trim();
+        })
+        .join('\n');
+      if (firstFive.length > 0) {
+        embed.addFields({
+          name: `🧂 Ingredients (${recipe.ingredients.length})`,
+          value: `\`\`\`\n${firstFive}\n\`\`\``,
+        });
+      }
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setLabel('View Recipe')
-          .setURL(details.recipe)
-          .setStyle(ButtonStyle.Link)
-          .setEmoji('📖'),
-        new ButtonBuilder()
-          .setCustomId('random_dinner_reroll')
+          .setCustomId('random_recipe_reroll')
           .setLabel('Pick Another')
           .setStyle(ButtonStyle.Secondary)
-          .setEmoji('🎲'),
-        new ButtonBuilder()
-          .setCustomId(`save_dinner_${encodeURIComponent(dinner)}`)
-          .setLabel('Save to List')
-          .setStyle(ButtonStyle.Success)
-          .setEmoji('💾')
+          .setEmoji('🎲')
       );
 
-      // Check if already acknowledged before updating
       if (!interaction.deferred && !interaction.replied) {
         await interaction.deferUpdate();
       }
       await interaction.editReply({ embeds: [embed], components: [row] });
-      return;
-    }
-
-    // Save dinner to list
-    if (customId.startsWith('save_dinner_')) {
-      const dinnerName = decodeURIComponent(customId.replace('save_dinner_', ''));
-      const { List } = await getModels();
-
-      // Try to find or create a "Meal Ideas" list
-      let list = await List.getList(guildId, 'Meal Ideas');
-
-      if (!list) {
-        list = await List.createList(guildId, 'Meal Ideas', userId);
-      }
-
-      // Add the dinner to the list
-      const updated = await List.addItem(guildId, 'Meal Ideas', dinnerName);
-
-      // Check if already acknowledged before responding
-      if (!interaction.deferred && !interaction.replied) {
-        if (updated) {
-          await interaction.reply({
-            content: `✅ Added "${dinnerName}" to your Meal Ideas list!`,
-            ephemeral: true,
-          });
-        } else {
-          await interaction.reply({
-            content: `❌ Could not add item to list.`,
-            ephemeral: true,
-          });
-        }
-      } else {
-        if (updated) {
-          await interaction.followUp({
-            content: `✅ Added "${dinnerName}" to your Meal Ideas list!`,
-            ephemeral: true,
-          });
-        } else {
-          await interaction.followUp({
-            content: `❌ Could not add item to list.`,
-            ephemeral: true,
-          });
-        }
-      }
       return;
     }
 

@@ -7,7 +7,6 @@ import {
   StringSelectMenuBuilder,
   ChatInputCommandInteraction,
   AutocompleteInteraction,
-  Attachment,
   AttachmentBuilder,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
@@ -15,6 +14,12 @@ import Recipe from '../../supabase/models/Recipe';
 import MealPlan from '../../supabase/models/MealPlan';
 import RecipePreferences from '../../supabase/models/RecipePreferences';
 import { GeminiService, ParsedRecipe } from '../utils/geminiService';
+import {
+  ingestRecipeFromUrl,
+  summarizeProvenance,
+  FieldProvenance,
+} from '../utils/recipeIngestion';
+import { formatQuantity } from '../utils/fractionFormat';
 import type { RecipeIngredient, RecipeSourceType } from '../../supabase/types';
 
 /**
@@ -69,25 +74,15 @@ export function getWeekStart(): string {
   return monday.toISOString().slice(0, 10);
 }
 
-const SUPPORTED_FILE_MIME_TYPES = [
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'application/pdf',
-  'text/plain',
-  'text/markdown',
-];
-
 const SUBCOMMANDS_WITH_RECIPE_AUTOCOMPLETE = new Set([
   'view',
   'delete',
   'edit',
   'favorite',
-  'photo',
 ]);
 
 function formatIngredient(ing: RecipeIngredient): string {
-  const qty = ing.quantity !== undefined && ing.quantity !== null ? String(ing.quantity) : '';
+  const qty = formatQuantity(ing.quantity);
   const unit = ing.unit ? ` ${ing.unit}` : '';
   const name = ing.name;
   const prefix = qty ? `${qty}${unit} ` : '';
@@ -162,18 +157,14 @@ export function scaleIngredient(ingredient: RecipeIngredient, scale: number): st
   let qtyStr: string;
   let note = '';
   if (parsed === null) {
-    qtyStr =
-      ingredient.quantity !== undefined && ingredient.quantity !== null
-        ? String(ingredient.quantity)
-        : '';
+    qtyStr = formatQuantity(ingredient.quantity);
     if (qtyStr) {
       note = ' _(unscaled — could not parse quantity)_';
     }
   } else {
     const scaled = parsed * scale;
     const rounded = roundQty(scaled, unit);
-    // Strip trailing zeros nicely
-    qtyStr = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+    qtyStr = formatQuantity(rounded);
   }
 
   const unitPart = unit ? ` ${unit}` : '';
@@ -220,15 +211,12 @@ export default {
     .addSubcommand((sub) =>
       sub
         .setName('add')
-        .setDescription('Add a new recipe from a link or file')
+        .setDescription('Add a new recipe from a link')
         .addStringOption((opt) =>
           opt
             .setName('link')
             .setDescription('Recipe URL (website or YouTube video)')
-            .setRequired(false)
-        )
-        .addAttachmentOption((opt) =>
-          opt.setName('file').setDescription('Recipe file (image, PDF, or text)').setRequired(false)
+            .setRequired(true)
         )
     )
     .addSubcommand((sub) =>
@@ -307,7 +295,6 @@ export default {
             .setMinValue(1)
         )
     )
-    .addSubcommand((sub) => sub.setName('random').setDescription('Get a random recipe'))
     .addSubcommand((sub) =>
       sub
         .setName('favorite')
@@ -318,21 +305,6 @@ export default {
             .setDescription('Recipe to favorite/unfavorite')
             .setRequired(true)
             .setAutocomplete(true)
-        )
-    )
-    .addSubcommand((sub) =>
-      sub
-        .setName('photo')
-        .setDescription('Attach a photo to a recipe')
-        .addStringOption((opt) =>
-          opt
-            .setName('recipe')
-            .setDescription('Recipe to attach photo to')
-            .setRequired(true)
-            .setAutocomplete(true)
-        )
-        .addAttachmentOption((opt) =>
-          opt.setName('image').setDescription('Image file').setRequired(true)
         )
     )
     .addSubcommand((sub) => sub.setName('plan').setDescription('Generate a weekly meal plan'))
@@ -439,61 +411,32 @@ export default {
     try {
       switch (subcommand) {
         case 'add': {
-          const link = interaction.options.getString('link');
-          const file = interaction.options.getAttachment('file');
+          const link = interaction.options.getString('link', true);
 
-          if (!link && !file) {
-            await interaction.editReply({
-              content: '❌ Please provide either a `link` or a `file` (not both, not neither).',
-            });
-            return;
-          }
-          if (link && file) {
-            await interaction.editReply({
-              content: '❌ Please provide only one of `link` or `file` — not both.',
-            });
-            return;
-          }
-
-          await interaction.editReply({ content: '⏳ Parsing recipe...' });
+          await interaction.editReply({ content: '⏳ Parsing recipe from source...' });
 
           let parsed: ParsedRecipe;
-          let sourceUrl: string | null;
-          let sourceType: RecipeSourceType;
+          const sourceUrl: string = link;
+          const sourceType: RecipeSourceType = /youtube\.com|youtu\.be/i.test(link)
+            ? 'video'
+            : 'website';
+          let provenance: Record<string, FieldProvenance> = {};
+          let pass1Source = 'gemini-url';
+          let researchRan = false;
+          let sourceDietaryTags: string[] = [];
 
           try {
-            if (link) {
-              sourceUrl = link;
-              sourceType = /youtube\.com|youtu\.be/i.test(link) ? 'video' : 'website';
-              parsed = await GeminiService.parseRecipeFromUrl(link);
-            } else {
-              const attachment = file as Attachment;
-              const mimeType = attachment.contentType ?? '';
-              if (!SUPPORTED_FILE_MIME_TYPES.includes(mimeType)) {
-                await interaction.editReply({
-                  content: `❌ Unsupported file type "${mimeType || 'unknown'}". Supported: ${SUPPORTED_FILE_MIME_TYPES.join(', ')}`,
-                });
-                return;
-              }
-
-              const fetchRes = await globalThis.fetch(attachment.url);
-              const arrayBuf = await fetchRes.arrayBuffer();
-              const buffer = Buffer.from(arrayBuf);
-
-              sourceUrl = attachment.url;
-              sourceType = 'file';
-              parsed = await GeminiService.parseRecipeFromFile(
-                buffer,
-                mimeType,
-                attachment.name ?? 'recipe'
-              );
-            }
+            const result = await ingestRecipeFromUrl(link);
+            parsed = result.recipe;
+            provenance = result.provenance;
+            pass1Source = result.pass1Source;
+            researchRan = result.researchRan;
+            sourceDietaryTags = result.recipe.dietary_tags;
           } catch (parseError) {
             const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown error';
             logger.error('[RECIPE] Failed to parse recipe', {
               error: errorMessage,
               link,
-              fileName: file?.name,
             });
             await interaction.editReply({
               content: `❌ Failed to parse recipe: ${errorMessage}. You can add it manually with /recipe edit after creation, or try a different source.`,
@@ -501,14 +444,20 @@ export default {
             return;
           }
 
-          // Suggest dietary tags
-          let dietaryTags: string[] = [];
-          try {
-            dietaryTags = await GeminiService.suggestDietaryTags(parsed.ingredients);
-          } catch (tagError) {
-            logger.warn('[RECIPE] Failed to suggest dietary tags; continuing with empty tags', {
-              error: tagError instanceof Error ? tagError.message : 'Unknown error',
-            });
+          // Dietary tags: use source-provided if available, else fall back to rules-based heuristic.
+          let dietaryTags: string[];
+          if (sourceDietaryTags.length > 0 && provenance.dietary_tags !== 'unknown') {
+            dietaryTags = sourceDietaryTags;
+          } else {
+            try {
+              dietaryTags = await GeminiService.suggestDietaryTags(parsed.ingredients);
+              provenance.dietary_tags = 'researched';
+            } catch (tagError) {
+              logger.warn('[RECIPE] Failed to suggest dietary tags; continuing with empty tags', {
+                error: tagError instanceof Error ? tagError.message : 'Unknown error',
+              });
+              dietaryTags = [];
+            }
           }
 
           // Dedupe name
@@ -534,9 +483,16 @@ export default {
           });
 
           // Build embed
+          const glyph = (field: string): string => {
+            const p = provenance[field];
+            if (p === 'source') return ' 🔍';
+            if (p === 'researched') return ' 🤖';
+            return '';
+          };
+
           const badges: string[] = [];
-          if (created.cuisine) badges.push(`🍽️ ${created.cuisine}`);
-          if (created.difficulty) badges.push(`⚙️ ${created.difficulty}`);
+          if (created.cuisine) badges.push(`🍽️ ${created.cuisine}${glyph('cuisine')}`);
+          if (created.difficulty) badges.push(`⚙️ ${created.difficulty}${glyph('difficulty')}`);
 
           const embed = new EmbedBuilder().setTitle(created.name).setColor(0x00ff00).setTimestamp();
 
@@ -551,33 +507,56 @@ export default {
           embed.addFields(
             {
               name: '🍽️ Servings',
-              value: created.servings !== null ? String(created.servings) : '?',
+              value:
+                created.servings !== null ? `${created.servings}${glyph('servings')}` : '?',
               inline: true,
             },
             {
               name: '⏱️ Prep Time',
-              value: created.prep_time_minutes !== null ? `${created.prep_time_minutes} min` : '?',
+              value:
+                created.prep_time_minutes !== null
+                  ? `${created.prep_time_minutes} min${glyph('prep_time_minutes')}`
+                  : '?',
               inline: true,
             },
             {
               name: '🔥 Cook Time',
-              value: created.cook_time_minutes !== null ? `${created.cook_time_minutes} min` : '?',
+              value:
+                created.cook_time_minutes !== null
+                  ? `${created.cook_time_minutes} min${glyph('cook_time_minutes')}`
+                  : '?',
               inline: true,
             },
             {
               name: '🥗 Dietary',
               value:
                 created.dietary_tags && created.dietary_tags.length > 0
-                  ? created.dietary_tags.join(', ')
+                  ? `${created.dietary_tags.join(', ')}${glyph('dietary_tags')}`
                   : '-',
               inline: false,
             },
             {
-              name: `🧂 Ingredients (${created.ingredients.length})`,
+              name: `🧂 Ingredients (${created.ingredients.length})${glyph('ingredients')}`,
               value: `${created.ingredients.length} items`,
               inline: false,
             }
           );
+
+          if (created.nutrition) {
+            const n = created.nutrition;
+            const parts: string[] = [];
+            if (n.calories !== undefined) parts.push(`${Math.round(n.calories)} kcal`);
+            if (n.protein !== undefined) parts.push(`${Math.round(n.protein)}g protein`);
+            if (n.carbs !== undefined) parts.push(`${Math.round(n.carbs)}g carbs`);
+            if (n.fat !== undefined) parts.push(`${Math.round(n.fat)}g fat`);
+            if (parts.length > 0) {
+              embed.addFields({
+                name: `🔢 Nutrition (per serving)${glyph('nutrition')}`,
+                value: parts.join(' • '),
+                inline: false,
+              });
+            }
+          }
 
           const firstFive = created.ingredients
             .slice(0, 5)
@@ -587,10 +566,29 @@ export default {
             embed.addFields({ name: '📋 Preview', value: firstFive });
           }
 
-          const footerParts: string[] = [`Source: ${created.source_type}`];
+          const summary = summarizeProvenance(provenance);
+          const provenanceLine = `🔍 ${summary.sourceCount} source • 🤖 ${summary.researchedCount} researched${summary.unknownCount > 0 ? ` • ❓ ${summary.unknownCount} unknown` : ''}`;
+          const pass1Label =
+            pass1Source === 'jsonld'
+              ? 'JSON-LD'
+              : pass1Source === 'microdata'
+                ? 'microdata'
+                : pass1Source === 'og'
+                  ? 'OpenGraph'
+                  : pass1Source === 'gemini-url'
+                    ? 'AI URL parse'
+                    : pass1Source === 'gemini-file'
+                      ? 'AI file parse'
+                      : 'unknown';
+          const footerParts: string[] = [
+            `Source: ${created.source_type}`,
+            `Pass 1: ${pass1Label}`,
+          ];
+          if (researchRan) footerParts.push('AI research filled gaps');
           if (created.source_url) {
             footerParts.push(truncateUrl(created.source_url));
           }
+          embed.addFields({ name: '📊 Field Provenance', value: provenanceLine, inline: false });
           embed.setFooter({ text: footerParts.join(' • ') });
 
           const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -787,6 +785,19 @@ export default {
               {
                 label: 'Notes',
                 value: 'notes',
+              },
+              {
+                label: 'Photo URL',
+                value: 'image_url',
+                description: recipe.image_url ? 'Currently set' : 'Not set',
+              },
+              {
+                label: 'Nutrition (JSON)',
+                value: 'nutrition',
+                description:
+                  recipe.nutrition && recipe.nutrition.calories !== undefined
+                    ? `${Math.round(recipe.nutrition.calories)} kcal`
+                    : 'Not set',
               }
             );
 
@@ -903,49 +914,6 @@ export default {
           break;
         }
 
-        case 'photo': {
-          const recipeIdStr = interaction.options.getString('recipe', true);
-          const imageAttachment = interaction.options.getAttachment('image', true);
-          const recipeId = Number(recipeIdStr);
-
-          if (!Number.isFinite(recipeId)) {
-            await interaction.editReply({ content: '❌ Recipe not found.' });
-            return;
-          }
-
-          const mimeType = imageAttachment.contentType ?? '';
-          if (!mimeType.startsWith('image/')) {
-            await interaction.editReply({
-              content: `❌ Attachment must be an image (got "${mimeType || 'unknown'}").`,
-            });
-            return;
-          }
-
-          const existing = await Recipe.getRecipe(recipeId, guildId);
-          if (!existing) {
-            await interaction.editReply({ content: '❌ Recipe not found.' });
-            return;
-          }
-
-          const updated = await Recipe.updateRecipe(recipeId, guildId, {
-            image_url: imageAttachment.url,
-          });
-
-          if (!updated) {
-            await interaction.editReply({ content: '❌ Recipe not found.' });
-            return;
-          }
-
-          const embed = new EmbedBuilder()
-            .setTitle(`📸 Photo updated for ${updated.name}`)
-            .setColor(0x00ff00)
-            .setImage(imageAttachment.url)
-            .setTimestamp();
-
-          await interaction.editReply({ embeds: [embed] });
-          break;
-        }
-
         case 'search': {
           const cuisine = interaction.options.getString('cuisine') ?? undefined;
           const difficulty = interaction.options.getString('difficulty') ?? undefined;
@@ -1004,77 +972,6 @@ export default {
           if (results.length > 10) {
             embed.setFooter({
               text: `Showing 10 of ${results.length}. Refine filters to see more.`,
-            });
-          }
-
-          await interaction.editReply({ embeds: [embed] });
-          break;
-        }
-
-        case 'random': {
-          const recipe = await Recipe.getRandom(guildId);
-
-          if (!recipe) {
-            await interaction.editReply({
-              content: '❌ No recipes yet. Add some with `/recipe add`.',
-            });
-            return;
-          }
-
-          const descParts: string[] = [];
-          if (recipe.cuisine) descParts.push(`🍽️ ${recipe.cuisine}`);
-          if (recipe.difficulty) descParts.push(`⚙️ ${recipe.difficulty}`);
-          if (recipe.dietary_tags && recipe.dietary_tags.length > 0) {
-            descParts.push(`🥗 ${recipe.dietary_tags.join(', ')}`);
-          }
-
-          const embed = new EmbedBuilder()
-            .setTitle(`🎲 Bwaincell Picks: ${recipe.name}`)
-            .setColor(0x9b59b6)
-            .setFooter({ text: 'Use /recipe view to cook this' });
-
-          if (descParts.length > 0) {
-            embed.setDescription(descParts.join(' • '));
-          }
-
-          if (recipe.image_url) {
-            embed.setImage(recipe.image_url);
-          }
-
-          embed.addFields(
-            {
-              name: '🍽️ Servings',
-              value: recipe.servings !== null ? String(recipe.servings) : '?',
-              inline: true,
-            },
-            {
-              name: '⏱️ Prep Time',
-              value: recipe.prep_time_minutes !== null ? `${recipe.prep_time_minutes} min` : '?',
-              inline: true,
-            },
-            {
-              name: '🔥 Cook Time',
-              value: recipe.cook_time_minutes !== null ? `${recipe.cook_time_minutes} min` : '?',
-              inline: true,
-            },
-            {
-              name: '🥗 Dietary Tags',
-              value:
-                recipe.dietary_tags && recipe.dietary_tags.length > 0
-                  ? recipe.dietary_tags.join(', ')
-                  : '-',
-              inline: false,
-            }
-          );
-
-          const firstFive = recipe.ingredients
-            .slice(0, 5)
-            .map((ing) => formatIngredient(ing))
-            .join('\n');
-          if (firstFive.length > 0) {
-            embed.addFields({
-              name: `🧂 Ingredients (${recipe.ingredients.length})`,
-              value: `\`\`\`\n${firstFive}\n\`\`\``,
             });
           }
 

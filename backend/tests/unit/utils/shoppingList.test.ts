@@ -207,7 +207,7 @@ describe('generateShoppingList', () => {
     expect(nutrition.totalCalories).toBe(0);
   });
 
-  test('aggregated nutrition sums across meals and scales by servings', () => {
+  test('aggregated nutrition sums per-serving macros across meals (per-person)', () => {
     const r1 = makeRecipe({
       id: 1,
       servings: 1,
@@ -220,13 +220,30 @@ describe('generateShoppingList', () => {
       ingredients: [],
       nutrition: { calories: 200, protein: 20, carbs: 10, fat: 5, fiber: 2 },
     });
+    // Per-person math: 100 + 200 = 300, independent of targetServings.
     const { nutrition } = generateShoppingList([
       { recipe: r1, targetServings: 2 },
       { recipe: r2, targetServings: 1 },
     ]);
-    // 100*2 + 200*1 = 400
-    expect(nutrition.totalCalories).toBe(400);
-    expect(nutrition.totalProtein).toBe(40);
+    expect(nutrition.totalCalories).toBe(300);
+    expect(nutrition.totalProtein).toBe(30);
+    expect(nutrition.totalCarbs).toBe(15);
+    expect(nutrition.totalFat).toBe(7);
+    expect(nutrition.totalFiber).toBe(3);
+  });
+
+  test('nutrition is invariant to targetServings (regression)', () => {
+    const recipe = makeRecipe({
+      id: 1,
+      servings: 2,
+      ingredients: [],
+      nutrition: { calories: 500, protein: 30, carbs: 40, fat: 15, fiber: 5 },
+    });
+    const { nutrition: n1 } = generateShoppingList([{ recipe, targetServings: 1 }]);
+    const { nutrition: n4 } = generateShoppingList([{ recipe, targetServings: 4 }]);
+    expect(n1.totalCalories).toBe(500);
+    expect(n4.totalCalories).toBe(500);
+    expect(n1.totalProtein).toBe(n4.totalProtein);
   });
 
   test('unparseable quantity preserved as rawNote', () => {
@@ -290,5 +307,108 @@ describe('aggregateIngredients', () => {
       { recipe: b, targetServings: 1 },
     ]);
     expect(result[0].rawNote).toContain('a pinch');
+  });
+
+  test('collapses garlic variants across recipes into one entry', () => {
+    const a = makeRecipe({
+      id: 1,
+      servings: 1,
+      ingredients: [{ name: '1 clove garlic (, minced)', quantity: 1, unit: 'clove' }],
+    });
+    const b = makeRecipe({
+      id: 2,
+      servings: 1,
+      ingredients: [{ name: 'fresh minced garlic', quantity: 2, unit: 'cloves' }],
+    });
+    const c = makeRecipe({
+      id: 3,
+      servings: 1,
+      ingredients: [{ name: 'minced garlic', quantity: 1, unit: 'clove' }],
+    });
+    const result = aggregateIngredients([
+      { recipe: a, targetServings: 1 },
+      { recipe: b, targetServings: 1 },
+      { recipe: c, targetServings: 1 },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe(4);
+    expect(result[0].unit).toBe('clove');
+  });
+
+  test('sums chicken thighs stored with lb and pounds into one entry', () => {
+    const a = makeRecipe({
+      id: 1,
+      servings: 1,
+      ingredients: [{ name: 'chicken thighs', quantity: 1, unit: 'lb' }],
+    });
+    const b = makeRecipe({
+      id: 2,
+      servings: 1,
+      ingredients: [{ name: 'Chicken Thighs', quantity: 2, unit: 'pounds' }],
+    });
+    const result = aggregateIngredients([
+      { recipe: a, targetServings: 1 },
+      { recipe: b, targetServings: 1 },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe(3);
+    expect(result[0].unit).toBe('lb');
+  });
+
+  test('keeps chicken thighs and chicken breasts as separate entries', () => {
+    const a = makeRecipe({
+      id: 1,
+      servings: 1,
+      ingredients: [{ name: 'chicken thighs', quantity: 1, unit: 'lb' }],
+    });
+    const b = makeRecipe({
+      id: 2,
+      servings: 1,
+      ingredients: [{ name: 'chicken breasts', quantity: 1, unit: 'lb' }],
+    });
+    const result = aggregateIngredients([
+      { recipe: a, targetServings: 1 },
+      { recipe: b, targetServings: 1 },
+    ]);
+    expect(result).toHaveLength(2);
+  });
+
+  test('strips parentheticals and comma prep notes when keying', () => {
+    const a = makeRecipe({
+      id: 1,
+      servings: 1,
+      ingredients: [{ name: 'salt (, to taste)', quantity: 1, unit: 'tsp' }],
+    });
+    const b = makeRecipe({
+      id: 2,
+      servings: 1,
+      ingredients: [{ name: 'kosher salt', quantity: 0.5, unit: 'teaspoons' }],
+    });
+    const result = aggregateIngredients([
+      { recipe: a, targetServings: 1 },
+      { recipe: b, targetServings: 1 },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe(1.5);
+    expect(result[0].unit).toBe('tsp');
+  });
+
+  test('first-occurrence display name is preserved on merge', () => {
+    const a = makeRecipe({
+      id: 1,
+      servings: 1,
+      ingredients: [{ name: 'chicken thighs (bone in + skin on)', quantity: 1, unit: 'lb' }],
+    });
+    const b = makeRecipe({
+      id: 2,
+      servings: 1,
+      ingredients: [{ name: 'chicken thighs', quantity: 1, unit: 'lb' }],
+    });
+    const result = aggregateIngredients([
+      { recipe: a, targetServings: 1 },
+      { recipe: b, targetServings: 1 },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('chicken thighs (bone in + skin on)');
   });
 });

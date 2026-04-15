@@ -95,13 +95,13 @@ class Recipe {
     let query = supabase.from('recipes').select('*').eq('guild_id', guildId);
 
     if (filters.cuisine !== undefined) {
-      query = query.eq('cuisine', filters.cuisine);
+      query = query.ilike('cuisine', filters.cuisine);
     }
     if (filters.difficulty !== undefined) {
-      query = query.eq('difficulty', filters.difficulty);
+      query = query.ilike('difficulty', filters.difficulty);
     }
     if (filters.tag !== undefined) {
-      query = query.contains('dietary_tags', [filters.tag]);
+      query = query.contains('dietary_tags', [filters.tag.toLowerCase()]);
     }
     if (filters.keyword !== undefined) {
       query = query.ilike('name', `%${filters.keyword}%`);

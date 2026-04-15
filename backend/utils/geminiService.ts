@@ -23,6 +23,35 @@ export interface WNRSQuestionResponse {
 }
 
 /**
+ * Fields that can be filled in by `researchMissingFields` when the source didn't provide them.
+ */
+export const ALLOWED_GAPS = [
+  'nutrition',
+  'cuisine',
+  'difficulty',
+  'prep_time_minutes',
+  'cook_time_minutes',
+  'servings',
+  'dietary_tags',
+  'image_url',
+] as const;
+export type ResearchableField = (typeof ALLOWED_GAPS)[number];
+
+/**
+ * Shape of the subset of ParsedRecipe fields that `researchMissingFields` may return.
+ */
+export interface ResearchedFields {
+  nutrition: RecipeNutrition;
+  cuisine: string;
+  difficulty: RecipeDifficulty;
+  prep_time_minutes: number;
+  cook_time_minutes: number;
+  servings: number;
+  dietary_tags: string[];
+  image_url: string;
+}
+
+/**
  * Response structure for AI-parsed recipes
  */
 export interface ParsedRecipe {
@@ -308,6 +337,254 @@ export class GeminiService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Fill in specific missing recipe fields via AI research with Google Search grounding.
+   * Only the fields listed in `gaps` are requested and validated; the source-provided
+   * fields are passed as context so Gemini doesn't contradict them. Returns ONLY the
+   * researched fields (never overwrites caller's source data).
+   *
+   * The sanity check on nutrition (macros × 4/4/9 kcal/g should roughly equal calories)
+   * rejects blatantly hallucinated values.
+   *
+   * @param partial - Recipe fields already known from source (for context)
+   * @param sourceUrl - Original URL (passed to the model so it can cross-reference)
+   * @param gaps - Field names to research; valid values listed in ALLOWED_GAPS below
+   */
+  public static async researchMissingFields(
+    partial: {
+      name: string;
+      ingredients: RecipeIngredient[];
+      instructions: string[];
+      servings: number | null;
+    },
+    sourceUrl: string | null,
+    gaps: ResearchableField[]
+  ): Promise<Partial<ResearchedFields>> {
+    if (gaps.length === 0) return {};
+
+    this.initialize();
+    if (!this.genAI) {
+      throw new Error('Gemini API not configured');
+    }
+
+    const validGaps = gaps.filter((g): g is ResearchableField =>
+      (ALLOWED_GAPS as readonly string[]).includes(g)
+    );
+    if (validGaps.length === 0) return {};
+
+    try {
+      const prompt = this.buildResearchPrompt(partial, sourceUrl, validGaps);
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { tools: [{ googleSearch: {} }] },
+      });
+      const text = response.text ?? '';
+      const cleaned = text
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      const parsed = JSON.parse(cleaned);
+
+      return this.validateResearchedFields(parsed, validGaps);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Failed to research missing recipe fields', {
+        gaps: validGaps,
+        error: errorMessage,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Build the research prompt for missing fields. Each field gets a specific
+   * instruction so the model knows what to return and what to ground on.
+   * @private
+   */
+  private static buildResearchPrompt(
+    partial: {
+      name: string;
+      ingredients: RecipeIngredient[];
+      instructions: string[];
+      servings: number | null;
+    },
+    sourceUrl: string | null,
+    gaps: ResearchableField[]
+  ): string {
+    const ingredientLines = partial.ingredients
+      .map((i) => {
+        const qty = i.quantity !== undefined && i.quantity !== null ? String(i.quantity) : '';
+        const unit = i.unit ? ` ${i.unit}` : '';
+        return `- ${qty}${unit} ${i.name}`.trim();
+      })
+      .join('\n');
+
+    const sourceContext = sourceUrl
+      ? `\nOriginal source URL (consult if useful): ${sourceUrl}`
+      : '';
+
+    const fieldInstructions: Record<ResearchableField, string> = {
+      nutrition:
+        'Estimate per-serving macronutrients. Ground values in USDA FoodData Central via Google Search. Return object {calories, protein, carbs, fat, fiber, sugar, sodium} — calories in kcal, macros in grams, sodium in mg. Cross-check: protein*4 + carbs*4 + fat*9 should be within 25% of calories.',
+      cuisine:
+        'Identify the most likely cuisine (e.g., "Italian", "Mexican", "Thai", "American"). Use the recipe name and ingredient profile. Return a single string.',
+      difficulty:
+        'Classify as "easy", "medium", or "hard" based on ingredient count, technique complexity, and typical cook time. Return a single string.',
+      prep_time_minutes:
+        'Estimate preparation time in minutes based on ingredient count and typical prep work. Return an integer.',
+      cook_time_minutes:
+        'Estimate cook/bake/simmer time in minutes based on the instructions. Return an integer.',
+      servings:
+        'Estimate the number of servings this recipe yields. Return an integer.',
+      dietary_tags:
+        'Return applicable dietary tags from this list only: vegetarian, vegan, gluten-free, dairy-free, nut-free, low-carb, keto-friendly. Return a string array.',
+      image_url:
+        'If a representative image URL can be confidently identified from the source, return it. Otherwise omit. Return a string.',
+    };
+
+    const requested = gaps.map((g) => `  - "${g}": ${fieldInstructions[g]}`).join('\n');
+
+    return `You are a precise recipe research assistant. A recipe has already been extracted from a source; you are ONLY filling in specific missing fields. Do NOT invent or contradict the provided data.
+
+Recipe name: ${partial.name}
+Servings: ${partial.servings ?? 'unknown'}${sourceContext}
+
+Ingredients:
+${ingredientLines}
+
+Instructions:
+${partial.instructions.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+Fields to research (return ONLY these keys in your JSON response):
+${requested}
+
+Return ONLY valid JSON (no markdown, no commentary) with exactly these keys: ${gaps.map((g) => `"${g}"`).join(', ')}.
+If you cannot confidently determine a field, OMIT that key rather than guessing. Never overwrite fields not listed above.`;
+  }
+
+  /**
+   * Validate researched-field values returned by Gemini. Drops any fields
+   * that don't match the expected shape, and runs a macro-sanity check on
+   * nutrition values to catch obvious hallucinations.
+   * @private
+   */
+  private static validateResearchedFields(
+    parsed: unknown,
+    requestedGaps: ResearchableField[]
+  ): Partial<ResearchedFields> {
+    if (!parsed || typeof parsed !== 'object') return {};
+    const input = parsed as Record<string, unknown>;
+    const out: Partial<ResearchedFields> = {};
+    const requested = new Set<string>(requestedGaps);
+
+    if (requested.has('nutrition') && input.nutrition && typeof input.nutrition === 'object') {
+      const n = input.nutrition as Record<string, unknown>;
+      const toNum = (v: unknown): number | undefined => {
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        if (typeof v === 'string') {
+          const num = parseFloat(v);
+          return Number.isFinite(num) ? num : undefined;
+        }
+        return undefined;
+      };
+      const nutrition: RecipeNutrition = {
+        calories: toNum(n.calories),
+        protein: toNum(n.protein),
+        carbs: toNum(n.carbs),
+        fat: toNum(n.fat),
+        fiber: toNum(n.fiber),
+        sugar: toNum(n.sugar),
+        sodium: toNum(n.sodium),
+      };
+      // Macro-calorie sanity check: protein*4 + carbs*4 + fat*9 should be within 25% of calories.
+      const hasTriad =
+        typeof nutrition.calories === 'number' &&
+        typeof nutrition.protein === 'number' &&
+        typeof nutrition.carbs === 'number' &&
+        typeof nutrition.fat === 'number';
+      if (hasTriad) {
+        const computed =
+          (nutrition.protein as number) * 4 +
+          (nutrition.carbs as number) * 4 +
+          (nutrition.fat as number) * 9;
+        const calories = nutrition.calories as number;
+        const deviation = calories > 0 ? Math.abs(computed - calories) / calories : 1;
+        if (deviation > 0.25) {
+          logger.warn('Researched nutrition failed macro-calorie sanity check; dropping', {
+            calories,
+            computed,
+            deviation,
+          });
+        } else if (Object.values(nutrition).some((v) => v !== undefined)) {
+          out.nutrition = nutrition;
+        }
+      } else if (Object.values(nutrition).some((v) => v !== undefined)) {
+        out.nutrition = nutrition;
+      }
+    }
+
+    if (requested.has('cuisine')) {
+      const s = typeof input.cuisine === 'string' ? input.cuisine.trim() : '';
+      if (s) out.cuisine = s;
+    }
+
+    if (requested.has('difficulty')) {
+      const raw = typeof input.difficulty === 'string' ? input.difficulty.trim().toLowerCase() : '';
+      if (raw === 'easy' || raw === 'medium' || raw === 'hard') {
+        out.difficulty = raw as RecipeDifficulty;
+      }
+    }
+
+    const toPositiveInt = (v: unknown): number | undefined => {
+      if (typeof v === 'number' && Number.isFinite(v) && v > 0) return Math.round(v);
+      if (typeof v === 'string') {
+        const n = parseInt(v, 10);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+      return undefined;
+    };
+
+    if (requested.has('prep_time_minutes')) {
+      const n = toPositiveInt(input.prep_time_minutes);
+      if (n !== undefined) out.prep_time_minutes = n;
+    }
+    if (requested.has('cook_time_minutes')) {
+      const n = toPositiveInt(input.cook_time_minutes);
+      if (n !== undefined) out.cook_time_minutes = n;
+    }
+    if (requested.has('servings')) {
+      const n = toPositiveInt(input.servings);
+      if (n !== undefined) out.servings = n;
+    }
+
+    if (requested.has('dietary_tags') && Array.isArray(input.dietary_tags)) {
+      const allowed = new Set([
+        'vegetarian',
+        'vegan',
+        'gluten-free',
+        'dairy-free',
+        'nut-free',
+        'low-carb',
+        'keto-friendly',
+      ]);
+      const tags: string[] = [];
+      for (const item of input.dietary_tags) {
+        if (typeof item === 'string' && allowed.has(item.toLowerCase())) {
+          tags.push(item.toLowerCase());
+        }
+      }
+      if (tags.length > 0) out.dietary_tags = Array.from(new Set(tags));
+    }
+
+    if (requested.has('image_url')) {
+      const s = typeof input.image_url === 'string' ? input.image_url.trim() : '';
+      if (/^https?:\/\//i.test(s)) out.image_url = s;
+    }
+
+    return out;
   }
 
   /**
@@ -721,7 +998,7 @@ Return ONLY valid JSON (no markdown, no commentary) matching this exact schema:
 Rules:
 - "name" (string, required): The recipe title.
 - "ingredients" (array, required, non-empty): Each item MUST include name, quantity, unit.
-  - "quantity" may be a number (e.g. 1.5) or a fraction string (e.g. "1/2", "3/4").
+  - "quantity" may be a number (e.g. 1.5) or a fraction string (e.g. "1/2", "3/4"). Prefer common culinary fractions over decimals ("1/2" not "0.5", "1 1/2" not "1.5", "1/3" not "0.333").
   - "unit" is the measurement unit ("cup", "tbsp", "g", "oz", ""); use "" when unit-less.
   - "category" MUST be one of: "meats", "produce", "dairy", "pantry", "spices", "frozen", "bakery", "other".
 - "instructions" (array of strings, required, non-empty): Ordered preparation steps.
