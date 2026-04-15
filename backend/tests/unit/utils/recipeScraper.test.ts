@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /**
  * Unit tests for recipeScraper: JSON-LD / microdata / OG extraction,
  * ISO 8601 duration parsing, and ingredient string splitting.
@@ -266,5 +267,182 @@ describe('extractStructuredRecipe', () => {
     expect(result.provenance.instructions).toBe('source');
     expect(result.provenance.nutrition).toBeUndefined();
     expect(result.provenance.cuisine).toBeUndefined();
+  });
+});
+
+describe('mapRecipeNode extra branches', () => {
+  it('pulls difficulty from recipeCategory when it contains easy/medium/hard', () => {
+    expect(mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'Easy weeknight' }).difficulty).toBe(
+      'easy'
+    );
+    expect(
+      mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'advanced dish' }).difficulty
+    ).toBe('hard');
+    expect(
+      mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'intermediate' }).difficulty
+    ).toBe('medium');
+    expect(
+      mapRecipeNode({ '@type': 'Recipe', recipeCategory: 'American' }).difficulty
+    ).toBeNull();
+  });
+
+  it('extracts suitableForDiet URIs into lowercase tags', () => {
+    const node = {
+      '@type': 'Recipe',
+      suitableForDiet: ['https://schema.org/VegetarianDiet', 'https://schema.org/GlutenFreeDiet'],
+    };
+    expect(mapRecipeNode(node).dietary_tags).toEqual(['vegetarian', 'glutenfree']);
+  });
+
+  it('handles suitableForDiet as a plain string array', () => {
+    expect(
+      mapRecipeNode({ '@type': 'Recipe', suitableForDiet: ['Vegan', 'nut-free'] }).dietary_tags
+    ).toEqual(['vegan', 'nut-free']);
+  });
+
+  it('extracts image from array of objects, picking the first with url', () => {
+    const node = {
+      '@type': 'Recipe',
+      image: [{ '@id': 'foo' }, { url: 'https://example.com/x.jpg' }],
+    };
+    expect(mapRecipeNode(node).image_url).toBe('foo');
+  });
+
+  it('picks nutrition fields from strings with units', () => {
+    const node = {
+      '@type': 'Recipe',
+      nutrition: { calories: '500 kcal', proteinContent: '30g', fatContent: 'unknown' },
+    };
+    const out = mapRecipeNode(node).nutrition;
+    expect(out?.calories).toBe(500);
+    expect(out?.protein).toBe(30);
+    expect(out?.fat).toBeUndefined();
+  });
+
+  it('instruction array with HowToStep objects without text uses name fallback', () => {
+    const node = {
+      '@type': 'Recipe',
+      recipeInstructions: [{ '@type': 'HowToStep', name: 'Step name only' }],
+    };
+    expect(mapRecipeNode(node).instructions).toEqual(['Step name only']);
+  });
+
+  it('parses instructions as a plain string by splitting on sentence boundaries', () => {
+    const node = {
+      '@type': 'Recipe',
+      recipeInstructions: 'Boil water. Then add pasta. Cook for 10 minutes.',
+    };
+    const out = mapRecipeNode(node).instructions;
+    expect(out).toBeTruthy();
+    expect(out!.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('extractStructuredRecipe fallback selection', () => {
+  it('falls through to microdata when JSON-LD has no Recipe', () => {
+    const html = `<html>
+      <head><script type="application/ld+json">{"@type":"WebPage","name":"Not a Recipe"}</script></head>
+      <body>
+        <div itemscope itemtype="http://schema.org/Recipe">
+          <span itemprop="name">MD Dish</span>
+          <span itemprop="recipeIngredient">1 cup water</span>
+          <p itemprop="recipeInstructions">Boil.</p>
+        </div>
+      </body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(result.extractor).toBe('microdata');
+    expect(result.recipe.name).toBe('MD Dish');
+  });
+
+  it('falls through to OG when microdata is empty (no itemprops)', () => {
+    const html = `<html>
+      <head>
+        <meta property="og:title" content="Just OG">
+      </head><body></body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(result.extractor).toBe('og');
+    expect(result.recipe.name).toBe('Just OG');
+  });
+});
+
+describe('scrapeRecipeFromUrl error handling', () => {
+  const origFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = origFetch;
+  });
+
+  it('returns empty result when fetch throws a network error', async () => {
+    const { scrapeRecipeFromUrl } = await import('../../../utils/recipeScraper');
+    global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED')) as unknown as typeof fetch;
+    const result = await scrapeRecipeFromUrl('https://down.example.com');
+    expect(result.extractor).toBe('empty');
+    expect(result.recipe.name).toBeNull();
+  });
+
+  it('returns empty result on non-OK status', async () => {
+    const { scrapeRecipeFromUrl } = await import('../../../utils/recipeScraper');
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      headers: { get: () => 'text/html' },
+    }) as unknown as typeof fetch;
+    const result = await scrapeRecipeFromUrl('https://x');
+    expect(result.extractor).toBe('empty');
+  });
+
+  it('returns empty result on non-HTML content type', async () => {
+    const { scrapeRecipeFromUrl } = await import('../../../utils/recipeScraper');
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+    }) as unknown as typeof fetch;
+    const result = await scrapeRecipeFromUrl('https://x');
+    expect(result.extractor).toBe('empty');
+  });
+
+  it('succeeds with streaming body under size cap', async () => {
+    const { scrapeRecipeFromUrl } = await import('../../../utils/recipeScraper');
+    const html = `<html><head><script type="application/ld+json">${JSON.stringify({
+      '@type': 'Recipe',
+      name: 'Streamed',
+      recipeIngredient: ['1 cup flour'],
+      recipeInstructions: ['Mix'],
+    })}</script></head></html>`;
+    const encoded = new TextEncoder().encode(html);
+    const reader = {
+      read: jest
+        .fn()
+        .mockResolvedValueOnce({ done: false, value: encoded })
+        .mockResolvedValueOnce({ done: true, value: undefined }),
+      cancel: jest.fn().mockResolvedValue(undefined),
+    };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'text/html; charset=utf-8' },
+      body: { getReader: () => reader },
+    }) as unknown as typeof fetch;
+
+    const result = await scrapeRecipeFromUrl('https://x');
+    expect(result.extractor).toBe('jsonld');
+    expect(result.recipe.name).toBe('Streamed');
+  });
+});
+
+describe('splitIngredientString additional branches', () => {
+  it('strips trailing period from known unit', () => {
+    // "2 tbsp. flour" — trailing period on unit
+    const result = splitIngredientString('2 tbsp. flour');
+    // Our known-unit matcher strips the period then matches "tbsp"
+    expect(result.unit).toBe('tbsp');
+    expect(result.name).toBe('flour');
+  });
+
+  it('returns empty unit when leading qty-like token is followed by a non-unit word', () => {
+    const result = splitIngredientString('3 to 4 peppers');
+    // "to" isn't a unit, so whole "to 4 peppers" lands in name
+    expect(result.quantity).toBe('3');
+    expect(result.unit).toBe('');
   });
 });

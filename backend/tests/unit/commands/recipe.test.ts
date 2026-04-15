@@ -106,6 +106,8 @@ import recipeCommand, {
   planSessions,
   getWeekStart,
   planSessionKey,
+  scaleIngredient,
+  sanitizeFilename,
 } from '../../../commands/recipe';
 import Recipe from '../../../../supabase/models/Recipe';
 import MealPlan from '../../../../supabase/models/MealPlan';
@@ -290,6 +292,43 @@ describe('/recipe Slash Command', () => {
       const call = mockInteraction.editReply.mock.calls.at(-1)[0];
       expect(call.files).toBeDefined();
       expect(call.files.length).toBe(1);
+    });
+
+    it('errors for non-finite recipe id', async () => {
+      mockInteraction.options.getString.mockReturnValue('not-a-number');
+      mockInteraction.options.getInteger.mockReturnValue(2);
+      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('not found') })
+      );
+    });
+
+    it('renders all optional sections (dietary_tags, nutrition, notes, source_url)', async () => {
+      mockInteraction.options.getString.mockReturnValue('1');
+      mockInteraction.options.getInteger.mockReturnValue(4);
+      (Recipe.getRecipe as jest.Mock).mockResolvedValue(
+        makeRecipe({
+          id: 1,
+          servings: null, // triggers null-servings branch
+          ingredients: [{ name: 'flour', quantity: 1, unit: 'cup' }],
+          dietary_tags: ['vegan', 'gluten-free'],
+          nutrition: {
+            calories: 500,
+            protein: 30,
+            carbs: 40,
+            fat: 20,
+            fiber: 5,
+            sugar: 10,
+            sodium: 600,
+          },
+          notes: 'Best served warm.',
+          source_url: 'https://example.com/r',
+          image_url: 'https://example.com/img.jpg',
+        })
+      );
+      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
+      const call = mockInteraction.editReply.mock.calls.at(-1)[0];
+      expect(call.files).toBeDefined();
     });
   });
 
@@ -623,6 +662,38 @@ describe('/recipe Slash Command', () => {
     });
   });
 
+  describe('Unknown subcommand + preferences error', () => {
+    it('unknown subcommand falls through to default editReply', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('bogus');
+      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
+      expect(mockInteraction.editReply).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('Unknown subcommand') })
+      );
+    });
+
+    it('preferences: unknown action produces error embed', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('preferences');
+      mockInteraction.options.getString.mockImplementation((n: string) => {
+        if (n === 'action') return 'mystery';
+        if (n === 'value') return 'something';
+        return null;
+      });
+      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
+      const call = mockInteraction.editReply.mock.calls.at(-1)[0];
+      expect(JSON.stringify(call.embeds[0])).toContain('Unknown preference');
+    });
+
+    it('preferences: missing value for add_restriction produces error', async () => {
+      mockInteraction.options.getSubcommand.mockReturnValue('preferences');
+      mockInteraction.options.getString.mockImplementation((n: string) =>
+        n === 'action' ? 'add_restriction' : null
+      );
+      await recipeCommand.execute(mockInteraction as ChatInputCommandInteraction);
+      const call = mockInteraction.editReply.mock.calls.at(-1)[0];
+      expect(JSON.stringify(call.embeds[0])).toContain('Provide a');
+    });
+  });
+
   describe('Error handling', () => {
     it('catches model errors and replies gracefully', async () => {
       mockInteraction.options.getSubcommand.mockReturnValue('favorite');
@@ -688,6 +759,65 @@ describe('/recipe Slash Command', () => {
       };
       await recipeCommand.autocomplete(ac);
       expect(ac.respond).toHaveBeenCalledWith([]);
+    });
+
+    it('responds empty when focused field is not "recipe"', async () => {
+      const ac: any = {
+        guild: { id: 'guild-1' },
+        options: {
+          getFocused: jest.fn().mockReturnValue({ name: 'cuisine', value: 'ita' }),
+          getSubcommand: jest.fn().mockReturnValue('view'),
+        },
+        respond: jest.fn().mockResolvedValue(undefined),
+      };
+      await recipeCommand.autocomplete(ac);
+      expect(ac.respond).toHaveBeenCalledWith([]);
+    });
+  });
+
+  describe('exported helpers (scaleIngredient, sanitizeFilename)', () => {
+    it('scaleIngredient halves a numeric quantity when scale=0.5', () => {
+      const line = scaleIngredient({ name: 'flour', quantity: 2, unit: 'cup' }, 0.5);
+      expect(line).toContain('1');
+      expect(line).toContain('cup');
+      expect(line).toContain('flour');
+    });
+
+    it('scaleIngredient parses fraction-string quantity and scales', () => {
+      const line = scaleIngredient({ name: 'salt', quantity: '1/2', unit: 'tsp' }, 2);
+      expect(line).toContain('1 tsp salt');
+    });
+
+    it('scaleIngredient parses mixed fraction quantity', () => {
+      const line = scaleIngredient({ name: 'milk', quantity: '1 1/2', unit: 'cup' }, 2);
+      expect(line).toContain('3 cup milk');
+    });
+
+    it('scaleIngredient marks unparseable quantity as unscaled', () => {
+      const line = scaleIngredient({ name: 'salt', quantity: 'to taste', unit: '' }, 2);
+      expect(line).toContain('unscaled');
+    });
+
+    it('scaleIngredient rounds count-unit values up to whole numbers', () => {
+      const line = scaleIngredient({ name: 'eggs', quantity: 1, unit: '' }, 2.5);
+      expect(line).toMatch(/3 eggs/);
+    });
+
+    it('scaleIngredient handles empty/missing quantity', () => {
+      const line = scaleIngredient({ name: 'pepper', quantity: '', unit: '' }, 2);
+      expect(line).toContain('pepper');
+    });
+
+    it('sanitizeFilename lowercases and hyphenates', () => {
+      expect(sanitizeFilename('Chicken Noodle Soup!')).toBe('chicken-noodle-soup');
+    });
+
+    it('sanitizeFilename strips special chars and collapses dashes', () => {
+      expect(sanitizeFilename('!!! Pasta --- Verde ???')).toBe('pasta-verde');
+    });
+
+    it('sanitizeFilename returns "recipe" for input with no valid chars', () => {
+      expect(sanitizeFilename('!!!')).toBe('recipe');
     });
   });
 });

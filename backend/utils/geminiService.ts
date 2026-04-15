@@ -463,8 +463,7 @@ export class GeminiService {
         'Estimate preparation time in minutes based on ingredient count and typical prep work. Return an integer.',
       cook_time_minutes:
         'Estimate cook/bake/simmer time in minutes based on the instructions. Return an integer.',
-      servings:
-        'Estimate the number of servings this recipe yields. Return an integer.',
+      servings: 'Estimate the number of servings this recipe yields. Return an integer.',
       dietary_tags:
         'Return applicable dietary tags from this list only: vegetarian, vegan, gluten-free, dairy-free, nut-free, low-carb, keto-friendly. Return a string array.',
       image_url:
@@ -847,7 +846,10 @@ Use "warnings" for any cases you couldn't confidently merge or quantify — info
       if (!name) continue;
 
       // Anti-hallucination: at least one 3+ char token in the output name must match an input token.
-      const outputTokens = name.toLowerCase().split(/[^a-z]+/).filter((t) => t.length >= 3);
+      const outputTokens = name
+        .toLowerCase()
+        .split(/[^a-z]+/)
+        .filter((t) => t.length >= 3);
       const hasInputMatch = outputTokens.some((t) => inputTokens.has(t));
       if (!hasInputMatch && inputTokens.size > 0) {
         droppedNames.push(name);

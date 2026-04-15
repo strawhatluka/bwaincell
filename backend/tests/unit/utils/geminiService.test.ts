@@ -482,12 +482,8 @@ ${JSON.stringify(expectedResponse)}
           dietary_tags: ['vegetarian', 'paleo', 'keto-friendly', 'INVALID'],
         }),
       });
-      const result = await GeminiService.researchMissingFields(basePartial, null, [
-        'dietary_tags',
-      ]);
-      expect(result.dietary_tags).toEqual(
-        expect.arrayContaining(['vegetarian', 'keto-friendly'])
-      );
+      const result = await GeminiService.researchMissingFields(basePartial, null, ['dietary_tags']);
+      expect(result.dietary_tags).toEqual(expect.arrayContaining(['vegetarian', 'keto-friendly']));
       expect(result.dietary_tags).not.toContain('paleo');
       expect(result.dietary_tags).not.toContain('INVALID');
     });
@@ -598,6 +594,311 @@ ${JSON.stringify(expectedResponse)}
       });
       const result = await GeminiService.sanitizeShoppingList(aggregated);
       expect(result.items).toHaveLength(1);
+    });
+
+    it('echoes string warnings from the model in the result', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          items: [{ name: 'garlic', quantity: 3, unit: 'clove', category: 'produce' }],
+          warnings: ['Could not confidently merge two oregano variants', ' '],
+        }),
+      });
+      const result = await GeminiService.sanitizeShoppingList(aggregated);
+      expect(result.warnings).toContain('Could not confidently merge two oregano variants');
+    });
+  });
+
+  describe('parseRecipeFromUrl error paths', () => {
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    it('throws on missing name', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({ ingredients: [{ name: 'x', quantity: 1, unit: '' }], instructions: ['a'] }),
+      });
+      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow('Invalid recipe');
+    });
+
+    it('throws on empty ingredients array', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({ name: 'X', ingredients: [], instructions: ['a'] }),
+      });
+      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow(
+        'Invalid recipe'
+      );
+    });
+
+    it('throws when an ingredient lacks a name', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: 'X',
+          ingredients: [{ quantity: 1, unit: '' }],
+          instructions: ['a'],
+        }),
+      });
+      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow();
+    });
+
+    it('throws when an ingredient lacks a quantity', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: 'X',
+          ingredients: [{ name: 'flour', unit: 'cup' }],
+          instructions: ['a'],
+        }),
+      });
+      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow();
+    });
+
+    it('throws on non-string instruction entry', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: 'X',
+          ingredients: [{ name: 'a', quantity: 1, unit: '' }],
+          instructions: [123],
+        }),
+      });
+      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow();
+    });
+
+    it('passes through a valid parsed recipe', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: 'Pasta',
+          ingredients: [
+            { name: 'flour', quantity: 1, unit: 'cup', category: 'pantry' },
+            { name: 'egg', quantity: '2', unit: '' },
+          ],
+          instructions: ['Mix', 'Cook'],
+          servings: '4 people',
+          prep_time_minutes: 10,
+          cook_time_minutes: 20,
+          nutrition: { calories: 500, protein: 20 },
+          cuisine: 'italian',
+          difficulty: 'mediocre', // invalid → coerces to null
+          image_url: 'https://example.com/img.jpg',
+        }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://r');
+      expect(result.name).toBe('Pasta');
+      expect(result.difficulty).toBeNull();
+      expect(result.nutrition?.calories).toBe(500);
+    });
+
+    it('handles YouTube URLs via fileData path', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: 'YT Recipe',
+          ingredients: [{ name: 'x', quantity: 1, unit: '' }],
+          instructions: ['a'],
+        }),
+      });
+      await GeminiService.parseRecipeFromUrl('https://youtube.com/watch?v=abc');
+      const args = mockGenerateContent.mock.calls[0][0];
+      // Video URLs go through a different code path: contents is an array.
+      expect(Array.isArray(args.contents)).toBe(true);
+    });
+  });
+
+  describe('parseRecipeFromFile error paths', () => {
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    it('rejects unsupported mime type', async () => {
+      await expect(
+        GeminiService.parseRecipeFromFile(Buffer.from('x'), 'application/exe', 'r.exe')
+      ).rejects.toThrow('Unsupported');
+    });
+
+    it('parses a valid file response', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: 'From File',
+          ingredients: [{ name: 'x', quantity: 1, unit: '' }],
+          instructions: ['a'],
+        }),
+      });
+      const result = await GeminiService.parseRecipeFromFile(
+        Buffer.from('fake'),
+        'image/png',
+        'r.png'
+      );
+      expect(result.name).toBe('From File');
+    });
+  });
+
+  describe('selectMealsForPlan error paths', () => {
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    const makeRecipes = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        id: i + 1,
+        name: `R${i}`,
+        cuisine: null,
+        difficulty: null,
+        dietary_tags: [],
+      }));
+
+    it('throws when fewer than 7 recipes provided', async () => {
+      await expect(GeminiService.selectMealsForPlan(makeRecipes(3))).rejects.toThrow(
+        'at least 7 recipes'
+      );
+    });
+
+    it('throws when selectedRecipeIds is missing', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({ reasoning: 'no ids here' }),
+      });
+      await expect(GeminiService.selectMealsForPlan(makeRecipes(7))).rejects.toThrow();
+    });
+
+    it('throws when selectedRecipeIds length !== 7', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({ selectedRecipeIds: [1, 2, 3], reasoning: 'partial' }),
+      });
+      await expect(GeminiService.selectMealsForPlan(makeRecipes(7))).rejects.toThrow(
+        'exactly 7'
+      );
+    });
+
+    it('throws when selected id is not in input list', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          selectedRecipeIds: [1, 2, 3, 4, 5, 6, 999],
+          reasoning: 'bogus',
+        }),
+      });
+      await expect(GeminiService.selectMealsForPlan(makeRecipes(7))).rejects.toThrow(
+        'not in the input'
+      );
+    });
+
+    it('parses successful response with preferences', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          selectedRecipeIds: [1, 2, 3, 4, 5, 6, 7],
+          reasoning: 'balanced',
+        }),
+      });
+      const result = await GeminiService.selectMealsForPlan(makeRecipes(7), {
+        dietary_restrictions: ['vegan'],
+        excluded_cuisines: ['french'],
+      });
+      expect(result.selectedRecipeIds).toHaveLength(7);
+      expect(result.reasoning).toBe('balanced');
+    });
+
+    it('falls back to default reasoning when model returns empty string', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          selectedRecipeIds: [1, 2, 3, 4, 5, 6, 7],
+          reasoning: '   ',
+        }),
+      });
+      const result = await GeminiService.selectMealsForPlan(makeRecipes(7));
+      expect(result.reasoning).toMatch(/No reasoning/i);
+    });
+  });
+
+  describe('categorizeIngredient Gemini fallback', () => {
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    it('returns rules-based match without calling Gemini', async () => {
+      const before = mockGenerateContent.mock.calls.length;
+      const result = await GeminiService.categorizeIngredient('chicken thighs');
+      expect(result).toBe('meats');
+      expect(mockGenerateContent.mock.calls.length).toBe(before);
+    });
+
+    it('calls Gemini when no rule matches and returns valid category', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: 'produce' });
+      const result = await GeminiService.categorizeIngredient('dragonfruit');
+      expect(result).toBe('produce');
+    });
+
+    it('returns "other" when Gemini returns an invalid category', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: 'mystery-aisle' });
+      const result = await GeminiService.categorizeIngredient('dragonfruit');
+      expect(result).toBe('other');
+    });
+
+    it('returns "other" when Gemini throws', async () => {
+      mockGenerateContent.mockRejectedValueOnce(new Error('network'));
+      const result = await GeminiService.categorizeIngredient('dragonfruit');
+      expect(result).toBe('other');
+    });
+
+    it('returns "other" when no API key and no rule match', async () => {
+      delete process.env.GEMINI_API_KEY;
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+      const result = await GeminiService.categorizeIngredient('dragonfruit');
+      expect(result).toBe('other');
+    });
+  });
+
+  describe('researchMissingFields additional branches', () => {
+    const basePartial = {
+      name: 'Soup',
+      ingredients: [{ name: 'water', quantity: 1, unit: 'cup' }],
+      instructions: ['Boil'],
+      servings: 2,
+    };
+
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    it('filters gaps to allowed fields only', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: '{}' });
+      const result = await GeminiService.researchMissingFields(
+        basePartial,
+        null,
+        ['cuisine', 'not-a-real-field' as 'cuisine']
+      );
+      expect(result).toEqual({});
+    });
+
+    it('returns {} when all filtered gaps are invalid', async () => {
+      const result = await GeminiService.researchMissingFields(
+        basePartial,
+        null,
+        ['bogus' as 'cuisine']
+      );
+      expect(result).toEqual({});
+      expect(mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('drops nutrition when calories is 0 but macros are non-zero (sanity-fail)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          nutrition: { calories: 0, protein: 10, carbs: 10, fat: 10 },
+        }),
+      });
+      const result = await GeminiService.researchMissingFields(basePartial, null, ['nutrition']);
+      // When all 4 macro fields are present but calories is 0, deviation is forced
+      // to 1 (100%) which exceeds the 25% threshold → dropped.
+      expect(result.nutrition).toBeUndefined();
+    });
+
+    it('accepts nutrition without full macro triad (sanity check skipped)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          nutrition: { calories: 500 }, // calories-only, no macros to cross-check
+        }),
+      });
+      const result = await GeminiService.researchMissingFields(basePartial, null, ['nutrition']);
+      expect(result.nutrition?.calories).toBe(500);
     });
   });
 });

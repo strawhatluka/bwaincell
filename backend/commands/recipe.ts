@@ -74,12 +74,7 @@ export function getWeekStart(): string {
   return monday.toISOString().slice(0, 10);
 }
 
-const SUBCOMMANDS_WITH_RECIPE_AUTOCOMPLETE = new Set([
-  'view',
-  'delete',
-  'edit',
-  'favorite',
-]);
+const SUBCOMMANDS_WITH_RECIPE_AUTOCOMPLETE = new Set(['view', 'delete', 'edit', 'favorite']);
 
 function formatIngredient(ing: RecipeIngredient): string {
   const qty = formatQuantity(ing.quantity);
@@ -507,8 +502,7 @@ export default {
           embed.addFields(
             {
               name: '🍽️ Servings',
-              value:
-                created.servings !== null ? `${created.servings}${glyph('servings')}` : '?',
+              value: created.servings !== null ? `${created.servings}${glyph('servings')}` : '?',
               inline: true,
             },
             {
@@ -580,10 +574,7 @@ export default {
                     : pass1Source === 'gemini-file'
                       ? 'AI file parse'
                       : 'unknown';
-          const footerParts: string[] = [
-            `Source: ${created.source_type}`,
-            `Pass 1: ${pass1Label}`,
-          ];
+          const footerParts: string[] = [`Source: ${created.source_type}`, `Pass 1: ${pass1Label}`];
           if (researchRan) footerParts.push('AI research filled gaps');
           if (created.source_url) {
             footerParts.push(truncateUrl(created.source_url));

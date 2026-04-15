@@ -38,11 +38,7 @@ import {
   sanitizeFilename,
   PlanSession,
 } from '../../../commands/recipe';
-import type {
-  RecipeUpdate,
-  RecipeIngredient,
-  RecipeNutrition,
-} from '../../../../supabase/types';
+import type { RecipeUpdate, RecipeIngredient, RecipeNutrition } from '../../../../supabase/types';
 
 const RECIPES_PER_PAGE = 25;
 
@@ -524,9 +520,7 @@ async function handleAcceptAllAI(interaction: ButtonInteraction<CacheType>): Pro
  */
 const SERVINGS_OPTIONS: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20];
 
-async function handleOpenServingsSelect(
-  interaction: ButtonInteraction<CacheType>
-): Promise<void> {
+async function handleOpenServingsSelect(interaction: ButtonInteraction<CacheType>): Promise<void> {
   const session = requireSession(interaction);
   if (!session) return sessionError(interaction);
 
@@ -542,7 +536,9 @@ async function handleOpenServingsSelect(
   const name = recipe?.name ?? `Meal ${slotIndex + 1}`;
 
   const options = SERVINGS_OPTIONS.map((n) =>
-    new StringSelectMenuOptionBuilder().setLabel(`${n} serving${n === 1 ? '' : 's'}`).setValue(String(n))
+    new StringSelectMenuOptionBuilder()
+      .setLabel(`${n} serving${n === 1 ? '' : 's'}`)
+      .setValue(String(n))
   );
   const select = new StringSelectMenuBuilder()
     .setCustomId(`recipe_plan_servings_select_${slotIndex}`)
@@ -681,28 +677,31 @@ async function handleServingsSelect(
 // Non-plan recipe flows: view, delete, edit, swap, week, history
 // ---------------------------------------------------------------------------
 
-function renderFullRecipeMarkdown(recipe: {
-  name: string;
-  servings: number | null;
-  cuisine: string | null;
-  difficulty: string | null;
-  prep_time_minutes: number | null;
-  cook_time_minutes: number | null;
-  dietary_tags: string[] | null;
-  ingredients: RecipeIngredient[];
-  instructions: string[];
-  nutrition?: {
-    calories?: number;
-    protein?: number;
-    carbs?: number;
-    fat?: number;
-    fiber?: number;
-    sugar?: number;
-    sodium?: number;
-  } | null;
-  notes?: string | null;
-  source_url?: string | null;
-}, targetServings: number): string {
+function renderFullRecipeMarkdown(
+  recipe: {
+    name: string;
+    servings: number | null;
+    cuisine: string | null;
+    difficulty: string | null;
+    prep_time_minutes: number | null;
+    cook_time_minutes: number | null;
+    dietary_tags: string[] | null;
+    ingredients: RecipeIngredient[];
+    instructions: string[];
+    nutrition?: {
+      calories?: number;
+      protein?: number;
+      carbs?: number;
+      fat?: number;
+      fiber?: number;
+      sugar?: number;
+      sodium?: number;
+    } | null;
+    notes?: string | null;
+    source_url?: string | null;
+  },
+  targetServings: number
+): string {
   const baseline = recipe.servings ?? 1;
   const scale = targetServings / baseline;
   const lines: string[] = [];
@@ -718,7 +717,9 @@ function renderFullRecipeMarkdown(recipe: {
   }
   lines.push('');
   if (recipe.servings !== null && targetServings !== recipe.servings) {
-    lines.push(`_Scaled from ${recipe.servings} to ${targetServings} servings (factor: ${scale.toFixed(2)}x)._`);
+    lines.push(
+      `_Scaled from ${recipe.servings} to ${targetServings} servings (factor: ${scale.toFixed(2)}x)._`
+    );
     lines.push('');
   }
   lines.push('## Ingredients');
@@ -776,9 +777,7 @@ async function handleViewFull(interaction: ButtonInteraction<CacheType>): Promis
   const attachment = new AttachmentBuilder(Buffer.from(markdown, 'utf8')).setName(
     `${sanitizeFilename(recipe.name)}.md`
   );
-  const embed = new EmbedBuilder()
-    .setTitle(`📄 ${recipe.name}`)
-    .setColor(0x00ff00);
+  const embed = new EmbedBuilder().setTitle(`📄 ${recipe.name}`).setColor(0x00ff00);
   if (recipe.image_url) embed.setThumbnail(recipe.image_url);
   await interaction.editReply({ embeds: [embed], files: [attachment], components: [] });
 }
@@ -801,7 +800,11 @@ async function handleDeleteConfirm(interaction: ButtonInteraction<CacheType>): P
   }
   const deleted = await Recipe.deleteRecipe(recipeId, guildId);
   if (!deleted) {
-    await interaction.editReply({ content: '❌ Failed to delete recipe.', components: [], embeds: [] });
+    await interaction.editReply({
+      content: '❌ Failed to delete recipe.',
+      components: [],
+      embeds: [],
+    });
     return;
   }
   const embed = new EmbedBuilder()
@@ -825,7 +828,10 @@ async function handleEditFieldSelect(
 ): Promise<void> {
   const guildId = interaction.guild?.id;
   if (!guildId) {
-    await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+    await interaction.reply({
+      content: '❌ This command can only be used in a server.',
+      ephemeral: true,
+    });
     return;
   }
   const recipeId = parseInt(interaction.customId.replace('recipe_edit_field_', ''), 10);
@@ -960,7 +966,10 @@ async function handleEditModal(interaction: ModalSubmitInteraction<CacheType>): 
         break;
       }
       case 'instructions': {
-        const lines = raw.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+        const lines = raw
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l.length > 0);
         if (lines.length === 0) throw new Error('Instructions cannot be empty.');
         update.instructions = lines;
         break;
@@ -1244,8 +1253,7 @@ export async function handleRecipeSelect(
 ): Promise<void> {
   const customId = interaction.customId;
   if (customId.startsWith('recipe_plan_swap_select_')) return handleSwapSelect(interaction);
-  if (customId.startsWith('recipe_plan_servings_select_'))
-    return handleServingsSelect(interaction);
+  if (customId.startsWith('recipe_plan_servings_select_')) return handleServingsSelect(interaction);
   if (customId.startsWith('recipe_plan_pick_')) return handlePickSelect(interaction);
 
   // Non-plan recipe select menus

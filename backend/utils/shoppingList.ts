@@ -314,7 +314,7 @@ async function sanitizeAggregatedList(
 
   const sanitizerInput: SanitizerInputItem[] = aggregated.map((a) => ({
     name: a.name,
-    quantity: a.quantity !== null ? a.quantity : a.rawNote ?? null,
+    quantity: a.quantity !== null ? a.quantity : (a.rawNote ?? null),
     unit: a.unit,
     category: a.category,
   }));
@@ -333,7 +333,7 @@ async function sanitizeAggregatedList(
     });
     return aggregated.map((a) => ({
       name: a.name,
-      quantity: a.quantity !== null ? a.quantity : a.rawNote ?? null,
+      quantity: a.quantity !== null ? a.quantity : (a.rawNote ?? null),
       unit: a.unit,
       category: normalizeCategory(a.category),
     }));

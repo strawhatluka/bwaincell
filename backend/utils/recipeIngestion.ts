@@ -21,17 +21,8 @@ import {
   ScrapedRecipe,
   Provenance as ScrapeProvenance,
 } from './recipeScraper';
-import {
-  GeminiService,
-  ParsedRecipe,
-  ResearchableField,
-  ALLOWED_GAPS,
-} from './geminiService';
-import {
-  normalizeCuisine,
-  normalizeDifficulty,
-  normalizeDietaryTags,
-} from './recipeNormalize';
+import { GeminiService, ParsedRecipe, ResearchableField, ALLOWED_GAPS } from './geminiService';
+import { normalizeCuisine, normalizeDifficulty, normalizeDietaryTags } from './recipeNormalize';
 
 /**
  * Provenance for every field in the final ingested recipe.
@@ -176,7 +167,8 @@ function buildProvenance(
 ): Record<string, FieldProvenance> {
   const prov: Record<string, FieldProvenance> = {};
   for (const field of allFields) {
-    prov[field] = (scrapedProv as Record<string, unknown>)[field] === 'source' ? 'source' : 'unknown';
+    prov[field] =
+      (scrapedProv as Record<string, unknown>)[field] === 'source' ? 'source' : 'unknown';
   }
   return prov;
 }
@@ -237,9 +229,7 @@ export async function ingestRecipeFromUrl(url: string): Promise<IngestionResult>
   }
 
   // Pass 2: research remaining gaps (only for ALLOWED_GAPS fields with 'unknown' provenance)
-  const gaps: ResearchableField[] = ALLOWED_GAPS.filter(
-    (field) => provenance[field] === 'unknown'
-  );
+  const gaps: ResearchableField[] = ALLOWED_GAPS.filter((field) => provenance[field] === 'unknown');
 
   let researchRan = false;
   if (gaps.length > 0 && base.ingredients.length > 0 && base.instructions.length > 0) {
@@ -295,9 +285,7 @@ export async function ingestRecipeFromFile(
     provenance[field] = isEmptyField(v) ? 'unknown' : 'researched';
   }
 
-  const gaps: ResearchableField[] = ALLOWED_GAPS.filter(
-    (field) => provenance[field] === 'unknown'
-  );
+  const gaps: ResearchableField[] = ALLOWED_GAPS.filter((field) => provenance[field] === 'unknown');
 
   let researchRan = false;
   if (gaps.length > 0 && base.ingredients.length > 0 && base.instructions.length > 0) {

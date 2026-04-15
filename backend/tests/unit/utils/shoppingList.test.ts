@@ -195,7 +195,7 @@ describe('generateShoppingList', () => {
   });
 
   test('aggregation: same name+unit across 2 meals sums quantities', async () => {
-    const a =makeRecipe({
+    const a = makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'Chicken', quantity: 2, unit: 'lb' }],
@@ -214,7 +214,7 @@ describe('generateShoppingList', () => {
   });
 
   test('aggregation: same name different unit stays separate', async () => {
-    const a =makeRecipe({
+    const a = makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'Chicken', quantity: 1, unit: 'lb' }],
@@ -349,7 +349,7 @@ describe('aggregateIngredients', () => {
   });
 
   test('accumulates rawParts for unparseable and parseable', async () => {
-    const a =makeRecipe({
+    const a = makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'salt', quantity: 'a pinch', unit: '' }],
@@ -367,7 +367,7 @@ describe('aggregateIngredients', () => {
   });
 
   test('collapses garlic variants across recipes into one entry', async () => {
-    const a =makeRecipe({
+    const a = makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: '1 clove garlic (, minced)', quantity: 1, unit: 'clove' }],
@@ -393,7 +393,7 @@ describe('aggregateIngredients', () => {
   });
 
   test('sums chicken thighs stored with lb and pounds into one entry', async () => {
-    const a =makeRecipe({
+    const a = makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'chicken thighs', quantity: 1, unit: 'lb' }],
@@ -413,7 +413,7 @@ describe('aggregateIngredients', () => {
   });
 
   test('keeps chicken thighs and chicken breasts as separate entries', async () => {
-    const a =makeRecipe({
+    const a = makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'chicken thighs', quantity: 1, unit: 'lb' }],
@@ -431,7 +431,7 @@ describe('aggregateIngredients', () => {
   });
 
   test('strips parentheticals and comma prep notes when keying', async () => {
-    const a =makeRecipe({
+    const a = makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'salt (, to taste)', quantity: 1, unit: 'tsp' }],
@@ -451,7 +451,7 @@ describe('aggregateIngredients', () => {
   });
 
   test('first-occurrence display name is preserved on merge', async () => {
-    const a =makeRecipe({
+    const a = makeRecipe({
       id: 1,
       servings: 1,
       ingredients: [{ name: 'chicken thighs (bone in + skin on)', quantity: 1, unit: 'lb' }],
@@ -475,21 +475,19 @@ describe('generateShoppingList — sanitizer integration', () => {
     const { GeminiService } = jest.requireMock('../../../utils/geminiService');
 
     // Seven recipes with messy data that the deterministic layer won't fully clean.
-    const meals: RecipeWithServings[] = Array.from({ length: 7 }, (_, i) =>
-      ({
-        recipe: makeRecipe({
-          id: i + 1,
-          name: `Recipe ${i + 1}`,
-          servings: 1,
-          ingredients: [
-            { name: 'fresh minced garlic', quantity: 1, unit: 'clove' },
-            { name: 'Dried oregano', quantity: 0.3, unit: 'tsp' },
-            { name: 'cilantro (, for garnish)', quantity: 1, unit: 'bunch' },
-          ],
-        }),
-        targetServings: 2,
-      })
-    );
+    const meals: RecipeWithServings[] = Array.from({ length: 7 }, (_, i) => ({
+      recipe: makeRecipe({
+        id: i + 1,
+        name: `Recipe ${i + 1}`,
+        servings: 1,
+        ingredients: [
+          { name: 'fresh minced garlic', quantity: 1, unit: 'clove' },
+          { name: 'Dried oregano', quantity: 0.3, unit: 'tsp' },
+          { name: 'cilantro (, for garnish)', quantity: 1, unit: 'bunch' },
+        ],
+      }),
+      targetServings: 2,
+    }));
 
     // Mock Gemini to return the cleaned, consolidated version we'd expect.
     GeminiService.sanitizeShoppingList.mockResolvedValueOnce({
@@ -517,6 +515,31 @@ describe('generateShoppingList — sanitizer integration', () => {
     // with the sanitizer's fraction string "2 1/4".
     expect(markdown).toContain('2 1/4 tsp dried oregano');
     expect(markdown).not.toMatch(/0\.\d/);
+  });
+
+  test('logs sanitizer warnings at info level when present', async () => {
+    const { GeminiService } = jest.requireMock('../../../utils/geminiService');
+    const { logger } = jest.requireMock('../../../shared/utils/logger');
+    GeminiService.sanitizeShoppingList.mockResolvedValueOnce({
+      items: [{ name: 'salt', quantity: 1, unit: 'tsp', category: 'pantry' }],
+      warnings: ['could not merge two variants of soy sauce'],
+    });
+
+    const meals: RecipeWithServings[] = [
+      {
+        recipe: makeRecipe({
+          id: 1,
+          servings: 1,
+          ingredients: [{ name: 'salt', quantity: 1, unit: 'tsp' }],
+        }),
+        targetServings: 1,
+      },
+    ];
+    await generateShoppingList(meals);
+    expect(logger.info).toHaveBeenCalledWith(
+      '[shoppingList] Sanitizer returned warnings',
+      expect.objectContaining({ warnings: expect.any(Array) })
+    );
   });
 
   test('falls back to deterministic aggregation when sanitizer throws, preserving all items', async () => {

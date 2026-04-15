@@ -48,7 +48,13 @@ describe('normalizeDietaryTags', () => {
   });
   it('drops empty and non-string entries', () => {
     expect(
-      normalizeDietaryTags(['vegan', '', '   ', null as unknown as string, 123 as unknown as string])
+      normalizeDietaryTags([
+        'vegan',
+        '',
+        '   ',
+        null as unknown as string,
+        123 as unknown as string,
+      ])
     ).toEqual(['vegan']);
   });
   it('returns empty array for null/undefined/non-array input', () => {

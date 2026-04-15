@@ -57,25 +57,19 @@ describe('Recipe.searchByFilters — case-insensitive queries', () => {
   it('uses ilike for cuisine (case-insensitive)', async () => {
     await Recipe.searchByFilters('g1', { cuisine: 'American' });
 
-    const cuisineCall = mockQB.calls.find(
-      (c) => c.method === 'ilike' && c.args[0] === 'cuisine'
-    );
+    const cuisineCall = mockQB.calls.find((c) => c.method === 'ilike' && c.args[0] === 'cuisine');
     expect(cuisineCall).toBeDefined();
     expect(cuisineCall?.args[1]).toBe('American');
 
     // Sanity: .eq should NOT have been called on cuisine
-    const eqCuisineCall = mockQB.calls.find(
-      (c) => c.method === 'eq' && c.args[0] === 'cuisine'
-    );
+    const eqCuisineCall = mockQB.calls.find((c) => c.method === 'eq' && c.args[0] === 'cuisine');
     expect(eqCuisineCall).toBeUndefined();
   });
 
   it('uses ilike for difficulty (case-insensitive)', async () => {
     await Recipe.searchByFilters('g1', { difficulty: 'Easy' as 'easy' });
 
-    const diffCall = mockQB.calls.find(
-      (c) => c.method === 'ilike' && c.args[0] === 'difficulty'
-    );
+    const diffCall = mockQB.calls.find((c) => c.method === 'ilike' && c.args[0] === 'difficulty');
     expect(diffCall).toBeDefined();
     expect(diffCall?.args[1]).toBe('Easy');
   });
@@ -93,9 +87,7 @@ describe('Recipe.searchByFilters — case-insensitive queries', () => {
   it('keyword still uses ilike with wildcards', async () => {
     await Recipe.searchByFilters('g1', { keyword: 'Pasta' });
 
-    const kwCall = mockQB.calls.find(
-      (c) => c.method === 'ilike' && c.args[0] === 'name'
-    );
+    const kwCall = mockQB.calls.find((c) => c.method === 'ilike' && c.args[0] === 'name');
     expect(kwCall).toBeDefined();
     expect(kwCall?.args[1]).toBe('%Pasta%');
   });

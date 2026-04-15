@@ -173,10 +173,7 @@ export function canonicalizeName(name: string | null | undefined): string {
   // (e.g., "1 clove garlic" → "garlic"; "2 cups flour" → "flour"). This is
   // defensive — normally quantity+unit are split into their own fields by the
   // scraper, but Gemini fallback or bad JSON-LD can leave them in the name.
-  work = work.replace(
-    /^(?:\d+(?:\s+\d+)?\s*\/\s*\d+|\d+(?:\.\d+)?)\s+(?:[a-z]+\.?\s+)?/,
-    ''
-  );
+  work = work.replace(/^(?:\d+(?:\s+\d+)?\s*\/\s*\d+|\d+(?:\.\d+)?)\s+(?:[a-z]+\.?\s+)?/, '');
 
   // 4. collapse whitespace for tokenization
   work = work.replace(/\s+/g, ' ').trim();
