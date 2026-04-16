@@ -58,7 +58,7 @@ const mockEventConfig = {
   getCronExpression: jest.fn(() => '0 12 * * 1'),
 };
 
-jest.mock('../../../../supabase', () => ({
+jest.mock('@database/index', () => ({
   EventConfig: {
     getEnabledConfigs: jest.fn().mockResolvedValue([mockEventConfig]),
     getGuildConfig: jest.fn().mockResolvedValue(mockEventConfig),
@@ -103,7 +103,7 @@ jest.mock('../../../utils/eventsService', () => ({
 
 import { startScheduler, getScheduler } from '../../../utils/scheduler';
 import { Client } from 'discord.js';
-import { EventConfig } from '../../../../supabase';
+import { EventConfig } from '@database/index';
 import cron from 'node-cron';
 import { buildCronExpression, getEventWindow } from '../../../utils/dateHelpers';
 

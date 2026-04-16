@@ -15,7 +15,7 @@
  */
 
 import { logger } from '../shared/utils/logger';
-import type { RecipeNutrition, RecipeDifficulty } from '../../supabase/types';
+import type { RecipeNutrition, RecipeDifficulty } from '@database/types';
 import {
   scrapeRecipeFromUrl,
   ScrapedRecipe,

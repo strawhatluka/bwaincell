@@ -23,12 +23,12 @@ import {
   AttachmentBuilder,
 } from 'discord.js';
 import { logger } from '../../../shared/utils/logger';
-import Recipe from '../../../../supabase/models/Recipe';
-import MealPlan from '../../../../supabase/models/MealPlan';
-import RecipePreferences from '../../../../supabase/models/RecipePreferences';
+import Recipe from '@database/models/Recipe';
+import MealPlan from '@database/models/MealPlan';
+import RecipePreferences from '@database/models/RecipePreferences';
 import { GeminiService } from '../../geminiService';
 import { generateShoppingList, RecipeWithServings } from '../../shoppingList';
-import type { RecipeRow } from '../../../../supabase/types';
+import type { RecipeRow } from '@database/types';
 import {
   planSessions,
   planSessionKey,
@@ -38,7 +38,7 @@ import {
   sanitizeFilename,
   PlanSession,
 } from '../../../commands/recipe';
-import type { RecipeUpdate, RecipeIngredient, RecipeNutrition } from '../../../../supabase/types';
+import type { RecipeUpdate, RecipeIngredient, RecipeNutrition } from '@database/types';
 
 const RECIPES_PER_PAGE = 25;
 

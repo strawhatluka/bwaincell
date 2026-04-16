@@ -8,9 +8,9 @@ import {
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
 import { GeminiService } from '../utils/geminiService';
-import Recipe from '../../supabase/models/Recipe';
+import Recipe from '@database/models/Recipe';
 import { formatQuantity } from '../utils/fractionFormat';
-import type { RecipeIngredient } from '../../supabase/types';
+import type { RecipeIngredient } from '@database/types';
 
 // Import recipe data (will need to type this properly later)
 const { movieData } = require('../utils/recipeData');

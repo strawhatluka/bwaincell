@@ -31,7 +31,7 @@ jest.mock('../../../utils/geminiService', () => ({
   },
 }));
 
-jest.mock('../../../../supabase/models/Recipe', () => ({
+jest.mock('@database/models/Recipe', () => ({
   __esModule: true,
   default: {
     getRandom: jest.fn(),
@@ -53,7 +53,7 @@ import { ChatInputCommandInteraction } from 'discord.js';
 import randomCommand from '../../../commands/random';
 import { GeminiService } from '../../../utils/geminiService';
 import { logger } from '../../../shared/utils/logger';
-import Recipe from '../../../../supabase/models/Recipe';
+import Recipe from '@database/models/Recipe';
 
 describe('/random Slash Command', () => {
   let mockInteraction: Partial<ChatInputCommandInteraction>;

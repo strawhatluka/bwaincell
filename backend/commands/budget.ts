@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { logger } from '../shared/utils/logger';
-import Budget from '../../supabase/models/Budget';
+import Budget from '@database/models/Budget';
 
 interface BudgetSummary {
   income: string;

@@ -52,7 +52,7 @@ import {
   aggregateIngredients,
   RecipeWithServings,
 } from '../../../utils/shoppingList';
-import type { RecipeRow } from '../../../../supabase/types';
+import type { RecipeRow } from '@database/types';
 
 function makeRecipe(overrides: Partial<RecipeRow> = {}): RecipeRow {
   return {

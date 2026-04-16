@@ -19,7 +19,7 @@ import {
   handleModalSubmit,
 } from '../utils/interactions';
 // Import the properly configured database with all models
-import { verifyConnection } from '../../supabase';
+import { verifyConnection } from '@database/index';
 // Import API server
 import { createApiServer } from './api/server';
 import { announceRelease } from '../utils/releaseAnnouncer';

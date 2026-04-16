@@ -20,8 +20,8 @@ import {
 } from 'discord.js';
 import { getModels } from '../helpers/databaseHelper';
 import { handleInteractionError } from '../responses/errorResponses';
-import supabase from '../../../../supabase/supabase';
-import type { TaskRow } from '../../../../supabase/types';
+import supabase from '@database/supabase';
+import type { TaskRow } from '@database/types';
 
 /**
  * Handles all task-related button interactions from Discord

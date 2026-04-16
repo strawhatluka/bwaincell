@@ -24,7 +24,7 @@ jest.mock('../../../config/config', () => ({
   },
 }));
 
-jest.mock('../../../../supabase/models/Reminder', () => ({
+jest.mock('@database/models/Reminder', () => ({
   __esModule: true,
   default: {
     createReminder: jest.fn(),
@@ -42,7 +42,7 @@ jest.mock('../../../utils/scheduler', () => ({
 
 import { SlashCommandBuilder } from 'discord.js';
 import remindCommand from '../../../commands/remind';
-import Reminder from '../../../../supabase/models/Reminder';
+import Reminder from '@database/models/Reminder';
 import { logger } from '../../../shared/utils/logger';
 import { getScheduler } from '../../../utils/scheduler';
 

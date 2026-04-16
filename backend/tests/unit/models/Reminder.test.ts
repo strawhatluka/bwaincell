@@ -11,7 +11,7 @@ jest.mock('../../../config/config', () => ({
   },
 }));
 
-import Reminder from '../../../../supabase/models/Reminder';
+import Reminder from '@database/models/Reminder';
 
 describe('Reminder Model - calculateNextTrigger', () => {
   describe('Monthly Frequency', () => {

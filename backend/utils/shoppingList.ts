@@ -1,4 +1,4 @@
-import type { RecipeRow, RecipeIngredient } from '../../supabase/types';
+import type { RecipeRow, RecipeIngredient } from '@database/types';
 import { formatQuantity as formatQtyAsFraction } from './fractionFormat';
 import { canonicalizeIngredient } from './ingredientCanonical';
 import { GeminiService } from './geminiService';

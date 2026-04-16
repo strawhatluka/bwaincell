@@ -9,7 +9,7 @@ import {
   AutocompleteInteraction,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
-import Task from '../../supabase/models/Task';
+import Task from '@database/models/Task';
 
 type TaskFilter = 'all' | 'pending' | 'completed';
 

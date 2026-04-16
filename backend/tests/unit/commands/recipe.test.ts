@@ -7,7 +7,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
 }));
 
-jest.mock('../../../../supabase/models/Recipe', () => ({
+jest.mock('@database/models/Recipe', () => ({
   __esModule: true,
   default: {
     createRecipe: jest.fn(),
@@ -23,7 +23,7 @@ jest.mock('../../../../supabase/models/Recipe', () => ({
   },
 }));
 
-jest.mock('../../../../supabase/models/MealPlan', () => ({
+jest.mock('@database/models/MealPlan', () => ({
   __esModule: true,
   default: {
     getActivePlan: jest.fn(),
@@ -35,7 +35,7 @@ jest.mock('../../../../supabase/models/MealPlan', () => ({
   },
 }));
 
-jest.mock('../../../../supabase/models/RecipePreferences', () => ({
+jest.mock('@database/models/RecipePreferences', () => ({
   __esModule: true,
   default: {
     getPreferences: jest.fn(),
@@ -109,11 +109,11 @@ import recipeCommand, {
   scaleIngredient,
   sanitizeFilename,
 } from '../../../commands/recipe';
-import Recipe from '../../../../supabase/models/Recipe';
-import MealPlan from '../../../../supabase/models/MealPlan';
-import RecipePreferences from '../../../../supabase/models/RecipePreferences';
+import Recipe from '@database/models/Recipe';
+import MealPlan from '@database/models/MealPlan';
+import RecipePreferences from '@database/models/RecipePreferences';
 import { GeminiService } from '../../../utils/geminiService';
-import type { RecipeRow } from '../../../../supabase/types';
+import type { RecipeRow } from '@database/types';
 import { ChatInputCommandInteraction } from 'discord.js';
 
 function makeRecipe(o: Partial<RecipeRow> = {}): RecipeRow {

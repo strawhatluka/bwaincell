@@ -42,7 +42,7 @@ const mockUserFindByGoogleId = jest.fn();
 const mockUserCreate = jest.fn();
 const mockUserUpdate = jest.fn();
 
-jest.mock('../../../../../supabase/models/User', () => ({
+jest.mock('@database/models/User', () => ({
   User: {
     findByGoogleId: mockUserFindByGoogleId,
     create: mockUserCreate,

@@ -15,7 +15,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import User from '../../../../supabase/models/User';
+import User from '@database/models/User';
 
 describe('User Model', () => {
   let mockUser: any;

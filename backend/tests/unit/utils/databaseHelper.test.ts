@@ -20,7 +20,7 @@ const mockTask = { name: 'Task', findAll: jest.fn() };
 const mockList = { name: 'List', findAll: jest.fn() };
 const mockReminder = { name: 'Reminder', findAll: jest.fn() };
 
-jest.mock('../../../../supabase', () => ({
+jest.mock('@database/index', () => ({
   Task: mockTask,
   List: mockList,
   Reminder: mockReminder,

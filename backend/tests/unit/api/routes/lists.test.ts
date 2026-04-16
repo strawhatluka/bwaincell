@@ -15,7 +15,7 @@ jest.mock('../../../../shared/utils/logger', () => ({
   },
 }));
 
-jest.mock('../../../../../supabase/index', () => ({
+jest.mock('@database/index', () => ({
   List: {
     getUserLists: jest.fn(),
     getList: jest.fn(),
@@ -28,7 +28,7 @@ jest.mock('../../../../../supabase/index', () => ({
   },
 }));
 
-import { List } from '../../../../../supabase/index';
+import { List } from '@database/index';
 import express from 'express';
 import listsRouter from '../../../../src/api/routes/lists';
 import request from 'supertest';

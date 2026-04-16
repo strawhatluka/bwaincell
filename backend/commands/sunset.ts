@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { DateTime } from 'luxon';
 import { logger } from '../shared/utils/logger';
-import SunsetConfig from '../../supabase/models/SunsetConfig';
+import SunsetConfig from '@database/models/SunsetConfig';
 import { getScheduler } from '../utils/scheduler';
 import { getCoordinatesFromZip, getSunsetTime } from '../utils/sunsetService';
 import config from '../config/config';

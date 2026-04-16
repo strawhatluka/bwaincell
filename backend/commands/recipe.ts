@@ -10,9 +10,9 @@ import {
   AttachmentBuilder,
 } from 'discord.js';
 import { logger } from '../shared/utils/logger';
-import Recipe from '../../supabase/models/Recipe';
-import MealPlan from '../../supabase/models/MealPlan';
-import RecipePreferences from '../../supabase/models/RecipePreferences';
+import Recipe from '@database/models/Recipe';
+import MealPlan from '@database/models/MealPlan';
+import RecipePreferences from '@database/models/RecipePreferences';
 import { GeminiService, ParsedRecipe } from '../utils/geminiService';
 import {
   ingestRecipeFromUrl,
@@ -20,7 +20,7 @@ import {
   FieldProvenance,
 } from '../utils/recipeIngestion';
 import { formatQuantity } from '../utils/fractionFormat';
-import type { RecipeIngredient, RecipeSourceType } from '../../supabase/types';
+import type { RecipeIngredient, RecipeSourceType } from '@database/types';
 
 /**
  * Session state for an interactive `/recipe plan` flow.

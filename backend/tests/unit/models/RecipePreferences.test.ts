@@ -15,8 +15,8 @@ jest.mock('../../../shared/utils/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
 }));
 
-import RecipePreferences from '../../../../supabase/models/RecipePreferences';
-import type { RecipePreferencesRow } from '../../../../supabase/types';
+import RecipePreferences from '@database/models/RecipePreferences';
+import type { RecipePreferencesRow } from '@database/types';
 
 function makePrefs(overrides: Partial<RecipePreferencesRow> = {}): RecipePreferencesRow {
   return {

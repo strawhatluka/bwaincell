@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DatabaseModels } from '../types/interactions';
 // Import models from database/index.ts
-import { Task, List, Reminder } from '../../../../supabase';
+import { Task, List, Reminder } from '@database/index';
 
 let cachedModels: DatabaseModels | null = null;
 

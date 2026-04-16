@@ -9,7 +9,7 @@
 
 import { parse as parseHtml, HTMLElement } from 'node-html-parser';
 import { logger } from '../shared/utils/logger';
-import type { RecipeIngredient, RecipeNutrition, RecipeDifficulty } from '../../supabase/types';
+import type { RecipeIngredient, RecipeNutrition, RecipeDifficulty } from '@database/types';
 
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB

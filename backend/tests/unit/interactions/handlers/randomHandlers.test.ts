@@ -47,7 +47,7 @@ jest.mock('../../../../utils/geminiService', () => ({
 const mockRecipe = {
   getRandom: jest.fn(),
 };
-jest.mock('../../../../../supabase/models/Recipe', () => ({
+jest.mock('@database/models/Recipe', () => ({
   __esModule: true,
   default: mockRecipe,
 }));

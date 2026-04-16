@@ -15,7 +15,7 @@ jest.mock('../../../../shared/utils/logger', () => ({
   },
 }));
 
-jest.mock('../../../../../supabase/index', () => ({
+jest.mock('@database/index', () => ({
   Schedule: {
     getEvents: jest.fn(),
     getUpcomingEvents: jest.fn(),
@@ -26,7 +26,7 @@ jest.mock('../../../../../supabase/index', () => ({
   },
 }));
 
-import { Schedule } from '../../../../../supabase/index';
+import { Schedule } from '@database/index';
 import express from 'express';
 import scheduleRouter from '../../../../src/api/routes/schedule';
 import request from 'supertest';

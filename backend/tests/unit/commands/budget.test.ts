@@ -33,7 +33,7 @@ const mockBudget = {
   getMonthlyTrend: jest.fn(),
 };
 
-jest.mock('../../../../supabase/models/Budget', () => ({
+jest.mock('@database/models/Budget', () => ({
   __esModule: true,
   default: mockBudget,
 }));

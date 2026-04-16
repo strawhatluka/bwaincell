@@ -6,7 +6,7 @@ import {
 } from 'discord.js';
 import { DateTime } from 'luxon';
 import { logger } from '../shared/utils/logger';
-import Schedule from '../../supabase/models/Schedule';
+import Schedule from '@database/models/Schedule';
 import config from '../config/config';
 
 interface ScheduleEvent {

@@ -24,7 +24,7 @@ const mockSupabaseUpdate = jest.fn(() => ({ eq: mockSupabaseEq1 }));
 const mockSupabaseFrom = jest.fn(() => ({ update: mockSupabaseUpdate }));
 
 // Mock database - prevent actual DB connection
-jest.mock('../../../../../supabase/index', () => ({
+jest.mock('@database/index', () => ({
   Task: {
     getUserTasks: jest.fn(),
     createTask: jest.fn(),
@@ -37,7 +37,7 @@ jest.mock('../../../../../supabase/index', () => ({
   },
 }));
 
-import { Task } from '../../../../../supabase/index';
+import { Task } from '@database/index';
 
 // We need to extract the route handlers from the router.
 // Since Express Router encapsulates handlers, we import the module and

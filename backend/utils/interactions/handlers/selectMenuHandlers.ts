@@ -9,8 +9,8 @@ import {
 import { getModels } from '../helpers/databaseHelper';
 import { handleInteractionError } from '../responses/errorResponses';
 import { logger } from '@shared/utils/logger';
-import supabase from '../../../../supabase/supabase';
-import type { TaskRow, ListRow } from '../../../../supabase/types';
+import supabase from '@database/supabase';
+import type { TaskRow, ListRow } from '@database/types';
 import { handleRecipeSelect } from './recipeHandlers';
 
 export async function handleSelectMenuInteraction(

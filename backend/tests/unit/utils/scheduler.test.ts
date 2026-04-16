@@ -64,7 +64,7 @@ const mockSunsetConfigUpdateLastAnnouncement = jest.fn().mockResolvedValue(undef
 
 const mockSupabaseFrom = jest.fn();
 
-jest.mock('../../../../supabase', () => ({
+jest.mock('@database/index', () => ({
   Reminder: {
     getActiveReminders: mockGetActiveReminders,
     updateNextTrigger: mockUpdateNextTrigger,

@@ -21,8 +21,8 @@ jest.mock('../../../shared/utils/logger', () => ({
   },
 }));
 
-import Recipe from '../../../../supabase/models/Recipe';
-import type { RecipeRow } from '../../../../supabase/types';
+import Recipe from '@database/models/Recipe';
+import type { RecipeRow } from '@database/types';
 
 function makeRecipe(overrides: Partial<RecipeRow> = {}): RecipeRow {
   return {

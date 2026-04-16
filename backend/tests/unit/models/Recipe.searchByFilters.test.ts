@@ -40,14 +40,14 @@ function makeQueryBuilder() {
 
 const mockQB = makeQueryBuilder();
 
-jest.mock('../../../../supabase/supabase', () => ({
+jest.mock('@database/supabase', () => ({
   __esModule: true,
   default: {
     from: jest.fn(() => mockQB.builder),
   },
 }));
 
-import Recipe from '../../../../supabase/models/Recipe';
+import Recipe from '@database/models/Recipe';
 
 describe('Recipe.searchByFilters — case-insensitive queries', () => {
   beforeEach(() => {

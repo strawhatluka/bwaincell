@@ -15,7 +15,7 @@ jest.mock('../../../../shared/utils/logger', () => ({
   },
 }));
 
-jest.mock('../../../../../supabase/index', () => ({
+jest.mock('@database/index', () => ({
   Budget: {
     getRecentEntries: jest.fn(),
     getSummary: jest.fn(),
@@ -27,7 +27,7 @@ jest.mock('../../../../../supabase/index', () => ({
   },
 }));
 
-import { Budget } from '../../../../../supabase/index';
+import { Budget } from '@database/index';
 import express from 'express';
 import budgetRouter from '../../../../src/api/routes/budget';
 import request from 'supertest';

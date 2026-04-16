@@ -12,8 +12,8 @@ jest.mock('../../../shared/utils/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
 }));
 
-import MealPlan from '../../../../supabase/models/MealPlan';
-import type { MealPlanRow } from '../../../../supabase/types';
+import MealPlan from '@database/models/MealPlan';
+import type { MealPlanRow } from '@database/types';
 
 function makePlan(overrides: Partial<MealPlanRow> = {}): MealPlanRow {
   return {

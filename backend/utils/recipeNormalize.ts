@@ -6,7 +6,7 @@
  * or hand-typed edits.
  */
 
-import type { RecipeDifficulty } from '../../supabase/types';
+import type { RecipeDifficulty } from '@database/types';
 
 export function normalizeCuisine(v: string | null | undefined): string | null {
   if (v === null || v === undefined) return null;

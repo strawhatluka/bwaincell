@@ -37,7 +37,7 @@ const mockSupabaseEqFirst = jest.fn().mockReturnValue({ eq: mockSupabaseEq });
 const mockSupabaseSelect = jest.fn().mockReturnValue({ eq: mockSupabaseEqFirst });
 const mockSupabaseFrom = jest.fn().mockReturnValue({ select: mockSupabaseSelect });
 
-jest.mock('../../../../../supabase/supabase', () => ({
+jest.mock('@database/supabase', () => ({
   __esModule: true,
   default: {
     from: (...args: any[]) => mockSupabaseFrom(...args),

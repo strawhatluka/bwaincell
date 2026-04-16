@@ -10,9 +10,9 @@ import { movieData } from '../../recipeData';
 import { handleInteractionError } from '../responses/errorResponses';
 import { GeminiService } from '../../geminiService';
 import { logger } from '../../../shared/utils/logger';
-import Recipe from '../../../../supabase/models/Recipe';
+import Recipe from '@database/models/Recipe';
 import { formatQuantity } from '../../fractionFormat';
-import type { RecipeIngredient } from '../../../../supabase/types';
+import type { RecipeIngredient } from '@database/types';
 
 const dateIdeas = [
   'Picnic in the park',

@@ -15,7 +15,7 @@ jest.mock('../../../shared/utils/logger', () => ({
   })),
 }));
 
-import Task from '../../../../supabase/models/Task';
+import Task from '@database/models/Task';
 
 describe('Task Model', () => {
   const testGuildId = 'guild-123';

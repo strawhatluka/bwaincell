@@ -19,7 +19,7 @@ const mockRecipe = {
   updateRecipe: jest.fn(),
   deleteRecipe: jest.fn(),
 };
-jest.mock('../../../../../supabase/models/Recipe', () => ({
+jest.mock('@database/models/Recipe', () => ({
   __esModule: true,
   default: mockRecipe,
 }));
@@ -30,12 +30,12 @@ const mockMealPlan = {
   swapMeal: jest.fn(),
   upsertPlan: jest.fn(),
 };
-jest.mock('../../../../../supabase/models/MealPlan', () => ({
+jest.mock('@database/models/MealPlan', () => ({
   __esModule: true,
   default: mockMealPlan,
 }));
 
-jest.mock('../../../../../supabase/models/RecipePreferences', () => ({
+jest.mock('@database/models/RecipePreferences', () => ({
   __esModule: true,
   default: { getPreferences: jest.fn() },
 }));
