@@ -48,6 +48,13 @@ services:
     ports:
       - "3000:3000"  # Express API + health endpoint
 
+    # Map host.docker.internal to the Docker host so the bot can reach
+    # services running on the Pi itself (e.g. self-hosted Supabase Kong
+    # on the host at :54321). Required for SUPABASE_URL to resolve from
+    # inside the container on Linux.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     # Persistent storage for logs
     volumes:
       - ./data:/app/data  # Data persistence (if needed)
