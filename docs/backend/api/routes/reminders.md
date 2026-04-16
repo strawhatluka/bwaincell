@@ -4,6 +4,17 @@
 **Mount point:** `/api/reminders`
 **Auth:** Bearer JWT.
 
+## Imports
+
+```ts
+// backend/src/api/routes/reminders.ts
+import { Reminder } from '@database/index';
+// Equivalently:
+// import Reminder from '@database/models/Reminder';
+```
+
+`@database/*` is the path alias defined in `backend/tsconfig.json`.
+
 ## Endpoints
 
 ### `GET /api/reminders`

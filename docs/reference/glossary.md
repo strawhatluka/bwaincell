@@ -1,12 +1,17 @@
 # Glossary
 
-**Version:** 2.1.2
-**Last Updated:** 2026-04-15
+**Version:** 2.2.0
+**Last Updated:** 2026-04-16
 
 > **Supabase update (2026-04-15):** Any `backend/database/` references later in this file are stale — the current schema + typed model wrappers live under `supabase/` (`supabase/migrations/`, `supabase/models/`, `supabase/supabase.ts`).
 
 ## Added / Updated Terms
 
+- **`@bwaincell/supabase`** — The internal monorepo workspace (name in `supabase/package.json`) containing the Supabase client, migrations, and typed models. Compiled to `supabase/dist/` via `npx tsc --build supabase`; at runtime, `main: dist/index.js` is loaded.
+- **`@database/*`** — TypeScript path alias defined in `backend/tsconfig.json` (`"@database/*": ["../supabase/*"]`). Used by all backend code to import Supabase models, the client, and types, e.g. `import Task from '@database/models/Task'`. Do not bypass this alias with raw relative paths — `tsc` does not rewrite cross-workspace relative imports, so the compiled JS breaks at runtime.
+- **GHCR (GitHub Container Registry)** — `ghcr.io`. Hosts the prebuilt `bwaincell-backend` image tagged `:latest` (most recent successful build) and `:<git-sha>` (immutable per-commit). The Pi pulls this image at deploy time; it never builds locally.
+- **`host.docker.internal`** — Docker DNS alias mapped via `extra_hosts: ["host.docker.internal:host-gateway"]` in `docker-compose.yml`. Lets the bot container reach services bound to the Pi host loopback (the self-hosted Supabase Kong at `:54321`). Required because the bot container and the Supabase stack are in separate compose projects / networks.
+- **`PI_GHCR_TOKEN`** — GitHub repository secret storing a Personal Access Token with `read:packages` scope. Used by the `deploy-bot` workflow to `docker login ghcr.io` on the Pi so it can pull the bot image.
 - **Supabase** — Managed PostgreSQL + PostgREST + GoTrue + Studio stack used by Bwaincell for all persistence. Local dev via `supabase start` (Docker); production self-hosted on the Pi.
 - **Supabase CLI** — `supabase` command-line tool that runs the local stack, applies migrations (`supabase db push` / `supabase db reset`), and manages project links.
 - **Row Level Security (RLS)** — PostgreSQL feature that enforces per-row access policies at the database level. Not yet enabled in Bwaincell's migrations; isolation is currently done in application code with the service-role key.

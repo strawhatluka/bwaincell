@@ -1,7 +1,7 @@
 # Getting Started with Bwaincell
 
-**Version:** 2.1.2
-**Last Updated:** 2026-04-15
+**Version:** 2.2.0
+**Last Updated:** 2026-04-16
 
 ## Overview
 
@@ -67,10 +67,12 @@ bwaincell/
 │   │                    # recipeScraper, recipeIngestion, recipeNormalize, etc.
 │   └── tests/           # Backend tests
 ├── supabase/             # Supabase configuration + schema + typed models
+│   │                     # (npm workspace `@bwaincell/supabase`, main: dist/index.js)
 │   ├── config.toml      # Supabase CLI configuration
 │   ├── init.sql         # Bootstrap SQL
 │   ├── migrations/      # Timestamped SQL migrations (authoritative schema)
 │   ├── models/          # 12 typed model wrappers
+│   ├── package.json     # Declares @bwaincell/supabase workspace (compiled to dist/)
 │   └── supabase.ts      # Lazy-initialized Supabase client
 ├── frontend/            # Next.js 14.2+ PWA
 │   ├── app/            # App Router (dashboard/, api/)
@@ -130,6 +132,24 @@ npm test
 # Lint all workspaces
 npm run lint
 ```
+
+### Importing database models
+
+Backend code imports the Supabase client and typed models via the `@database/*` TypeScript path alias defined in `backend/tsconfig.json`:
+
+```typescript
+// Preferred — uses the @database/* alias
+import Task from '@database/models/Task';
+import List from '@database/models/List';
+import supabase from '@database/supabase';
+```
+
+The alias maps to `../supabase/*` (the `@bwaincell/supabase` workspace). **Use the alias everywhere** in backend code. Raw relative paths like `../../supabase/models/Task` will compile, but they break at runtime inside the Docker image: `tsc` does not rewrite cross-workspace relative imports, so the compiled path resolves one directory too high and fails with `MODULE_NOT_FOUND`.
+
+Relevant references:
+
+- `backend/tsconfig.json` — defines `"@database/*": ["../supabase/*"]` under `compilerOptions.paths` and the `supabase` project reference.
+- `supabase/package.json` — declares the internal workspace `@bwaincell/supabase` with `main: dist/index.js`.
 
 ## Environment Configuration
 

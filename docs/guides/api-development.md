@@ -1,13 +1,17 @@
 # API Development Guide
 
-**Last Updated:** 2026-04-15
+**Last Updated:** 2026-04-16
 
 > **Supabase update (2026-04-15):** Backend routes no longer use Sequelize. All data access goes through typed model wrappers in `supabase/models/*.ts`, which in turn use `@supabase/supabase-js` via the lazy-initialized client in `supabase/supabase.ts`. Any Sequelize idioms (`Model.findAll`, `Op.like`, `sequelize.transaction`) shown later in this file should be read as historical; the current equivalents are documented below.
+>
+> **Import-path update (2026-04-16):** All examples below use the `@database/*` TypeScript path alias (defined in `backend/tsconfig.json` as `"@database/*": ["../supabase/*"]`). Do **not** use raw relative paths like `../../../supabase/models/Task` — `tsc` does not rewrite cross-workspace relative imports, so the compiled JS will resolve to a non-existent path inside the Docker image. See `docs/guides/getting-started.md` → [Importing database models](getting-started.md#importing-database-models) for the rationale.
 >
 > **Current backend REST route groups** (`backend/src/api/routes/`): `tasks`, `lists`, `notes`, `reminders`, `budget`, `schedule`, `oauth`, `health`.
 > **Recipes / MealPlans / Sunset config / Events config are not yet exposed via REST** — they are currently driven through Discord commands and the Supabase model wrappers. See [api/README.md](../api/README.md).
 
 ## Quick patterns (current)
+
+All examples use the `@database/*` path alias. Supabase models export default classes (see `supabase/models/Task.ts`), so prefer `import Task from '@database/models/Task'` over `import * as Task`.
 
 **Query with the Supabase model wrapper:**
 
@@ -15,7 +19,7 @@
 // backend/src/api/routes/tasks.ts
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/oauth';
-import * as Task from '../../../supabase/models/Task';
+import Task from '@database/models/Task';
 
 const router = Router();
 
@@ -50,7 +54,7 @@ export async function getGuildTasks(guildId: string) {
 **Example: adding a new Recipe endpoint** (illustrative — no REST routes exist for recipes yet):
 
 ```typescript
-import * as Recipe from '../../../supabase/models/Recipe';
+import Recipe from '@database/models/Recipe';
 
 router.get('/', authenticateToken, async (req, res, next) => {
   try {
@@ -74,7 +78,7 @@ router.post('/favorite/:id', authenticateToken, async (req, res, next) => {
 **Example: reading the active meal plan:**
 
 ```typescript
-import * as MealPlan from '../../../supabase/models/MealPlan';
+import MealPlan from '@database/models/MealPlan';
 
 router.get('/active', authenticateToken, async (req, res, next) => {
   try {

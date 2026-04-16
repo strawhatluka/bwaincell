@@ -4,6 +4,19 @@
 **Mount point:** `/api/tasks`
 **Auth:** All endpoints require Bearer JWT via `authenticateToken` middleware. `req.user.guildId` and `req.user.discordId` are used for isolation and audit.
 
+## Imports
+
+Handlers in this route use the `@database/*` path alias to reach the model layer:
+
+```ts
+// backend/src/api/routes/tasks.ts
+import { Task, supabase } from '@database/index';
+// Equivalently:
+// import Task from '@database/models/Task';
+```
+
+The alias is defined in `backend/tsconfig.json` (`"@database/*": ["../supabase/*"]`) and must be used instead of relative `../../../supabase/...` paths — `tsc` does not rewrite cross-workspace relative imports during build.
+
 ## Endpoints
 
 ### `GET /api/tasks`

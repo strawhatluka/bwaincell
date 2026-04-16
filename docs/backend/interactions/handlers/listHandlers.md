@@ -10,8 +10,15 @@ Dispatches button interactions emitted by the `/list` command.
 
 ## Dependencies
 
-- `getModels()` → `{ List }`.
+- `getModels()` → `{ List }`. The `List` model itself is sourced from `@database/index` inside `helpers/databaseHelper.ts` — this handler never imports from `../../supabase/...`.
 - `handleInteractionError` for unified error surfacing.
+
+```ts
+import { getModels } from '../helpers/databaseHelper';
+import { handleInteractionError } from '../responses/errorResponses';
+
+const { List } = await getModels();
+```
 
 ## Guild Guard
 

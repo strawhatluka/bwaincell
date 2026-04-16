@@ -4,6 +4,17 @@
 **Mount point:** `/api/notes`
 **Auth:** Bearer JWT.
 
+## Imports
+
+```ts
+// backend/src/api/routes/notes.ts
+import { Note } from '@database/index';
+// Equivalently:
+// import Note from '@database/models/Note';
+```
+
+`@database/*` is the path alias defined in `backend/tsconfig.json`.
+
 ## Endpoints
 
 ### `GET /api/notes`

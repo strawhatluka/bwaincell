@@ -30,7 +30,14 @@ Singleton accessed via `Scheduler.getInstance(client?)`. The first call must pas
 
 `initialize()`:
 
-1. Dynamic-import models (`Reminder`, `EventConfig`, `SunsetConfig`) from `../../supabase` to avoid initialization order problems.
+1. Dynamic-import models (`Reminder`, `EventConfig`, `SunsetConfig`) from `@database/index` to avoid initialization order problems:
+
+   ```ts
+   const { Reminder, EventConfig, SunsetConfig } = await import('@database/index');
+   // or, for direct model access:
+   import Reminder from '@database/models/Reminder';
+   ```
+
 2. `loadReminders(Reminder)` — for each active reminder, schedule via `scheduleReminder()`.
 3. `loadEventConfigs(EventConfig)` — for each enabled `EventConfig`, schedule via `scheduleEventAnnouncement()`.
 4. `scheduleDailyQuestions(EventConfig)` — question-of-the-day job (separate cron).

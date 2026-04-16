@@ -1,7 +1,7 @@
 # Quick Reference
 
-**Version:** 2.1.2
-**Last Updated:** 2026-04-15
+**Version:** 2.2.0
+**Last Updated:** 2026-04-16
 
 > **Supabase update (2026-04-15):** Tables below that list `backend/database/` as a file location are stale. Replace them as follows:
 >
@@ -57,22 +57,46 @@ Under `frontend/app/api/`: `auth/[...nextauth]`, `tasks`, `lists`, `notes`, `rem
 | `npm run supabase:status` | Print local URLs + anon/service-role keys             |
 | `npm run supabase:reset`  | `supabase db reset` — replays `init.sql` + migrations |
 
+## TypeScript Path Aliases (backend)
+
+Defined in `backend/tsconfig.json` under `compilerOptions.paths`. Use these in backend code; raw relative paths across workspaces will break at runtime inside the Docker image.
+
+| Alias                 | Maps to              | Used for                                     |
+| --------------------- | -------------------- | -------------------------------------------- |
+| `@database/*`         | `../supabase/*`      | Supabase client, typed models, types         |
+| `@shared/*`           | `shared/*`           | Backend-local shared utils (`backend/shared/`) |
+| `@bwaincell/shared`   | `../shared/src`      | Cross-workspace `@bwaincell/shared` package   |
+| `@commands/*`         | `src/commands/*`     | Backend command modules                      |
+| `@handlers/*`         | `src/handlers/*`     | Interaction handlers                         |
+| `@services/*`         | `src/services/*`     | Backend service modules                      |
+
+Example:
+
+```typescript
+import Task from '@database/models/Task';
+import supabase from '@database/supabase';
+```
+
 ## Key File Locations
 
-| Concern                | Location                                                                         |
-| ---------------------- | -------------------------------------------------------------------------------- |
-| Supabase client        | `supabase/supabase.ts`                                                           |
-| Schema (authoritative) | `supabase/migrations/*.sql`                                                      |
-| Bootstrap SQL          | `supabase/init.sql`                                                              |
-| Model wrappers (12)    | `supabase/models/*.ts`                                                           |
-| Supabase CLI config    | `supabase/config.toml`                                                           |
-| Discord commands (12)  | `backend/commands/*.ts`                                                          |
-| Interaction handlers   | `backend/utils/interactions/handlers/*.ts`                                       |
-| Schedulers             | `backend/utils/scheduler.ts`, `sunsetService.ts`, `eventsService.ts`             |
-| AI integration         | `backend/utils/geminiService.ts`, `shoppingList.ts`, `recipeNormalize.ts`        |
-| Recipe ingest          | `backend/utils/recipeScraper.ts`, `recipeIngestion.ts`, `ingredientCanonical.ts` |
-| REST routes            | `backend/src/api/routes/*.ts`                                                    |
-| Next.js API routes     | `frontend/app/api/**/route.ts`                                                   |
+| Concern                         | Location                                                                         |
+| ------------------------------- | -------------------------------------------------------------------------------- |
+| Supabase client                 | `supabase/supabase.ts`                                                           |
+| Schema (authoritative)          | `supabase/migrations/*.sql`                                                      |
+| Bootstrap SQL                   | `supabase/init.sql`                                                              |
+| Model wrappers (12)             | `supabase/models/*.ts`                                                           |
+| Supabase CLI config             | `supabase/config.toml`                                                           |
+| Internal workspace (Supabase)   | `supabase/package.json` (`@bwaincell/supabase`, `main: dist/index.js`)           |
+| TypeScript path aliases         | `backend/tsconfig.json` (`compilerOptions.paths`)                                |
+| Discord commands (12)           | `backend/commands/*.ts`                                                          |
+| Interaction handlers            | `backend/utils/interactions/handlers/*.ts`                                       |
+| Schedulers                      | `backend/utils/scheduler.ts`, `sunsetService.ts`, `eventsService.ts`             |
+| AI integration                  | `backend/utils/geminiService.ts`, `shoppingList.ts`, `recipeNormalize.ts`        |
+| Recipe ingest                   | `backend/utils/recipeScraper.ts`, `recipeIngestion.ts`, `ingredientCanonical.ts` |
+| REST routes                     | `backend/src/api/routes/*.ts`                                                    |
+| Next.js API routes              | `frontend/app/api/**/route.ts`                                                   |
+| Bot image (GHCR)                | `ghcr.io/strawhatluka/bwaincell-backend:{latest,<git-sha>}`                       |
+| Deploy workflow                 | `.github/workflows/deploy.yml`                                                   |
 
 Fast reference guide for common commands, Discord bot commands, API endpoints, environment variables, and troubleshooting quick fixes.
 
@@ -120,9 +144,12 @@ Fast reference guide for common commands, Discord bot commands, API endpoints, e
 
 ### Docker Commands
 
+The backend image is pulled from GHCR (`ghcr.io/strawhatluka/bwaincell-backend`); no local build on the Pi. Authentication is handled once on the Pi via `echo $PAT | docker login ghcr.io -u strawhatluka --password-stdin` using a GitHub PAT with `read:packages` scope (stored in repo as the `PI_GHCR_TOKEN` secret for the workflow).
+
 | Command                                          | Description                              |
 | ------------------------------------------------ | ---------------------------------------- |
-| `docker-compose build`                           | Build Docker images                      |
+| `docker compose pull backend`                    | Pull the latest bot image from GHCR      |
+| `docker-compose build`                           | Build Docker images (local dev only — Pi never builds) |
 | `docker-compose up -d`                           | Start services in background             |
 | `docker-compose down`                            | Stop and remove containers               |
 | `docker-compose logs -f`                         | Follow logs for all services             |

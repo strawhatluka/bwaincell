@@ -10,8 +10,15 @@ Dispatches button interactions emitted by the `/remind` command.
 
 ## Dependencies
 
-- `getModels()` → `{ Reminder }`.
+- `getModels()` → `{ Reminder }`. The `Reminder` model is re-exported from `@database/index` by `helpers/databaseHelper.ts`; this handler never imports Supabase directly.
 - `handleInteractionError`.
+
+```ts
+import { getModels } from '../helpers/databaseHelper';
+import { handleInteractionError } from '../responses/errorResponses';
+
+const { Reminder } = await getModels();
+```
 
 ## Guild Guard
 

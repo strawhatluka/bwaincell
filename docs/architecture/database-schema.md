@@ -1,10 +1,11 @@
 # Database Schema
 
-**Version:** 2.1.2
-**Last Updated:** 2026-04-15
+**Version:** 2.2.0
+**Last Updated:** 2026-04-16
 **Database:** Supabase (managed PostgreSQL)
 **Client:** `@supabase/supabase-js` via `supabase/supabase.ts`
 **Authoritative Source:** `supabase/migrations/*.sql` (+ `supabase/init.sql` for bootstrap)
+**Access pattern:** Backend code reaches the schema via typed model wrappers under `supabase/models/*.ts`, imported using the `@database/*` TypeScript path alias (`import Task from '@database/models/Task'`). The alias is defined in `backend/tsconfig.json` (`"@database/*": ["../supabase/*"]`). The `@bwaincell/supabase` workspace is compiled to `supabase/dist/` and is what the bot actually loads inside the Docker image.
 
 Complete database schema documentation for Bwaincell productivity platform.
 
@@ -439,7 +440,9 @@ Lazily initializes a `SupabaseClient` behind a `Proxy` so that importing the cli
 - `SUPABASE_SERVICE_ROLE_KEY` (preferred; server-side) OR `SUPABASE_ANON_KEY` (fallback)
 
 ```typescript
-import supabase from '../../supabase/supabase';
+// Preferred — uses the @database/* alias (resolves to ../supabase/supabase at build time).
+// `@database/index` also re-exports `supabase` as its default export if you prefer that path.
+import supabase from '@database/supabase';
 
 const { data, error } = await supabase
   .from('tasks')

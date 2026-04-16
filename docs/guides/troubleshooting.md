@@ -1,7 +1,38 @@
 # Troubleshooting Guide
 
-**Version:** 2.1.2
-**Last Updated:** 2026-04-15
+**Version:** 2.2.0
+**Last Updated:** 2026-04-16
+
+> **Deployment update (2026-04-16): Common GHCR / `@database/*` / networking issues.**
+>
+> **"MODULE_NOT_FOUND: Cannot find module '../../supabase/models/Task'" (or similar)** — Some backend file is importing a Supabase model via a raw relative path (`../../supabase/...` or `../../../supabase/...`) instead of the `@database/*` alias. The TypeScript compiler does **not** rewrite cross-workspace relative imports, so the compiled JS resolves to a path one directory too high inside the Docker image and blows up at runtime. Fix by replacing `from '../../supabase/...'` with `from '@database/...'`. The alias is defined in `backend/tsconfig.json` (`"@database/*": ["../supabase/*"]`). Use `import Task from '@database/models/Task'` — model files are default exports.
+>
+> **"Bot can't reach Supabase: ECONNREFUSED 127.0.0.1:54321"** — On the Pi, the bot runs inside a Docker container. Inside the container, `127.0.0.1` refers to the container, not the Pi host where the Supabase Kong is bound. Fix:
+>
+> 1. Confirm `docker-compose.yml` has `extra_hosts: ["host.docker.internal:host-gateway"]` on the `backend` service.
+> 2. Set `SUPABASE_URL=http://host.docker.internal:54321` in `.env` on the Pi.
+> 3. Confirm the self-hosted Supabase stack is actually running on the Pi host (`docker ps | grep supabase_db_bwaincell`).
+>
+> `http://127.0.0.1:54321` is still correct for local developer workflows (running `npm run dev` natively outside Docker) and for the host-side health-check curl in the deploy workflow.
+>
+> **"GHCR pull fails: unauthorized / 401 / denied" on the Pi** — The Pi has not authenticated with GitHub Container Registry. Fix:
+>
+> 1. Create a GitHub Personal Access Token (classic) with `read:packages` scope at https://github.com/settings/tokens/new.
+> 2. Store it as a repository secret named `PI_GHCR_TOKEN` under Settings → Secrets and variables → Actions.
+> 3. On the Pi, run once (the deploy workflow will also do this automatically when the secret is present):
+>    ```bash
+>    echo 'YOUR_PAT_HERE' | docker login ghcr.io -u strawhatluka --password-stdin
+>    ```
+> 4. Retry `docker compose pull backend`.
+>
+> **Pi "stuck" on image pull or AAAA DNS lookup** — The Raspberry Pi OS often has an IPv6 Unique Local Address but no IPv6 route, so Node's resolver hangs on AAAA queries before falling back to IPv4. Disable IPv6 at the kernel level:
+>
+> ```bash
+> sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+> sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+> sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+> # Persist in /etc/sysctl.d/99-disable-ipv6.conf
+> ```
 
 > **Supabase update (2026-04-15):** Key troubleshooting entries for the current stack.
 >
@@ -33,7 +64,7 @@ Before diving into specific issues, run these quick checks:
 npm run dev
 
 # Check backend logs
-docker logs bwaincell-bot
+docker logs bwaincell-backend
 
 # Check database connection
 npm run db:test --workspace=backend
@@ -58,13 +89,13 @@ npm run env:check
 
 ```bash
 # Check bot is logged in
-docker logs bwaincell-bot | grep "Bot logged in"
+docker logs bwaincell-backend | grep "Bot logged in"
 
 # Verify slash commands are registered
 npm run deploy --workspace=backend
 
 # Check for interaction errors
-docker logs bwaincell-bot | grep "interactionCreate"
+docker logs bwaincell-backend | grep "interactionCreate"
 ```
 
 **Solution:**
@@ -101,10 +132,10 @@ docker logs bwaincell-bot | grep "interactionCreate"
 
 ```bash
 # Check for duplicate interaction processing
-docker logs bwaincell-bot | grep "Duplicate interaction"
+docker logs bwaincell-backend | grep "Duplicate interaction"
 
 # Check interaction acknowledgment timing
-docker logs bwaincell-bot | grep "deferred"
+docker logs bwaincell-backend | grep "deferred"
 ```
 
 **Solution:**
@@ -113,7 +144,7 @@ docker logs bwaincell-bot | grep "deferred"
 2. Backend should defer within 3 seconds (current implementation: <100ms)
 3. Check logs for specific command that's timing out:
    ```bash
-   docker logs bwaincell-bot | grep "Unknown interaction" -B 5
+   docker logs bwaincell-backend | grep "Unknown interaction" -B 5
    ```
 4. If specific command is slow, optimize database queries or add pagination
 
@@ -189,7 +220,7 @@ grep "DISCORD_ID\|GUILD_ID" .env
 
 ```bash
 # Check button handler registration
-docker logs bwaincell-bot | grep "handleButtonInteraction"
+docker logs bwaincell-backend | grep "handleButtonInteraction"
 
 # Check for modal-opening buttons (should NOT defer)
 grep "modal_" backend/utils/interactions.ts
@@ -237,7 +268,7 @@ grep "modal_" backend/utils/interactions.ts
 
 ```bash
 # Check scheduler initialization
-docker logs bwaincell-bot | grep "Scheduler initialized"
+docker logs bwaincell-backend | grep "Scheduler initialized"
 
 # Check active reminders in database
 psql -U bwaincell -d bwaincell -c "SELECT * FROM reminders WHERE active = true;"
@@ -296,7 +327,7 @@ psql -U bwaincell -d bwaincell -c "SELECT id, message, next_trigger FROM reminde
 npm run env:check
 
 # Check logs for specific missing variable
-docker logs bwaincell-bot 2>&1 | head -20
+docker logs bwaincell-backend 2>&1 | head -20
 ```
 
 **Solution:**
@@ -392,7 +423,7 @@ head -10 backend/commands/task.ts
 
 ```bash
 # Check for duplicate interaction processing
-docker logs bwaincell-bot | grep "Duplicate interaction detected"
+docker logs bwaincell-backend | grep "Duplicate interaction detected"
 
 # Check if multiple bot instances are running
 ps aux | grep "node.*bot.ts"
@@ -404,7 +435,7 @@ docker ps | grep bwaincell
 1. Stop all bot instances:
 
    ```bash
-   docker stop bwaincell-bot
+   docker stop bwaincell-backend
    pkill -f "node.*bot.ts"
    ```
 
@@ -446,7 +477,7 @@ docker ps | grep bwaincell
 grep "autocomplete" backend/commands/note.ts
 
 # Check autocomplete logs
-docker logs bwaincell-bot | grep "autocomplete"
+docker logs bwaincell-backend | grep "autocomplete"
 ```
 
 **Solution:**
@@ -660,7 +691,7 @@ psql -h localhost -p 5433 -U bwaincell -d bwaincell
 psql -U bwaincell -d bwaincell -c "\dt"
 
 # Check Sequelize sync logs
-docker logs bwaincell-bot | grep "Database synced"
+docker logs bwaincell-backend | grep "Database synced"
 ```
 
 **Solution:**
@@ -1185,7 +1216,7 @@ node -e "console.log(JSON.parse(Buffer.from('YOUR_JWT_TOKEN'.split('.')[1], 'bas
 grep JWT_SECRET .env
 
 # Check backend logs
-docker logs bwaincell-bot | grep "JWT"
+docker logs bwaincell-backend | grep "JWT"
 ```
 
 **Solution:**
@@ -1239,7 +1270,7 @@ grep "GOOGLE_CLIENT" .env
 #               https://bwaincell.sunny-stack.com/api/auth/callback/google (prod)
 
 # Check backend logs
-docker logs bwaincell-bot | grep "Google OAuth"
+docker logs bwaincell-backend | grep "Google OAuth"
 ```
 
 **Solution:**
@@ -1403,7 +1434,7 @@ curl -X OPTIONS http://localhost:3000/api/auth/google/verify \
 psql -U bwaincell -d bwaincell -c "SELECT email, refresh_token FROM users WHERE email = 'user@gmail.com';"
 
 # Check refresh endpoint logs
-docker logs bwaincell-bot | grep "/api/auth/refresh"
+docker logs bwaincell-backend | grep "/api/auth/refresh"
 ```
 
 **Solution:**
@@ -1675,7 +1706,7 @@ curl http://localhost:3000/api/tasks
 curl -X POST http://localhost:3000/api/tasks
 
 # Check backend logs
-docker logs bwaincell-bot | grep "Route"
+docker logs bwaincell-backend | grep "Route"
 
 # List all registered routes
 node -e "const app = require('./backend/src/api/server').default; console.log(app._router.stack.filter(r => r.route).map(r => r.route.path));"
@@ -1802,7 +1833,7 @@ grep "express.json\|bodyParser" backend/src/api/server.ts
 
 ```bash
 # Check query performance
-docker logs bwaincell-bot | grep "Duration:"
+docker logs bwaincell-backend | grep "Duration:"
 
 # Time specific endpoint
 time curl http://localhost:3000/api/tasks
@@ -2015,7 +2046,7 @@ curl -X PUT http://localhost:3000/api/tasks/1 \
 curl "http://localhost:3000/api/tasks?completed=true&limit=10"
 
 # Check backend logs
-docker logs bwaincell-bot | grep "Query params:"
+docker logs bwaincell-backend | grep "Query params:"
 ```
 
 **Solution:**
@@ -2868,10 +2899,10 @@ docker build --no-cache -t bwaincell-test .
 
 ```bash
 # Check environment in container
-docker exec bwaincell-bot env | grep DISCORD
+docker exec bwaincell-backend env | grep DISCORD
 
 # Check if .env is mounted
-docker inspect bwaincell-bot | grep -A 10 "Env"
+docker inspect bwaincell-backend | grep -A 10 "Env"
 
 # Test with docker-compose
 docker-compose config
@@ -2896,7 +2927,7 @@ docker-compose config
 2. Or pass environment variables:
 
    ```bash
-   docker run -e DISCORD_BOT_TOKEN=xxx -e DATABASE_URL=xxx bwaincell-bot
+   docker run -e DISCORD_BOT_TOKEN=xxx -e DATABASE_URL=xxx bwaincell-backend
    ```
 
 3. For production, use secrets management:
@@ -2933,7 +2964,7 @@ docker-compose config
 psql $DATABASE_URL
 
 # Check network connectivity
-docker exec bwaincell-bot ping -c 3 database-host
+docker exec bwaincell-backend ping -c 3 database-host
 
 # Check SSL requirements
 psql $DATABASE_URL?sslmode=require
@@ -3051,10 +3082,10 @@ docker ps | grep 3000
 
 ```bash
 # Check container memory usage
-docker stats bwaincell-bot
+docker stats bwaincell-backend
 
 # Check Node.js memory usage
-docker exec bwaincell-bot node -e "console.log(process.memoryUsage())"
+docker exec bwaincell-backend node -e "console.log(process.memoryUsage())"
 
 # Profile memory usage
 node --inspect backend/src/bot.ts
@@ -3090,7 +3121,7 @@ node --inspect backend/src/bot.ts
 
    ```bash
    # Docker
-   docker run --memory=512m bwaincell-bot
+   docker run --memory=512m bwaincell-backend
 
    # Node.js
    node --max-old-space-size=512 backend/src/bot.js
@@ -3117,13 +3148,13 @@ node --inspect backend/src/bot.ts
 
 ```bash
 # Check container logs
-docker logs bwaincell-bot
+docker logs bwaincell-backend
 
 # Check log file location
-docker exec bwaincell-bot ls -la /var/log/
+docker exec bwaincell-backend ls -la /var/log/
 
 # Check volume mounts
-docker inspect bwaincell-bot | grep -A 10 "Mounts"
+docker inspect bwaincell-backend | grep -A 10 "Mounts"
 ```
 
 **Solution:**
@@ -3242,10 +3273,10 @@ echo | openssl s_client -connect bwaincell.fly.dev:443 2>/dev/null | openssl x50
 curl http://localhost:3000/health
 
 # Check Docker health status
-docker inspect bwaincell-bot | grep -A 10 "Health"
+docker inspect bwaincell-backend | grep -A 10 "Health"
 
 # Check health check logs
-docker logs bwaincell-bot | grep "health"
+docker logs bwaincell-backend | grep "health"
 ```
 
 **Solution:**
@@ -3452,7 +3483,7 @@ curl -I https://bwaincell.sunny-stack.com/_next/static/css/main.css
 If you encounter issues not covered in this guide:
 
 1. Check GitHub Issues: [github.com/strawhatluka/bwaincell/issues](https://github.com/strawhatluka/bwaincell/issues)
-2. Review backend logs: `docker logs bwaincell-bot`
+2. Review backend logs: `docker logs bwaincell-backend`
 3. Enable debug logging: `LOG_LEVEL=debug npm run dev`
 4. Create a new issue with logs and reproduction steps
 

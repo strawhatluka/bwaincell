@@ -29,3 +29,7 @@ All routes wrap responses with helpers in `backend/src/api/utils/response.ts`:
 
 - [auth.md](../middleware/auth.md) — HTTP Basic auth (legacy).
 - [oauth.md](../middleware/oauth.md) — JWT/Google OAuth (current).
+
+## Database Imports
+
+All routes that access Supabase do so via the `@database/*` path alias (defined in `backend/tsconfig.json` as `"@database/*": ["../supabase/*"]`). Relative `../../../supabase/...` imports are never used in backend source because `tsc --build` does not rewrite cross-workspace relative paths, so they would break in production. See the `Imports` section in each route doc above, and [`docs/guides/api-development.md`](../../../guides/api-development.md) for the idiomatic patterns.

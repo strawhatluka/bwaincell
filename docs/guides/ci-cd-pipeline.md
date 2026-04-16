@@ -2,7 +2,17 @@
 
 Comprehensive guide to Bwaincell's continuous integration and deployment pipeline using GitHub Actions.
 
-> **Supabase update (2026-04-15):** CI no longer provisions a standalone `postgres` service. Integration tests that need a database should use the Supabase CLI:
+> **Deployment update (2026-04-16):** The previous single `deploy` job has been split into five cooperating jobs in `.github/workflows/deploy.yml` (triggered on release):
+>
+> - **deploy-vercel** — deploys the Next.js frontend to Vercel using `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`. Runs in parallel with the Pi jobs.
+> - **deploy-supabase** — SSHes into the Pi, captures a `pg_dump` backup, `git reset --hard origin/main`, then `supabase start` / `supabase migration up` against the Pi's self-hosted Supabase stack.
+> - **build-bot-image** — runs on `ubuntu-latest` with QEMU + Buildx, builds the bot image for `linux/arm64`, and pushes it to **GHCR** as `ghcr.io/strawhatluka/bwaincell-backend:latest` and `:<git-sha>`. Uses `cache-from: type=gha` / `cache-to: type=gha,mode=max` for layer caching.
+> - **deploy-bot** — SSHes into the Pi, `docker login ghcr.io` with `PI_GHCR_TOKEN`, `docker pull` the prebuilt image, `docker compose up -d` the backend, and runs `deploy-commands.js`. Has `needs: [deploy-supabase, build-bot-image]`. **No local build runs on the Pi.**
+> - **rollback** — runs `if: failure()` after `deploy-bot` and re-tags the previously saved `:backup` image as `:latest`, then `docker compose up -d`. Automatic.
+>
+> **Required repo secrets** (see [.env.example](../../.env.example) trailing comments): `PI_HOST`, `PI_USERNAME`, `PI_SSH_KEY`, `PI_SSH_PASSPHRASE` (optional), `PI_SSH_PORT` (optional), `PI_GHCR_TOKEN` (GitHub PAT with `read:packages` scope — used to pull the bot image on the Pi), `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`. The default `GITHUB_TOKEN` is used automatically by `build-bot-image` to push to GHCR.
+>
+> **CI workflow (`.github/workflows/ci.yml`) is unchanged** by this update — it still runs lint / build / test against the monorepo workspaces on PRs. Integration tests that need a database continue to use the Supabase CLI pattern below.
 >
 > ```yaml
 > - name: Install Supabase CLI
@@ -18,12 +28,7 @@ Comprehensive guide to Bwaincell's continuous integration and deployment pipelin
 >   run: npm run test:backend
 > ```
 >
-> Deployment jobs in `.github/workflows/deploy.yml` (triggered on release) are:
->
-> - **deploy** — SSH to the Pi, `git pull`, `docker compose up -d --build`, `supabase db push` against the Pi's self-hosted Supabase
-> - **deploy-vercel** — frontend to Vercel via `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`
->
-> Required repo secrets (see [.env.example](../../.env.example) trailing comments): `PI_HOST`, `PI_USERNAME`, `PI_SSH_KEY`, `PI_SSH_PASSPHRASE` (optional), `PI_SSH_PORT` (optional), `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+> Legacy examples below that reference `DATABASE_URL: postgresql://test_user:test_password@localhost:5432/bwaincell_test` are retained for historical context (early Sequelize-era tests) and will be removed once all integration tests are migrated to the Supabase CLI flow.
 
 ## Table of Contents
 
@@ -871,29 +876,74 @@ git push origin feature/add-task-priority
 
 ## Continuous Deployment
 
-### Backend Deployment (Raspberry Pi)
+### Deployment Job DAG
 
-**Automatic Deployment on Push to Main:**
+`.github/workflows/deploy.yml` is triggered on `release: published` (or manually via `workflow_dispatch`). The dependency graph is:
+
+```
+deploy-vercel         (ubuntu-latest, parallel — no deps)
+
+deploy-supabase ──┐
+                  ├──► deploy-bot ──► rollback (only if deploy-bot fails)
+build-bot-image ──┘
+```
+
+- `deploy-bot` has `needs: [deploy-supabase, build-bot-image]`, so migrations must succeed and the image must be pushed to GHCR before the Pi pulls.
+- `rollback` has `needs: deploy-bot` and `if: failure()`, so it only runs when the bot deploy actually fails.
+- `deploy-vercel` is independent of the Pi jobs and runs in parallel.
+
+### Image Tagging (GHCR)
+
+Every successful `build-bot-image` run pushes **two tags**:
+
+- `ghcr.io/strawhatluka/bwaincell-backend:latest` — always points at the most recent successful build.
+- `ghcr.io/strawhatluka/bwaincell-backend:<git-sha>` — immutable per-commit tag.
+
+This means rolling back to any prior commit is a `docker pull` + `docker tag` away:
 
 ```bash
-# SSH into Raspberry Pi
-ssh sunny-pi
-
-# Navigate to project
-cd ~/bwaincell
-
-# Pull latest changes
-git pull origin main
-
-# Rebuild Docker image
-docker compose build --no-cache backend
-
-# Restart services
+docker pull ghcr.io/strawhatluka/bwaincell-backend:<prior-sha>
+docker tag  ghcr.io/strawhatluka/bwaincell-backend:<prior-sha> \
+            ghcr.io/strawhatluka/bwaincell-backend:latest
 docker compose up -d
+```
 
-# Check logs
+The `deploy-bot` job also writes the current image reference to `~/bwaincell/.bot-image-ref` on the Pi so the `rollback` job can `docker tag ${REF}:backup ${REF}:latest` without hardcoding the registry path.
+
+### Backend Deployment (Raspberry Pi) — GHCR Pull Flow
+
+**Automatic Deployment on Release:**
+
+The `deploy-bot` job on GitHub Actions executes the following on the Pi:
+
+```bash
+# Authenticate with GHCR (one-time per Pi; credentials are cached by docker)
+echo "$PI_GHCR_TOKEN" | docker login ghcr.io \
+    -u strawhatluka --password-stdin
+
+# Pull the prebuilt arm64 image (built on ubuntu-latest with QEMU + Buildx)
+docker pull ghcr.io/strawhatluka/bwaincell-backend:<git-sha>
+docker tag  ghcr.io/strawhatluka/bwaincell-backend:<git-sha> \
+            ghcr.io/strawhatluka/bwaincell-backend:latest
+
+# Restart the bot (no local build — the image is already built)
+docker compose down
+docker compose up -d
+docker compose exec -T backend node dist/src/deploy-commands.js   # refresh Discord slash commands
+```
+
+**Manual redeploy on the Pi** (outside GitHub Actions) uses the same flow:
+
+```bash
+ssh sunny-pi
+cd ~/bwaincell
+git pull                               # only for docker-compose.yml + supabase migrations
+docker compose pull backend            # pull :latest from GHCR
+docker compose up -d
 docker compose logs -f backend
 ```
+
+`docker compose build` is **no longer part of any deploy path**. All builds happen on GitHub Actions; the Pi only pulls.
 
 ### Frontend Deployment (Vercel)
 
