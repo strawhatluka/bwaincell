@@ -14,7 +14,7 @@ _Same Fweak, Same Bwaincell_ ✨
 
 The Bwaincell-pwa is a companion app to the Bwaincell Discord bot I built, I'll provide the link to it below. The bot and app were developed for personal use for me and my wife and my iteration of it won't be available to access publically, however, feel free to tinker and make it your own!
 
-https://github.com/lukadfagundes/bwaincell
+https://github.com/strawhatluka/bwaincell
 
 ### Core Productivity Tools
 
@@ -78,7 +78,7 @@ Inspired by the anime film "Your Name" (Kimi no Na wa), the app features three t
 
 ```bash
 # Clone the repository
-git clone https://github.com/lukadfagundes/bwaincell.git
+git clone https://github.com/strawhatluka/bwaincell.git
 cd bwaincell/frontend
 
 # Install dependencies

@@ -846,6 +846,6 @@ Frontend: Vercel PWA (separate repo)
 
 This version represents the initial production release built for personal use by the author and his wife. The system was designed as a dual-purpose productivity platform accessible via Discord bot commands and a companion Progressive Web App.
 
-[2.1.0]: https://github.com/lukadfagundes/bwaincell/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/lukadfagundes/bwaincell/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/lukadfagundes/bwaincell/releases/tag/v1.0.0
+[2.1.0]: https://github.com/strawhatluka/bwaincell/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/strawhatluka/bwaincell/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/strawhatluka/bwaincell/releases/tag/v1.0.0

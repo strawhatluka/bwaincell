@@ -47,7 +47,7 @@ The Pi runs both the backend container **and** the Supabase stack on loopback (`
 
 ```bash
 ssh pi@<pi-host>
-git clone https://github.com/lukadfagundes/bwaincell.git ~/bwaincell
+git clone https://github.com/strawhatluka/bwaincell.git ~/bwaincell
 cd ~/bwaincell
 cp .env.example .env               # fill in production values (see section 3)
 chmod 600 .env

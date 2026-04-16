@@ -144,7 +144,7 @@ Fast reference guide for common commands, Discord bot commands, API endpoints, e
 
 | Command                                                    | Description                      |
 | ---------------------------------------------------------- | -------------------------------- |
-| `git clone https://github.com/lukadfagundes/bwaincell.git` | Clone repository                 |
+| `git clone https://github.com/strawhatluka/bwaincell.git` | Clone repository                 |
 | `git checkout -b feature/name`                             | Create feature branch            |
 | `git status`                                               | Check working directory status   |
 | `git add .`                                                | Stage all changes                |

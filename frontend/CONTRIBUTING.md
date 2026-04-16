@@ -435,7 +435,7 @@ Update README.md when:
 
 ## Need Help?
 
-- **Issues**: [GitHub Issues](https://github.com/lukadfagundes/bwaincell-pwa/issues)
+- **Issues**: [GitHub Issues](https://github.com/strawhatluka/bwaincell-pwa/issues)
 - **Discussions**: Use GitHub Discussions for questions
 - **Backend Docs**: See Bwaincell repository for API docs
 

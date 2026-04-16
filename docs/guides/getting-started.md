@@ -23,7 +23,7 @@ You do **not** need to install PostgreSQL locally. The Supabase local stack prov
 
 ```bash
 # Clone repository
-git clone https://github.com/lukadfagundes/bwaincell.git
+git clone https://github.com/strawhatluka/bwaincell.git
 cd bwaincell
 
 # Install dependencies for all workspaces
@@ -211,5 +211,5 @@ psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE bwaincell TO bwaincell;"
 
 ## Support
 
-- GitHub Issues: [github.com/lukadfagundes/bwaincell/issues](https://github.com/lukadfagundes/bwaincell/issues)
+- GitHub Issues: [github.com/strawhatluka/bwaincell/issues](https://github.com/strawhatluka/bwaincell/issues)
 - Documentation: [docs/](../)

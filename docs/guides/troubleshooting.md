@@ -3451,7 +3451,7 @@ curl -I https://bwaincell.sunny-stack.com/_next/static/css/main.css
 
 If you encounter issues not covered in this guide:
 
-1. Check GitHub Issues: [github.com/lukadfagundes/bwaincell/issues](https://github.com/lukadfagundes/bwaincell/issues)
+1. Check GitHub Issues: [github.com/strawhatluka/bwaincell/issues](https://github.com/strawhatluka/bwaincell/issues)
 2. Review backend logs: `docker logs bwaincell-bot`
 3. Enable debug logging: `LOG_LEVEL=debug npm run dev`
 4. Create a new issue with logs and reproduction steps

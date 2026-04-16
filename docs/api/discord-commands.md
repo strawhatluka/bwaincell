@@ -1833,7 +1833,7 @@ DEFAULT_REMINDER_CHANNEL=your_channel_id_for_reminders
 
 ## Support
 
-**GitHub Issues:** [github.com/lukadfagundes/bwaincell/issues](https://github.com/lukadfagundes/bwaincell/issues)
+**GitHub Issues:** [github.com/strawhatluka/bwaincell/issues](https://github.com/strawhatluka/bwaincell/issues)
 **Documentation:** [docs/](../)
 
 ---

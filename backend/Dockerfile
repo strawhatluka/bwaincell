@@ -10,7 +10,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Dependencies
 # -----------------------------------------------------------------------------
-FROM --platform=linux/arm64 node:18-alpine AS deps
+FROM node:18-alpine AS deps
 
 # Install dependencies for native modules (pg for PostgreSQL)
 RUN apk add --no-cache libc6-compat postgresql-client && \
@@ -34,7 +34,7 @@ RUN HUSKY=0 npm ci --omit=dev --ignore-scripts && \
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
 # -----------------------------------------------------------------------------
-FROM --platform=linux/arm64 node:18-alpine AS builder
+FROM node:18-alpine AS builder
 
 # Install build dependencies for native modules (pg, TypeScript compilation)
 RUN apk add --no-cache python3 make g++ postgresql-dev && \
@@ -96,7 +96,7 @@ RUN test -f backend/dist/src/bot.js || \
 # -----------------------------------------------------------------------------
 # Stage 3: Runner
 # -----------------------------------------------------------------------------
-FROM --platform=linux/arm64 node:18-alpine AS runner
+FROM node:18-alpine AS runner
 
 # Install dumb-init for proper signal handling + fonts for skia-canvas text rendering
 RUN apk add --no-cache dumb-init curl fontconfig ttf-dejavu && \

@@ -13,12 +13,11 @@ services:
   # Backend Service - Discord.js 14 + Express API + Supabase (Monorepo)
   # ---------------------------------------------------------------------------
   backend:
-    # Build from monorepo root context
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-
-    image: bwaincell-backend:latest
+    # Image is built on GitHub Actions and pushed to GHCR.
+    # On the Pi, `docker compose up -d` only PULLS this image.
+    # For local development builds, override with `docker compose -f docker-compose.yml -f docker-compose.dev.yml ...`
+    # or build manually: `docker build -t ghcr.io/strawhatluka/bwaincell-backend:latest -f backend/Dockerfile .`
+    image: ghcr.io/strawhatluka/bwaincell-backend:latest
     container_name: bwaincell-backend
 
     # Restart policy for high availability
@@ -106,12 +105,17 @@ networks:
 #   2. Ensure BOT_TOKEN, CLIENT_ID, GUILD_ID, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY are set
 #      (SUPABASE_URL points at the local Supabase stack on this host)
 #   3. Self-hosted Supabase stack must be running on the host (`supabase start`)
-#   4. Monorepo structure: backend/, frontend/, shared/, package.json at root
+#   4. Authenticate with GHCR to pull the image:
+#        echo $GHCR_PAT | docker login ghcr.io -u strawhatluka --password-stdin
+#      (GHCR_PAT = GitHub PAT with read:packages scope)
 #
-# Build Backend Image:
-#   docker compose build backend
-#   # OR for fresh build:
-#   docker compose build --no-cache backend
+# Backend Image (GHCR):
+#   The backend image is built by GitHub Actions on every deploy and pushed to:
+#     ghcr.io/strawhatluka/bwaincell-backend:latest
+#   This compose file PULLS the image; it is NOT built locally on the Pi.
+#
+# Pull Latest Image:
+#   docker compose pull backend
 #
 # Start Services:
 #   docker compose up -d
@@ -127,9 +131,12 @@ networks:
 # Stop Services:
 #   docker compose down
 #
-# Update Backend:
-#   docker compose down
-#   docker compose build --no-cache backend
+# Update Backend (on the Pi):
+#   docker compose pull backend
+#   docker compose up -d
+#
+# Local Development Build (if you need to build manually outside CI):
+#   docker build -t ghcr.io/strawhatluka/bwaincell-backend:latest -f backend/Dockerfile .
 #   docker compose up -d
 #
 # View Resource Usage:

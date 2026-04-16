@@ -225,12 +225,80 @@ jobs:
             fi
 
   # ---------------------------------------------------------------------------
+  # Build Bot Image on Runner and Push to GHCR
+  # ---------------------------------------------------------------------------
+  # Builds the arm64 image on a fast ubuntu-latest runner via Buildx + QEMU
+  # and pushes it to GitHub Container Registry. The Pi then pulls a prebuilt
+  # image instead of building locally (saves ~15 minutes per deploy).
+  build-bot-image:
+    name: Build Bot Image (GHCR)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image coordinates
+        id: meta
+        run: |
+          # Lowercase the owner for GHCR compatibility (Docker registries require lowercase)
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${OWNER_LC}/bwaincell-backend"
+          TAG="${{ github.sha }}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Image: ${IMAGE}"
+          echo "Tag: ${TAG}"
+
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push arm64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          echo "### Bot Image Built and Pushed" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ steps.meta.outputs.image }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** latest, ${{ steps.meta.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
   # Deploy Discord Bot to Raspberry Pi
   # ---------------------------------------------------------------------------
+  # Pulls the prebuilt image from GHCR and starts it on the Pi.
+  # No local builds on the Pi — saves ~15 minutes per deploy.
   deploy-bot:
     name: Deploy Bot to Raspberry Pi
     runs-on: ubuntu-latest
-    needs: deploy-supabase
+    needs: [deploy-supabase, build-bot-image]
     environment:
       name: production
 
@@ -251,38 +319,55 @@ jobs:
             echo "Capturing current bot image for rollback..."
             cd ~/bwaincell || exit 0
 
-            CURRENT_IMAGE=$(docker images bwaincell-backend:latest -q 2>/dev/null || echo "none")
-            if [ "$CURRENT_IMAGE" != "none" ]; then
+            # Backup current :latest image (whatever is tagged locally) as :backup
+            # for rollback. This still works with GHCR images because the local
+            # tag is what matters for the rollback job.
+            CURRENT_IMAGE=$(docker images -q $(cat .bot-image-ref 2>/dev/null)":latest" 2>/dev/null | head -1)
+            if [ -n "$CURRENT_IMAGE" ]; then
+              # Use the current image-ref file if present, otherwise fall back
+              # to the legacy local tag for first deploys after this migration.
+              REF=$(cat .bot-image-ref 2>/dev/null || echo "bwaincell-backend")
+              docker tag "${REF}:latest" "${REF}:backup" 2>/dev/null || true
+              echo "Backend image backed up: $CURRENT_IMAGE (${REF}:backup)"
+            elif [ -n "$(docker images bwaincell-backend:latest -q 2>/dev/null)" ]; then
+              # Legacy fallback for the first deploy after migrating to GHCR
               docker tag bwaincell-backend:latest bwaincell-backend:backup 2>/dev/null || true
-              echo "Backend image backed up: $CURRENT_IMAGE"
+              echo "Legacy backend image backed up (pre-GHCR migration)"
             else
               echo "No previous backend image to backup"
             fi
 
-      - name: Build and start bot
+      - name: Pull image from GHCR and start bot
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          IMAGE_REF: ${{ needs.build-bot-image.outputs.image }}
+          IMAGE_TAG: ${{ needs.build-bot-image.outputs.tag }}
         with:
           host: ${{ secrets.PI_HOST }}
           username: ${{ secrets.PI_USERNAME }}
           key: ${{ secrets.PI_SSH_KEY }}
           passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
           port: ${{ secrets.PI_SSH_PORT || 22 }}
-          timeout: 60m
-          command_timeout: 45m
+          timeout: 20m
+          command_timeout: 20m
+          envs: IMAGE_REF,IMAGE_TAG
           script: |
             set -e
 
             echo "================================================"
-            echo "Starting Bot Deployment"
+            echo "Starting Bot Deployment (GHCR pull mode)"
             echo "================================================"
+            echo "Image: ${IMAGE_REF}:${IMAGE_TAG}"
 
             cd ~/bwaincell || {
               echo "Directory ~/bwaincell not found"
               exit 1
             }
 
-            # Pull latest code (deploy-supabase already did this, but re-run is cheap
-            # and protects against the two jobs racing on the same checkout)
+            # Pull latest code (for docker-compose.yml, supabase/ migrations, etc.)
+            # Note: bot source code is NOT needed on the Pi anymore — it's baked
+            # into the GHCR image. This git pull is only for compose config and
+            # supabase migrations.
             git fetch origin main
             git reset --hard origin/main
             git clean -fd || echo "Some files could not be cleaned (non-critical)"
@@ -292,41 +377,35 @@ jobs:
               exit 1
             fi
 
+            # Record the image reference for future rollbacks
+            echo "${IMAGE_REF}" > .bot-image-ref
+
+            # Authenticate with GHCR (idempotent — docker stores credentials)
+            # Token is stored as a repo secret; Pi uses it to pull private images.
+            # If the repo is public, this login is not strictly required for pulls
+            # but is harmless to include.
+            if [ -n "${{ secrets.PI_GHCR_TOKEN }}" ]; then
+              echo "${{ secrets.PI_GHCR_TOKEN }}" | docker login ghcr.io -u strawhatluka --password-stdin
+            else
+              echo "PI_GHCR_TOKEN not set — assuming public image or pre-existing login"
+            fi
+
+            echo "Pulling image ${IMAGE_REF}:${IMAGE_TAG}..."
+            docker pull "${IMAGE_REF}:${IMAGE_TAG}"
+            docker tag "${IMAGE_REF}:${IMAGE_TAG}" "${IMAGE_REF}:latest"
+            echo "Image pulled successfully"
+
             echo "Stopping existing backend containers..."
             # NOTE: no --remove-orphans here; Supabase containers run in a
             # separate compose project and must not be touched.
             docker compose down || true
             docker rm -f bwaincell-backend 2>/dev/null || true
 
-            # Clean up old images (preserve backup for rollback)
-            LATEST_ID=$(docker images bwaincell-backend:latest -q 2>/dev/null || echo "none")
-            BACKUP_ID=$(docker images bwaincell-backend:backup -q 2>/dev/null || echo "none")
-
-            if [ "$LATEST_ID" != "none" ] && [ "$LATEST_ID" != "$BACKUP_ID" ]; then
-              docker rmi -f bwaincell-backend:latest || true
-            elif [ "$LATEST_ID" != "none" ]; then
-              docker rmi bwaincell-backend:latest || true
-            fi
-
+            # Clean up dangling images (but preserve :backup and the new :latest)
             docker image prune -f || true
-            docker builder prune -af
 
             echo "Disk space after cleanup:"
             df -h / | grep -E "Filesystem|/dev/"
-
-            echo "Building backend image..."
-            docker build --no-cache \
-              -t bwaincell-backend:latest \
-              -f backend/Dockerfile \
-              . 2>&1 | tee build-backend.log
-
-            if [ ${PIPESTATUS[0]} -ne 0 ]; then
-              echo "Backend image build failed"
-              tail -100 build-backend.log
-              exit 1
-            fi
-
-            echo "Backend image built successfully"
 
             echo "Starting backend service..."
             docker compose up -d
@@ -451,8 +530,14 @@ jobs:
               exit 1
             }
 
+            # Determine the current image ref (GHCR path, written by deploy-bot)
+            # Falls back to legacy local tag for rollbacks immediately after the
+            # GHCR migration where no ref file exists yet.
+            REF=$(cat .bot-image-ref 2>/dev/null || echo "bwaincell-backend")
+            echo "Image reference for rollback: ${REF}"
+
             # Check for backup image
-            BACKUP_IMAGE=$(docker images bwaincell-backend:backup -q 2>/dev/null || echo "none")
+            BACKUP_IMAGE=$(docker images "${REF}:backup" -q 2>/dev/null || echo "none")
             if [ "$BACKUP_IMAGE" = "none" ]; then
               echo "No backup image available — may be first deployment"
               exit 1
@@ -465,7 +550,7 @@ jobs:
             docker compose down || true
 
             echo "Restoring backup image..."
-            docker tag bwaincell-backend:backup bwaincell-backend:latest
+            docker tag "${REF}:backup" "${REF}:latest"
 
             echo "Starting service with backup image..."
             docker compose up -d

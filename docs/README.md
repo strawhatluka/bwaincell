@@ -106,7 +106,7 @@ See [api/discord-commands.md](api/discord-commands.md) for full reference.
 
 ### External Links
 
-- GitHub Repository: [github.com/lukadfagundes/bwaincell](https://github.com/lukadfagundes/bwaincell)
+- GitHub Repository: [github.com/strawhatluka/bwaincell](https://github.com/strawhatluka/bwaincell)
 - Discord.js: [discord.js.org](https://discord.js.org/)
 - Next.js: [nextjs.org/docs](https://nextjs.org/docs)
 - Supabase: [supabase.com/docs](https://supabase.com/docs)
@@ -125,11 +125,11 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for general contribution guidelines.
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
-- **Questions:** [GitHub Discussions](https://github.com/lukadfagundes/bwaincell/discussions)
+- **Issues:** [GitHub Issues](https://github.com/strawhatluka/bwaincell/issues)
+- **Questions:** [GitHub Discussions](https://github.com/strawhatluka/bwaincell/discussions)
 
 ---
 
 **Last Updated:** 2026-04-15
 **Version:** 2.1.2
-**Maintained by:** [lukadfagundes](https://github.com/lukadfagundes)
+**Maintained by:** [strawhatluka](https://github.com/strawhatluka)

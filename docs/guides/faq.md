@@ -85,7 +85,7 @@ Bwaincell is a unified monorepo productivity platform providing task management,
 
 Yes, Bwaincell is open source under the ISC License.
 
-**Repository:** https://github.com/lukadfagundes/bwaincell
+**Repository:** https://github.com/strawhatluka/bwaincell
 
 **License:** ISC (permissive open source license)
 
@@ -105,11 +105,11 @@ Yes, Bwaincell is open source under the ISC License.
 
 **Issue Tracker:**
 
-- [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
+- [GitHub Issues](https://github.com/strawhatluka/bwaincell/issues)
 
 **Discussions:**
 
-- [GitHub Discussions](https://github.com/lukadfagundes/bwaincell/discussions)
+- [GitHub Discussions](https://github.com/strawhatluka/bwaincell/discussions)
 
 **Learn more:** [Support Section](../../README.md#support)
 
@@ -945,7 +945,7 @@ psql -U bwaincell -d bwaincell -f backup.sql
 **Deployment Steps:**
 
 1. SSH into Raspberry Pi: `ssh pi@raspberry-pi`
-2. Clone repository: `git clone https://github.com/lukadfagundes/bwaincell.git`
+2. Clone repository: `git clone https://github.com/strawhatluka/bwaincell.git`
 3. Create `.env` file with production credentials
 4. Build images: `docker-compose build`
 5. Start services: `docker-compose up -d`

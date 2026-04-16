@@ -49,7 +49,7 @@ A **unified monorepo productivity platform** providing task management, reminder
 
 ```bash
 # Clone repository
-git clone https://github.com/lukadfagundes/bwaincell.git
+git clone https://github.com/strawhatluka/bwaincell.git
 cd bwaincell
 
 # Install dependencies and build shared types
@@ -130,7 +130,7 @@ npm run deploy --workspace=backend
 
 ```bash
 # Clone the repository
-git clone https://github.com/lukadfagundes/bwaincell.git
+git clone https://github.com/strawhatluka/bwaincell.git
 cd bwaincell
 
 # Install dependencies for all workspaces
@@ -523,7 +523,7 @@ Comprehensive documentation organized into user guides, API references, architec
 
 ```bash
 # Clone repository
-git clone https://github.com/lukadfagundes/bwaincell.git
+git clone https://github.com/strawhatluka/bwaincell.git
 cd bwaincell
 
 # Install all workspace dependencies
@@ -705,10 +705,10 @@ Version history and release notes are tracked in [CHANGELOG.md](CHANGELOG.md), f
 
 ### Get Help
 
-- **Bug Reports** - [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
-- **Feature Requests** - [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues/new)
-- **Discussions** - [GitHub Discussions](https://github.com/lukadfagundes/bwaincell/discussions)
-- **Contact** - Via [GitHub Profile](https://github.com/lukadfagundes)
+- **Bug Reports** - [GitHub Issues](https://github.com/strawhatluka/bwaincell/issues)
+- **Feature Requests** - [GitHub Issues](https://github.com/strawhatluka/bwaincell/issues/new)
+- **Discussions** - [GitHub Discussions](https://github.com/strawhatluka/bwaincell/discussions)
+- **Contact** - Via [GitHub Profile](https://github.com/strawhatluka)
 
 ### Common Resources
 
@@ -780,7 +780,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Deployment:** Backend (Raspberry Pi 4B + Docker + self-hosted Supabase) + Frontend (Vercel)
 **Discord Commands:** 12 commands with multiple subcommands each
 **Documentation:** 30+ comprehensive documentation files in docs/
-**Maintained by:** [lukadfagundes](https://github.com/lukadfagundes)
+**Maintained by:** [strawhatluka](https://github.com/strawhatluka)
 
 ---
 

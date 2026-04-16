@@ -333,7 +333,7 @@ Releases follow semantic versioning (MAJOR.MINOR.PATCH):
 
 ## Need Help?
 
-- **Issues**: [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
+- **Issues**: [GitHub Issues](https://github.com/strawhatluka/bwaincell/issues)
 - **Discussions**: Use GitHub Discussions for questions
 
 ---

@@ -33,7 +33,7 @@ Step-by-step guides and tutorials for using and developing Bwaincell.
 - [Architecture Overview](../architecture/overview.md)
 - [API Documentation](../api/)
 - [Reference Documentation](../reference/)
-- [GitHub Issues](https://github.com/lukadfagundes/bwaincell/issues)
+- [GitHub Issues](https://github.com/strawhatluka/bwaincell/issues)
 
 ---
 
