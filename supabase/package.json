@@ -1,0 +1,14 @@
+{
+  "name": "@bwaincell/supabase",
+  "version": "2.2.0",
+  "description": "Supabase client, models, and database layer for Bwaincell",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "files": [
+    "dist"
+  ]
+}

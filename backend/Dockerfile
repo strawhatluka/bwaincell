@@ -18,10 +18,11 @@ RUN apk add --no-cache libc6-compat postgresql-client && \
 
 WORKDIR /app
 
-# Copy workspace package files (root + backend + shared)
+# Copy workspace package files (root + backend + shared + supabase)
 COPY package.json package-lock.json* ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
+COPY supabase/package.json ./supabase/
 
 # Install production dependencies only (disable husky during install)
 # --ignore-scripts required: postinstall runs tsc which isn't available with --omit=dev
@@ -45,6 +46,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
+COPY supabase/package.json ./supabase/
 
 # Install ALL dependencies (including devDependencies for TypeScript compilation)
 # Skip prepare script (husky) during Docker build
@@ -121,6 +123,7 @@ COPY --chown=botuser:botuser shared/package.json ./shared/
 
 # Copy compiled supabase models (backend imports these at runtime)
 COPY --from=builder --chown=botuser:botuser /app/supabase/dist ./supabase/dist
+COPY --chown=botuser:botuser supabase/package.json ./supabase/
 
 # Copy CHANGELOG.md (release notes) for announcements
 COPY --chown=botuser:botuser CHANGELOG.md ./
