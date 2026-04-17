@@ -43,7 +43,7 @@ Use this for staging if you want the simplest operational story.
 
 ### Option B — Self-Hosted Supabase on the Pi (current production)
 
-The Pi runs both the backend container **and** the Supabase stack. Supabase Kong binds to `127.0.0.1:54321` on the **Pi host**. The backend runs inside a Docker container, so *from inside the container* `127.0.0.1` is the container itself, not the Pi — use `host.docker.internal:54321` instead.
+The Pi runs both the backend container **and** the Supabase stack. Supabase Kong binds to `127.0.0.1:54321` on the **Pi host**. The backend runs inside a Docker container, so _from inside the container_ `127.0.0.1` is the container itself, not the Pi — use `host.docker.internal:54321` instead.
 
 ```bash
 ssh pi@<pi-host>
@@ -63,12 +63,12 @@ supabase db push                   # apply migrations
 
 ```yaml
 extra_hosts:
-  - "host.docker.internal:host-gateway"
+  - 'host.docker.internal:host-gateway'
 ```
 
 This makes `host.docker.internal` resolve to the Pi host's gateway IP from inside the bot container. Because of this, the `SUPABASE_URL` used by the bot **must** be `http://host.docker.internal:54321` — `http://127.0.0.1:54321` will fail with `ECONNREFUSED` inside the container.
 
-> `http://127.0.0.1:54321` remains correct for **local developer workflows** (running `supabase start` + `npm run dev` outside Docker) and for the healthcheck curl the deploy workflow runs *from the Pi host itself*. It is only the containerized bot that needs `host.docker.internal`.
+> `http://127.0.0.1:54321` remains correct for **local developer workflows** (running `supabase start` + `npm run dev` outside Docker) and for the healthcheck curl the deploy workflow runs _from the Pi host itself_. It is only the containerized bot that needs `host.docker.internal`.
 
 For separate dev/staging/prod environments, create a separate Supabase project (hosted or self-hosted) per environment and keep three distinct `.env` files / GitHub Actions environments with their own `SUPABASE_*` secrets.
 

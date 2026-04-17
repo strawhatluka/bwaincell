@@ -38,6 +38,7 @@ Whenever you add a migration, update the matching model methods and types in the
 ## Used By
 
 - **Backend Discord bot** (`backend/commands/*.ts`, `backend/utils/interactions/**`) — uses the service role key. Always imports via the `@database/*` alias:
+
   ```ts
   // backend/commands/task.ts
   import Task from '@database/models/Task';
@@ -45,5 +46,6 @@ Whenever you add a migration, update the matching model methods and types in the
   // backend/utils/interactions/helpers/databaseHelper.ts
   import { Task, List, Reminder } from '@database/index';
   ```
+
 - **Next.js API routes** (`frontend/app/api/**/route.ts`) — uses the service role key after NextAuth session verification.
 - Frontend hooks never talk to Supabase directly; they go through `frontend/lib/api.ts` → API routes.

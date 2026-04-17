@@ -417,7 +417,7 @@ The fix is a special DNS alias:
 
 ```yaml
 extra_hosts:
-  - "host.docker.internal:host-gateway"
+  - 'host.docker.internal:host-gateway'
 ```
 
 On Linux, Docker resolves `host-gateway` to the host's default bridge IP (commonly `172.17.0.1`). Kong is bound on the Pi host loopback at `:54321`, so from inside the bot container, `http://host.docker.internal:54321` reaches it through the host-gateway.

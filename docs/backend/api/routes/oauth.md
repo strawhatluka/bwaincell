@@ -12,7 +12,7 @@ Google Sign-In + JWT refresh for the web dashboard. The server does not hold ses
 import { User } from '@database/models/User';
 ```
 
-Note that `User` is exported as a *named* export (not default) — `@database/models/User` must be imported as `{ User }`. `@database/*` is the path alias defined in `backend/tsconfig.json`.
+Note that `User` is exported as a _named_ export (not default) — `@database/models/User` must be imported as `{ User }`. `@database/*` is the path alias defined in `backend/tsconfig.json`.
 
 ## Endpoints
 

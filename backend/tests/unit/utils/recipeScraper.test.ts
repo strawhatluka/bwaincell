@@ -446,3 +446,93 @@ describe('splitIngredientString additional branches', () => {
     expect(result.unit).toBe('');
   });
 });
+
+describe('extractStructuredRecipe imageUrls surfacing (WO-001)', () => {
+  it('populates imageUrls from og:image alone', () => {
+    const html = `<html><head>
+      <meta property="og:image" content="https://example.com/og.jpg">
+    </head><body></body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(result.imageUrls).toEqual(['https://example.com/og.jpg']);
+  });
+
+  it('populates imageUrls from twitter:image when og:image is absent', () => {
+    const html = `<html><head>
+      <meta name="twitter:image" content="https://example.com/tw.jpg">
+    </head><body></body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(result.imageUrls).toEqual(['https://example.com/tw.jpg']);
+  });
+
+  it('preserves og→twitter order and deduplicates identical URLs across both tags', () => {
+    const shared = 'https://example.com/shared.jpg';
+    const html = `<html><head>
+      <meta property="og:image" content="${shared}">
+      <meta name="twitter:image" content="${shared}">
+    </head><body></body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(result.imageUrls).toEqual([shared]); // exact-string dedupe
+  });
+
+  it('includes both og:image and twitter:image when distinct, og first', () => {
+    const html = `<html><head>
+      <meta property="og:image" content="https://example.com/og.jpg">
+      <meta name="twitter:image" content="https://example.com/tw.jpg">
+    </head><body></body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(result.imageUrls).toEqual(['https://example.com/og.jpg', 'https://example.com/tw.jpg']);
+  });
+
+  it('returns an empty array (never undefined) when no image metadata is present', () => {
+    const html = `<html><body><p>Just a blog post, no images or meta</p></body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(Array.isArray(result.imageUrls)).toBe(true);
+    expect(result.imageUrls).toEqual([]);
+  });
+
+  it('globally caps imageUrls at 3 when meta + inline <img> together exceed the cap', () => {
+    const html = `<html><head>
+      <meta property="og:image" content="https://example.com/og.jpg">
+      <meta name="twitter:image" content="https://example.com/tw.jpg">
+    </head><body>
+      <img src="https://example.com/inline-1.jpg">
+      <img src="https://example.com/inline-2.jpg">
+      <img src="https://example.com/inline-3.jpg">
+      <img src="https://example.com/inline-4.jpg">
+    </body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(result.imageUrls).toHaveLength(3);
+    // og and twitter take first two slots; first inline fills the remaining slot.
+    expect(result.imageUrls).toEqual([
+      'https://example.com/og.jpg',
+      'https://example.com/tw.jpg',
+      'https://example.com/inline-1.jpg',
+    ]);
+    expect(result.imageUrls).not.toContain('https://example.com/inline-2.jpg');
+  });
+
+  it('fills remaining slots with inline <img> tags when meta tags are absent', () => {
+    const html = `<html><body>
+      <img src="https://example.com/a.jpg">
+      <img src="https://example.com/b.jpg">
+      <img src="https://example.com/c.jpg">
+      <img src="https://example.com/d.jpg">
+    </body></html>`;
+    const result = extractStructuredRecipe(html);
+    expect(result.imageUrls).toEqual([
+      'https://example.com/a.jpg',
+      'https://example.com/b.jpg',
+      'https://example.com/c.jpg',
+    ]);
+  });
+
+  it('exposes imageUrls on the empty-extractor shell', () => {
+    const html = `<html><head>
+      <meta property="og:image" content="https://example.com/only.jpg">
+    </head><body></body></html>`;
+    const result = extractStructuredRecipe(html);
+    // No recipe metadata present → extractor is 'og' (og:title falls back as name).
+    // The specific assertion is that the image surfaces regardless of extractor.
+    expect(result.imageUrls).toEqual(['https://example.com/only.jpg']);
+  });
+});

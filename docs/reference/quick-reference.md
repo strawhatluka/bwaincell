@@ -61,14 +61,14 @@ Under `frontend/app/api/`: `auth/[...nextauth]`, `tasks`, `lists`, `notes`, `rem
 
 Defined in `backend/tsconfig.json` under `compilerOptions.paths`. Use these in backend code; raw relative paths across workspaces will break at runtime inside the Docker image.
 
-| Alias                 | Maps to              | Used for                                     |
-| --------------------- | -------------------- | -------------------------------------------- |
-| `@database/*`         | `../supabase/*`      | Supabase client, typed models, types         |
-| `@shared/*`           | `shared/*`           | Backend-local shared utils (`backend/shared/`) |
-| `@bwaincell/shared`   | `../shared/src`      | Cross-workspace `@bwaincell/shared` package   |
-| `@commands/*`         | `src/commands/*`     | Backend command modules                      |
-| `@handlers/*`         | `src/handlers/*`     | Interaction handlers                         |
-| `@services/*`         | `src/services/*`     | Backend service modules                      |
+| Alias               | Maps to          | Used for                                       |
+| ------------------- | ---------------- | ---------------------------------------------- |
+| `@database/*`       | `../supabase/*`  | Supabase client, typed models, types           |
+| `@shared/*`         | `shared/*`       | Backend-local shared utils (`backend/shared/`) |
+| `@bwaincell/shared` | `../shared/src`  | Cross-workspace `@bwaincell/shared` package    |
+| `@commands/*`       | `src/commands/*` | Backend command modules                        |
+| `@handlers/*`       | `src/handlers/*` | Interaction handlers                           |
+| `@services/*`       | `src/services/*` | Backend service modules                        |
 
 Example:
 
@@ -79,24 +79,24 @@ import supabase from '@database/supabase';
 
 ## Key File Locations
 
-| Concern                         | Location                                                                         |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| Supabase client                 | `supabase/supabase.ts`                                                           |
-| Schema (authoritative)          | `supabase/migrations/*.sql`                                                      |
-| Bootstrap SQL                   | `supabase/init.sql`                                                              |
-| Model wrappers (12)             | `supabase/models/*.ts`                                                           |
-| Supabase CLI config             | `supabase/config.toml`                                                           |
-| Internal workspace (Supabase)   | `supabase/package.json` (`@bwaincell/supabase`, `main: dist/index.js`)           |
-| TypeScript path aliases         | `backend/tsconfig.json` (`compilerOptions.paths`)                                |
-| Discord commands (12)           | `backend/commands/*.ts`                                                          |
-| Interaction handlers            | `backend/utils/interactions/handlers/*.ts`                                       |
-| Schedulers                      | `backend/utils/scheduler.ts`, `sunsetService.ts`, `eventsService.ts`             |
-| AI integration                  | `backend/utils/geminiService.ts`, `shoppingList.ts`, `recipeNormalize.ts`        |
-| Recipe ingest                   | `backend/utils/recipeScraper.ts`, `recipeIngestion.ts`, `ingredientCanonical.ts` |
-| REST routes                     | `backend/src/api/routes/*.ts`                                                    |
-| Next.js API routes              | `frontend/app/api/**/route.ts`                                                   |
-| Bot image (GHCR)                | `ghcr.io/strawhatluka/bwaincell-backend:{latest,<git-sha>}`                       |
-| Deploy workflow                 | `.github/workflows/deploy.yml`                                                   |
+| Concern                       | Location                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| Supabase client               | `supabase/supabase.ts`                                                           |
+| Schema (authoritative)        | `supabase/migrations/*.sql`                                                      |
+| Bootstrap SQL                 | `supabase/init.sql`                                                              |
+| Model wrappers (12)           | `supabase/models/*.ts`                                                           |
+| Supabase CLI config           | `supabase/config.toml`                                                           |
+| Internal workspace (Supabase) | `supabase/package.json` (`@bwaincell/supabase`, `main: dist/index.js`)           |
+| TypeScript path aliases       | `backend/tsconfig.json` (`compilerOptions.paths`)                                |
+| Discord commands (12)         | `backend/commands/*.ts`                                                          |
+| Interaction handlers          | `backend/utils/interactions/handlers/*.ts`                                       |
+| Schedulers                    | `backend/utils/scheduler.ts`, `sunsetService.ts`, `eventsService.ts`             |
+| AI integration                | `backend/utils/geminiService.ts`, `shoppingList.ts`, `recipeNormalize.ts`        |
+| Recipe ingest                 | `backend/utils/recipeScraper.ts`, `recipeIngestion.ts`, `ingredientCanonical.ts` |
+| REST routes                   | `backend/src/api/routes/*.ts`                                                    |
+| Next.js API routes            | `frontend/app/api/**/route.ts`                                                   |
+| Bot image (GHCR)              | `ghcr.io/strawhatluka/bwaincell-backend:{latest,<git-sha>}`                      |
+| Deploy workflow               | `.github/workflows/deploy.yml`                                                   |
 
 Fast reference guide for common commands, Discord bot commands, API endpoints, environment variables, and troubleshooting quick fixes.
 
@@ -146,42 +146,42 @@ Fast reference guide for common commands, Discord bot commands, API endpoints, e
 
 The backend image is pulled from GHCR (`ghcr.io/strawhatluka/bwaincell-backend`); no local build on the Pi. Authentication is handled once on the Pi via `echo $PAT | docker login ghcr.io -u strawhatluka --password-stdin` using a GitHub PAT with `read:packages` scope (stored in repo as the `PI_GHCR_TOKEN` secret for the workflow).
 
-| Command                                          | Description                              |
-| ------------------------------------------------ | ---------------------------------------- |
-| `docker compose pull backend`                    | Pull the latest bot image from GHCR      |
+| Command                                          | Description                                            |
+| ------------------------------------------------ | ------------------------------------------------------ |
+| `docker compose pull backend`                    | Pull the latest bot image from GHCR                    |
 | `docker-compose build`                           | Build Docker images (local dev only — Pi never builds) |
-| `docker-compose up -d`                           | Start services in background             |
-| `docker-compose down`                            | Stop and remove containers               |
-| `docker-compose logs -f`                         | Follow logs for all services             |
-| `docker-compose logs -f backend`                 | Follow backend logs only                 |
-| `docker-compose logs -f postgres`                | Follow PostgreSQL logs only              |
-| `docker-compose ps`                              | List running containers                  |
-| `docker-compose restart backend`                 | Restart backend container                |
-| `docker-compose restart postgres`                | Restart PostgreSQL container             |
-| `docker stats bwaincell-backend bwaincell-db`    | Monitor resource usage                   |
-| `docker logs bwaincell-backend --tail 50`        | View last 50 log lines                   |
-| `docker exec -it bwaincell-backend sh`           | Shell into backend container             |
-| `docker exec -it bwaincell-db psql -U bwaincell` | PostgreSQL shell                         |
-| `docker volume ls`                               | List Docker volumes                      |
-| `docker volume rm bwaincell_postgres-data`       | Remove database volume (⚠️ deletes data) |
+| `docker-compose up -d`                           | Start services in background                           |
+| `docker-compose down`                            | Stop and remove containers                             |
+| `docker-compose logs -f`                         | Follow logs for all services                           |
+| `docker-compose logs -f backend`                 | Follow backend logs only                               |
+| `docker-compose logs -f postgres`                | Follow PostgreSQL logs only                            |
+| `docker-compose ps`                              | List running containers                                |
+| `docker-compose restart backend`                 | Restart backend container                              |
+| `docker-compose restart postgres`                | Restart PostgreSQL container                           |
+| `docker stats bwaincell-backend bwaincell-db`    | Monitor resource usage                                 |
+| `docker logs bwaincell-backend --tail 50`        | View last 50 log lines                                 |
+| `docker exec -it bwaincell-backend sh`           | Shell into backend container                           |
+| `docker exec -it bwaincell-db psql -U bwaincell` | PostgreSQL shell                                       |
+| `docker volume ls`                               | List Docker volumes                                    |
+| `docker volume rm bwaincell_postgres-data`       | Remove database volume (⚠️ deletes data)               |
 
 ---
 
 ### Git Commands
 
-| Command                                                    | Description                      |
-| ---------------------------------------------------------- | -------------------------------- |
+| Command                                                   | Description                      |
+| --------------------------------------------------------- | -------------------------------- |
 | `git clone https://github.com/strawhatluka/bwaincell.git` | Clone repository                 |
-| `git checkout -b feature/name`                             | Create feature branch            |
-| `git status`                                               | Check working directory status   |
-| `git add .`                                                | Stage all changes                |
-| `git commit -m "feat: add feature"`                        | Commit with conventional message |
-| `git push origin feature/name`                             | Push feature branch              |
-| `git pull origin main`                                     | Pull latest main branch          |
-| `git log --oneline -10`                                    | View last 10 commits             |
-| `git diff`                                                 | View unstaged changes            |
-| `git stash`                                                | Temporarily save changes         |
-| `git stash pop`                                            | Restore stashed changes          |
+| `git checkout -b feature/name`                            | Create feature branch            |
+| `git status`                                              | Check working directory status   |
+| `git add .`                                               | Stage all changes                |
+| `git commit -m "feat: add feature"`                       | Commit with conventional message |
+| `git push origin feature/name`                            | Push feature branch              |
+| `git pull origin main`                                    | Pull latest main branch          |
+| `git log --oneline -10`                                   | View last 10 commits             |
+| `git diff`                                                | View unstaged changes            |
+| `git stash`                                               | Temporarily save changes         |
+| `git stash pop`                                           | Restore stashed changes          |
 
 ---
 

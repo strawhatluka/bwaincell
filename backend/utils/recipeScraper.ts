@@ -44,6 +44,18 @@ export interface ScrapeResult {
   provenance: Provenance;
   /** Which extractor path produced the data: jsonld | microdata | og | empty */
   extractor: 'jsonld' | 'microdata' | 'og' | 'empty';
+  /**
+   * Candidate images surfaced from the page for downstream multimodal AI
+   * consumption. Populated from <meta og:image>, <meta twitter:image>, and up
+   * to the remaining slots from inline <img src> tags (document order).
+   * Deduplicated by exact-string equality and globally capped at 3.
+   * Always present — may be an empty array when no images are found.
+   *
+   * Note: this is a transport field for Pass 2 (Gemini) multimodal input.
+   * It is NOT persisted as part of the recipe — canonical image selection
+   * remains `ScrapedRecipe.image_url`.
+   */
+  imageUrls: string[];
 }
 
 /**
@@ -510,30 +522,94 @@ function extractFromOpenGraph(root: HTMLElement): ScrapedRecipe | null {
 }
 
 /**
+ * Cap for the number of candidate images forwarded to Pass 2 multimodal AI.
+ * Kept small — the signal-to-cost ratio degrades fast past a couple of images.
+ */
+const MAX_IMAGE_URLS = 3;
+
+/**
+ * Collect candidate images from a parsed page for downstream multimodal AI.
+ * Priority order (ADR-3): og:image → twitter:image → inline <img> tags in
+ * document order. Dedupes by exact URL string equality. Globally capped at
+ * MAX_IMAGE_URLS across all sources.
+ *
+ * Returns an empty array when nothing is found. Never throws — any query
+ * failure yields an empty array so callers can rely on `.length`.
+ */
+function extractImageUrls(root: HTMLElement): string[] {
+  const images: string[] = [];
+
+  const push = (url: string | null | undefined): void => {
+    if (!url) return;
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    if (images.includes(trimmed)) return;
+    if (images.length >= MAX_IMAGE_URLS) return;
+    images.push(trimmed);
+  };
+
+  try {
+    const ogImage = root.querySelector('meta[property="og:image"]')?.getAttribute('content');
+    push(ogImage);
+
+    const twImage = root.querySelector('meta[name="twitter:image"]')?.getAttribute('content');
+    push(twImage);
+
+    if (images.length < MAX_IMAGE_URLS) {
+      const inlineImgs = root.querySelectorAll('img');
+      for (const img of inlineImgs) {
+        if (images.length >= MAX_IMAGE_URLS) break;
+        push(img.getAttribute('src'));
+      }
+    }
+  } catch {
+    // Defensive: any selector/parser hiccup yields whatever we already have.
+  }
+
+  return images;
+}
+
+/**
  * Extract structured recipe data from raw HTML. Tries JSON-LD, then
  * microdata, then Open Graph, in that order. Returns an empty shell if
  * nothing matches — Pass 2 will have everything to do.
  */
 export function extractStructuredRecipe(html: string): ScrapeResult {
   const root = parseHtml(html);
+  const imageUrls = extractImageUrls(root);
 
   const jsonldNode = extractFromJsonLd(root);
   if (jsonldNode) {
     const recipe = mapRecipeNode(jsonldNode);
-    return { recipe, provenance: computeProvenance(recipe), extractor: 'jsonld' };
+    return {
+      recipe,
+      provenance: computeProvenance(recipe),
+      extractor: 'jsonld',
+      imageUrls,
+    };
   }
 
   const microdata = extractFromMicrodata(root);
   if (microdata) {
-    return { recipe: microdata, provenance: computeProvenance(microdata), extractor: 'microdata' };
+    return {
+      recipe: microdata,
+      provenance: computeProvenance(microdata),
+      extractor: 'microdata',
+      imageUrls,
+    };
   }
 
   const og = extractFromOpenGraph(root);
   if (og) {
-    return { recipe: og, provenance: computeProvenance(og), extractor: 'og' };
+    return {
+      recipe: og,
+      provenance: computeProvenance(og),
+      extractor: 'og',
+      imageUrls,
+    };
   }
 
-  return { recipe: emptyRecipe(), provenance: {}, extractor: 'empty' };
+  return { recipe: emptyRecipe(), provenance: {}, extractor: 'empty', imageUrls };
 }
 
 /**
@@ -549,6 +625,6 @@ export async function scrapeRecipeFromUrl(url: string): Promise<ScrapeResult> {
       url,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    return { recipe: emptyRecipe(), provenance: {}, extractor: 'empty' };
+    return { recipe: emptyRecipe(), provenance: {}, extractor: 'empty', imageUrls: [] };
   }
 }
