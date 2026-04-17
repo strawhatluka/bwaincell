@@ -12,7 +12,16 @@ Dispatches button interactions emitted by the `/task` command.
 
 - `getModels` from `../helpers/databaseHelper` — lazy model accessor returning `{ Task, List, Reminder, ... }`.
 - `handleInteractionError` from `../responses/errorResponses` — unified error responder.
-- `supabase` client and `TaskRow` type for direct reads.
+- `supabase` client from `@database/supabase` and `TaskRow` type from `@database/types` for direct reads.
+
+```ts
+import { getModels } from '../helpers/databaseHelper';
+import { handleInteractionError } from '../responses/errorResponses';
+import supabase from '@database/supabase';
+import type { TaskRow } from '@database/types';
+```
+
+> JSDoc convention for this module: `@requires database/models/Task`. All database imports use the `@database/*` alias — never `../../supabase/...` relative paths.
 
 ## Guild Guard
 

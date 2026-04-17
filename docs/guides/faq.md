@@ -1,7 +1,22 @@
 # Frequently Asked Questions (FAQ)
 
-**Version:** 2.1.2
-**Last Updated:** 2026-04-15
+**Version:** 2.2.0
+**Last Updated:** 2026-04-16
+
+> **Deployment update (2026-04-16):**
+>
+> **Q: How do I deploy Bwaincell?**
+> A: Cut a GitHub release. The `.github/workflows/deploy.yml` workflow runs five jobs: `deploy-vercel` (frontend to Vercel), `deploy-supabase` (SSH to the Pi, backup DB, `supabase migration up`), `build-bot-image` (builds the arm64 bot image on `ubuntu-latest` via Buildx + QEMU, pushes to `ghcr.io/strawhatluka/bwaincell-backend`), `deploy-bot` (SSH to Pi, `docker login ghcr.io`, `docker pull`, `docker compose up -d`), and `rollback` (runs automatically if `deploy-bot` fails). The Pi never builds the image itself. Required repo secrets: `PI_HOST`, `PI_USERNAME`, `PI_SSH_KEY`, `PI_GHCR_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+>
+> **Q: How do I roll back?**
+> A: Three options, in order of preference:
+>
+> 1. **Automatic** — if `deploy-bot` fails, the `rollback` job re-tags the previously saved `:backup` image as `:latest` and restarts.
+> 2. **Manual on the Pi** — `docker tag ghcr.io/strawhatluka/bwaincell-backend:backup ghcr.io/strawhatluka/bwaincell-backend:latest && docker compose up -d`.
+> 3. **Specific prior commit** — every build pushes an immutable `:<git-sha>` tag, so `docker pull ghcr.io/strawhatluka/bwaincell-backend:<prior-sha>`, re-tag as `:latest`, `docker compose up -d`.
+>
+> **Q: Why does the bot need `host.docker.internal`?**
+> A: On the Pi, the bot runs inside a Docker container on its own compose network. The self-hosted Supabase Kong is bound to `127.0.0.1:54321` on the Pi host, not inside the bot's Docker network. The `extra_hosts: ["host.docker.internal:host-gateway"]` entry in `docker-compose.yml` gives the container a DNS alias that resolves to the Pi host, so `SUPABASE_URL=http://host.docker.internal:54321` can reach Kong. `127.0.0.1:54321` inside the container refers to the container itself — it does not work.
 
 > **Supabase update (2026-04-15):** Any FAQ entries below that mention Sequelize, Prisma, or a local Docker `postgres` service are historical. The current answers are:
 >

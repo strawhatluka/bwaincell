@@ -642,7 +642,10 @@ ${JSON.stringify(expectedResponse)}
       await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow();
     });
 
-    it('throws when an ingredient lacks a quantity', async () => {
+    it('coerces a missing quantity to "to taste" instead of throwing (WO-001)', async () => {
+      // Pre-WO-001: a missing quantity threw. Post-WO-001: validator coerces
+      // null/undefined/empty quantity to the descriptive default "to taste".
+      // See parseRecipeResponse quantity coercion describe block below.
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify({
           name: 'X',
@@ -650,7 +653,12 @@ ${JSON.stringify(expectedResponse)}
           instructions: ['a'],
         }),
       });
-      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow();
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0]).toEqual({
+        name: 'flour',
+        quantity: 'to taste',
+        unit: 'cup',
+      });
     });
 
     it('throws on non-string instruction entry', async () => {
@@ -700,6 +708,254 @@ ${JSON.stringify(expectedResponse)}
       const args = mockGenerateContent.mock.calls[0][0];
       // Video URLs go through a different code path: contents is an array.
       expect(Array.isArray(args.contents)).toBe(true);
+    });
+  });
+
+  describe('parseRecipeFromUrl multimodal branch (WO-001)', () => {
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    const validRecipeJson = JSON.stringify({
+      name: 'Multimodal Dish',
+      ingredients: [{ name: 'ingredient', quantity: 1, unit: '' }],
+      instructions: ['step'],
+    });
+
+    it('builds multimodal contents with fileData parts when imageUrls are provided on a non-YouTube URL', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: validRecipeJson });
+
+      await GeminiService.parseRecipeFromUrl('https://instagram.com/p/abc', [
+        'https://cdn.instagram.com/img1.jpg',
+        'https://cdn.instagram.com/img2.jpg',
+      ]);
+
+      const args = mockGenerateContent.mock.calls[0][0];
+      expect(Array.isArray(args.contents)).toBe(true);
+      expect(args.contents[0].role).toBe('user');
+      const parts = args.contents[0].parts;
+      expect(parts[0]).toHaveProperty('text');
+      expect(typeof parts[0].text).toBe('string');
+      // One text part + one fileData part per image, in order.
+      expect(parts).toHaveLength(3);
+      expect(parts[1]).toEqual({
+        fileData: { fileUri: 'https://cdn.instagram.com/img1.jpg', mimeType: 'image/*' },
+      });
+      expect(parts[2]).toEqual({
+        fileData: { fileUri: 'https://cdn.instagram.com/img2.jpg', mimeType: 'image/*' },
+      });
+    });
+
+    it('disables googleSearch tool in the multimodal branch (ADR-2)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: validRecipeJson });
+
+      await GeminiService.parseRecipeFromUrl('https://instagram.com/p/xyz', [
+        'https://cdn.instagram.com/hero.jpg',
+      ]);
+
+      const args = mockGenerateContent.mock.calls[0][0];
+      // In the multimodal branch, config/tools must be absent — no googleSearch.
+      expect(args.config?.tools).toBeUndefined();
+    });
+
+    it('uses text-only branch with googleSearch when imageUrls is an empty array', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: validRecipeJson });
+
+      await GeminiService.parseRecipeFromUrl('https://example.com/recipe', []);
+
+      const args = mockGenerateContent.mock.calls[0][0];
+      // Text-only branch: contents is the prompt string, not an array of parts.
+      expect(typeof args.contents).toBe('string');
+      expect(args.config?.tools).toEqual([{ googleSearch: {} }]);
+    });
+
+    it('uses text-only branch with googleSearch when imageUrls is omitted', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: validRecipeJson });
+
+      await GeminiService.parseRecipeFromUrl('https://example.com/recipe');
+
+      const args = mockGenerateContent.mock.calls[0][0];
+      expect(typeof args.contents).toBe('string');
+      expect(args.config?.tools).toEqual([{ googleSearch: {} }]);
+    });
+
+    it('routes YouTube URLs to the YouTube branch even when imageUrls are provided (AC-R.1)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: validRecipeJson });
+
+      await GeminiService.parseRecipeFromUrl('https://youtube.com/watch?v=abc', [
+        'https://cdn.example.com/unused.jpg',
+      ]);
+
+      const args = mockGenerateContent.mock.calls[0][0];
+      expect(Array.isArray(args.contents)).toBe(true);
+      const parts = args.contents[0].parts;
+      // YouTube branch always uses video/* mime, never image/*.
+      const fileParts = parts.filter((p: { fileData?: { mimeType?: string } }) => p.fileData);
+      expect(fileParts).toHaveLength(1);
+      expect(fileParts[0].fileData.mimeType).toBe('video/*');
+      expect(fileParts[0].fileData.fileUri).toMatch(/youtube\.com/);
+      // Image URL is ignored.
+      expect(
+        parts.some(
+          (p: { fileData?: { fileUri?: string } }) =>
+            p.fileData?.fileUri === 'https://cdn.example.com/unused.jpg'
+        )
+      ).toBe(false);
+    });
+
+    it('caps imageUrls at 3 when more than 3 are passed (SDK-boundary defense)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({ text: validRecipeJson });
+
+      await GeminiService.parseRecipeFromUrl('https://example.com/gallery', [
+        'https://cdn.example.com/1.jpg',
+        'https://cdn.example.com/2.jpg',
+        'https://cdn.example.com/3.jpg',
+        'https://cdn.example.com/4.jpg',
+        'https://cdn.example.com/5.jpg',
+      ]);
+
+      const args = mockGenerateContent.mock.calls[0][0];
+      const parts = args.contents[0].parts;
+      const fileParts = parts.filter((p: { fileData?: unknown }) => p.fileData);
+      expect(fileParts).toHaveLength(3);
+      expect(fileParts.map((p: { fileData: { fileUri: string } }) => p.fileData.fileUri)).toEqual([
+        'https://cdn.example.com/1.jpg',
+        'https://cdn.example.com/2.jpg',
+        'https://cdn.example.com/3.jpg',
+      ]);
+    });
+
+    it('re-throws without silent text-only fallback when the multimodal call fails (G-3)', async () => {
+      mockGenerateContent.mockRejectedValueOnce(new Error('Unsupported fileData URI'));
+
+      await expect(
+        GeminiService.parseRecipeFromUrl('https://instagram.com/p/fail', [
+          'https://cdn.instagram.com/protected.jpg',
+        ])
+      ).rejects.toThrow('Unsupported fileData URI');
+
+      // Only one call — no retry with text-only branch.
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to parse recipe from URL',
+        expect.objectContaining({
+          url: 'https://instagram.com/p/fail',
+          isYouTube: false,
+          imageCount: 1,
+        })
+      );
+    });
+  });
+
+  describe('parseRecipeResponse quantity coercion (WO-001)', () => {
+    beforeEach(() => {
+      process.env.GEMINI_API_KEY = 'test-key';
+      (GeminiService as unknown as { genAI: unknown }).genAI = null;
+    });
+
+    const makeResponse = (ingredient: Record<string, unknown>): string =>
+      JSON.stringify({
+        name: 'Coercion Test Recipe',
+        ingredients: [ingredient],
+        instructions: ['cook it'],
+      });
+
+    it('coerces null quantity to "to taste"', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'salt', quantity: null, unit: '' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('to taste');
+    });
+
+    it('coerces undefined (missing) quantity to "to taste"', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'pepper', unit: '' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('to taste');
+    });
+
+    it('coerces empty string quantity to "to taste"', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'garnish', quantity: '', unit: '' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('to taste');
+    });
+
+    it('coerces whitespace-only quantity to "to taste"', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'parsley', quantity: '   ', unit: '' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('to taste');
+    });
+
+    it('preserves an explicit "to taste" string unchanged', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'chili flakes', quantity: 'to taste', unit: '' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('to taste');
+    });
+
+    it('preserves other descriptive strings like "a pinch" unchanged', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'nutmeg', quantity: 'a pinch', unit: '' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('a pinch');
+    });
+
+    it('preserves numeric quantities (1.5)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'flour', quantity: 1.5, unit: 'cup' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe(1.5);
+    });
+
+    it('preserves fraction strings ("1/2")', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'sugar', quantity: '1/2', unit: 'cup' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('1/2');
+    });
+
+    it('coerces zero quantity to "to taste" (per ROR §3.4)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: makeResponse({ name: 'ghost ingredient', quantity: 0, unit: '' }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('to taste');
+    });
+
+    it('coerces NaN / non-finite quantity to "to taste"', async () => {
+      // JSON.stringify emits "null" for NaN; validator coerces that null to "to taste".
+      // We also test that a non-number-typed value routes to coercion.
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: 'Test',
+          ingredients: [{ name: 'oil', quantity: null, unit: 'tbsp' }],
+          instructions: ['mix'],
+        }),
+      });
+      const result = await GeminiService.parseRecipeFromUrl('https://x');
+      expect(result.ingredients[0].quantity).toBe('to taste');
+    });
+
+    it('keeps name validation strict — null name still throws (AC-3.2 / FR-9 backstop)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          name: null,
+          ingredients: [{ name: 'x', quantity: 1, unit: '' }],
+          instructions: ['a'],
+        }),
+      });
+      await expect(GeminiService.parseRecipeFromUrl('https://x')).rejects.toThrow('Invalid recipe');
     });
   });
 

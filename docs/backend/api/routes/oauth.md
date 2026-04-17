@@ -5,6 +5,15 @@
 
 Google Sign-In + JWT refresh for the web dashboard. The server does not hold sessions; it issues short-lived JWT access tokens + long-lived refresh tokens. Emails must be present in `ALLOWED_GOOGLE_EMAILS`.
 
+## Imports
+
+```ts
+// backend/src/api/routes/oauth.ts
+import { User } from '@database/models/User';
+```
+
+Note that `User` is exported as a _named_ export (not default) — `@database/models/User` must be imported as `{ User }`. `@database/*` is the path alias defined in `backend/tsconfig.json`.
+
 ## Endpoints
 
 ### `POST /api/auth/google/verify`

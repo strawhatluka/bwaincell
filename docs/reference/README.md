@@ -84,7 +84,7 @@ Quick reference for CLI commands, environment variables, dependencies, glossary,
 
 **Supabase:**
 
-- `SUPABASE_URL` (e.g., `http://127.0.0.1:54321` for local)
+- `SUPABASE_URL` (e.g., `http://127.0.0.1:54321` for local — on the Pi runtime, set `SUPABASE_URL=http://host.docker.internal:54321` because the bot runs in Docker and needs to traverse the `host-gateway` alias to reach the Supabase Kong bound to the Pi host loopback at `:54321`)
 - `SUPABASE_SERVICE_ROLE_KEY` (backend / privileged)
 - `SUPABASE_ANON_KEY` (frontend / unprivileged)
 - `SUPABASE_DB_PASSWORD` (loaded by `supabase/config.toml` via `env()`)
@@ -103,6 +103,12 @@ Quick reference for CLI commands, environment variables, dependencies, glossary,
 
 - `GEMINI_API_KEY`
 - `LOCATION_ZIP_CODE` (used by `/random date` and location-aware prompts)
+
+**GitHub Actions deployment secrets (stored in GitHub repo settings, NOT in `.env`):**
+
+- `PI_HOST`, `PI_USERNAME`, `PI_SSH_KEY`, `PI_SSH_PASSPHRASE` (optional), `PI_SSH_PORT` (optional) — Pi SSH access for `deploy-supabase` / `deploy-bot` jobs.
+- `PI_GHCR_TOKEN` — GitHub PAT with `read:packages` scope, used by the deploy workflow to `docker login ghcr.io` on the Pi so it can pull the bot image from `ghcr.io/strawhatluka/bwaincell-backend`. Generate at https://github.com/settings/tokens/new → scope: `read:packages`.
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` — frontend deployment to Vercel.
 
 ### Generate Secrets
 

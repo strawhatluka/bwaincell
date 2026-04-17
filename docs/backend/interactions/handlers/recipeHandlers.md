@@ -26,7 +26,16 @@ Internal:
 
 ## Dependencies
 
-`Recipe`, `MealPlan`, `RecipePreferences` models; `GeminiService` (AI recipe choice and shopping list refinement); `generateShoppingList` + `RecipeWithServings` from `../../shoppingList`.
+`Recipe`, `MealPlan`, `RecipePreferences` models (all imported via the `@database/*` alias); `GeminiService` (AI recipe choice and shopping list refinement); `generateShoppingList` + `RecipeWithServings` from `../../shoppingList`; `RecipeRow` type from `@database/types`.
+
+```ts
+import Recipe from '@database/models/Recipe';
+import MealPlan from '@database/models/MealPlan';
+import RecipePreferences from '@database/models/RecipePreferences';
+import { GeminiService } from '../../geminiService';
+import { generateShoppingList, RecipeWithServings } from '../../shoppingList';
+import type { RecipeRow } from '@database/types';
+```
 
 ## Exported Handlers
 

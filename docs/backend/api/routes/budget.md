@@ -4,6 +4,17 @@
 **Mount point:** `/api/budget`
 **Auth:** Bearer JWT.
 
+## Imports
+
+```ts
+// backend/src/api/routes/budget.ts
+import { Budget } from '@database/index';
+// Equivalently:
+// import Budget from '@database/models/Budget';
+```
+
+`@database/*` is the path alias defined in `backend/tsconfig.json`.
+
 ## Endpoints
 
 ### `GET /api/budget/transactions`

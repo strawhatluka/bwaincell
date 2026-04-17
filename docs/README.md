@@ -20,9 +20,15 @@ Comprehensive documentation for Bwaincell — a unified monorepo productivity pl
 - **Runtime:** Node.js 18+, TypeScript 5.9 (strict)
 - **Backend:** Express 4.21 + Discord.js 14.14 (single process)
 - **Frontend:** Next.js 14 (App Router) + React 18 + NextAuth
-- **Database:** Supabase (managed PostgreSQL) with typed model wrappers in `supabase/models/`
+- **Database:** Supabase (managed PostgreSQL) with typed model wrappers in `supabase/models/` (internal workspace `@bwaincell/supabase`, imported via the `@database/*` alias)
 - **AI:** Google Gemini (`@google/genai`) for recipe normalization, shopping-list generation, `/random` date suggestions
 - **Scheduling:** `node-cron` for reminders, sunset announcements, event announcements
+- **Deployment:** Bot image built on GitHub Actions (arm64 via Buildx + QEMU) and pushed to GHCR (`ghcr.io/strawhatluka/bwaincell-backend`); Raspberry Pi pulls the prebuilt image. Self-hosted Supabase runs alongside on the Pi; the bot reaches Kong via `host.docker.internal`. Frontend deploys to Vercel.
+
+## Recent Updates
+
+- **2026-04-16** — Backend now builds on GitHub Actions and deploys from GHCR (`ghcr.io/strawhatluka/bwaincell-backend`); the Pi no longer builds the image. All backend imports use the `@database/*` TypeScript alias. See [Deployment](guides/deployment.md), [CI/CD Pipeline](guides/ci-cd-pipeline.md), and [Docker Development](guides/docker-development.md).
+- **2026-04-15** — Migrated database layer from Sequelize + local Docker Postgres to Supabase (managed PostgreSQL + typed model wrappers in `supabase/models/`). See [Architecture Overview](architecture/overview.md).
 
 ## Discord Commands (12)
 
@@ -130,6 +136,6 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for general contribution guidelines.
 
 ---
 
-**Last Updated:** 2026-04-15
-**Version:** 2.1.2
+**Last Updated:** 2026-04-16
+**Version:** 2.2.0
 **Maintained by:** [strawhatluka](https://github.com/strawhatluka)

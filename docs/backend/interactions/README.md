@@ -57,7 +57,40 @@ Interaction Router
 - customId format: `{feature}_{action}_{...args}` (underscore-delimited).
 - Every handler short-circuits non-guild interactions with an ephemeral "server only" message.
 - Errors are routed through `responses/errorResponses.handleInteractionError(interaction, error, context)`.
-- Database access goes through `helpers/databaseHelper.getModels()` for lazy-loading and DI-friendly testing; direct supabase reads are used when models would be overkill.
+- Database access goes through `helpers/databaseHelper.getModels()` for lazy-loading and DI-friendly testing; direct Supabase reads are used when models would be overkill.
+
+## `databaseHelper` — Lazy Model Factory
+
+**Source:** `backend/utils/interactions/helpers/databaseHelper.ts`
+
+The `databaseHelper` module exports a single async factory, `getModels()`, that returns a cached `DatabaseModels` bundle (`{ Task, List, Reminder }`) for use across interaction handlers. The cached instance is created on first call and reused for the process lifetime.
+
+```ts
+// backend/utils/interactions/helpers/databaseHelper.ts
+import { DatabaseModels } from '../types/interactions';
+import { Task, List, Reminder } from '@database/index';
+
+let cachedModels: DatabaseModels | null = null;
+
+export async function getModels(): Promise<DatabaseModels> {
+  if (cachedModels) return cachedModels;
+  cachedModels = { Task, List, Reminder };
+  return cachedModels;
+}
+```
+
+**Usage inside a handler:**
+
+```ts
+import { getModels } from '../helpers/databaseHelper';
+
+const { Task } = await getModels();
+const task = await Task.getTaskById(id, guildId);
+```
+
+### Why `@database/*`?
+
+The alias `@database/*` (defined in `backend/tsconfig.json`) keeps imports flat across the interaction handler tree regardless of nesting depth. Without it, you'd see `../../../../supabase/...` in some places and `../../supabase/...` in others, and `tsc` would not emit correct paths for production — runtime would fail with `MODULE_NOT_FOUND`. All interaction helpers, handlers, and services MUST use `@database/*` for any Supabase model or type import.
 
 ## Related
 

@@ -1,7 +1,7 @@
 # Architecture Diagrams
 
-**Version:** 2.1.2
-**Last Updated:** 2026-04-15
+**Version:** 2.2.0
+**Last Updated:** 2026-04-16
 
 Visual documentation of Bwaincell system architecture, component interactions, database relationships, authentication flow, deployment architecture, and data flow using Mermaid diagrams.
 
@@ -400,7 +400,7 @@ sequenceDiagram
 
 ## 5. Deployment Architecture Diagram
 
-Infrastructure diagram showing production deployment on Raspberry Pi 4B with Docker Compose, Supabase, and Vercel frontend.
+Infrastructure diagram showing production deployment. The bot image is built on GitHub Actions (arm64 via Buildx + QEMU), pushed to **GHCR**, and pulled by the Raspberry Pi. The Pi never builds the image itself. Supabase runs as a separate CLI-managed Docker stack on the Pi host; the bot container reaches Kong via `host.docker.internal`.
 
 ```mermaid
 graph TB
@@ -410,35 +410,43 @@ graph TB
         MobileDevice[Mobile Device PWA]
     end
 
+    subgraph "Deployment Pipeline (GitHub)"
+        GitHub[GitHub Repository<br/>release: published]
+        GHA_Runner["GitHub Actions Runner<br/>ubuntu-latest<br/>QEMU + Buildx → linux/arm64"]
+        GHCR["GHCR<br/>ghcr.io/strawhatluka/bwaincell-backend<br/>:latest + :&lt;git-sha&gt;"]
+
+        GitHub -->|trigger| GHA_Runner
+        GHA_Runner -->|docker push| GHCR
+    end
+
     subgraph "Raspberry Pi 4B - Local Network"
         direction TB
 
-        subgraph "Docker Compose Stack"
-            direction LR
-            Backend["Backend Container<br/>bwaincell-backend<br/>Port 3000<br/>512MB RAM<br/>Node.js 18"]
-            SupabaseStack["Supabase Stack<br/>(managed by Supabase CLI)<br/>Port 54321 (API) / 54322 (DB)"]
+        subgraph "Bot compose project (docker-compose.yml)"
+            Backend["Backend Container<br/>bwaincell-backend<br/>Port 3000 (Express + Discord)<br/>extra_hosts: host.docker.internal"]
         end
 
-        Logs["/logs Volume<br/>Winston Logs<br/>Max 75MB"]
-        Data["/postgres-data Volume<br/>Database Storage<br/>Persistent"]
+        subgraph "Supabase stack (CLI-managed, separate compose project)"
+            Kong["Supabase Kong<br/>127.0.0.1:54321 on Pi host"]
+            Postgres["Postgres<br/>container supabase_db_bwaincell<br/>:5433"]
+            Studio["Studio / PostgREST / GoTrue / Storage"]
+            Kong --> Postgres
+            Studio --> Postgres
+        end
+
+        Logs["./logs Volume<br/>Winston logs (max 75MB)"]
 
         Backend -.->|Write| Logs
-        SupabaseStack -.->|Store| Data
-        Backend -->|SQL Queries| SupabaseStack
+        Backend -->|"HTTP via host.docker.internal:54321<br/>(host-gateway bridge)"| Kong
     end
 
     subgraph "Vercel Serverless - Global CDN"
-        Frontend["Next.js PWA<br/>Serverless Functions<br/>Static Assets<br/>Auto-Scaling"]
+        Frontend["Next.js PWA<br/>Serverless Functions<br/>Static Assets"]
     end
 
     subgraph "External Services"
         DiscordAPI[Discord API<br/>Gateway & REST]
-        GoogleAuth[Google OAuth 2.0<br/>Authentication]
-    end
-
-    subgraph "Deployment Pipeline"
-        GitHub[GitHub Repository<br/>Main Branch]
-        Actions[GitHub Actions<br/>Auto-Deploy]
+        GoogleAuth[Google OAuth 2.0]
     end
 
     DiscordClient -->|WebSocket| DiscordAPI
@@ -451,42 +459,56 @@ graph TB
     Frontend -->|OAuth| GoogleAuth
     Backend -->|Verify| GoogleAuth
 
-    GitHub -->|Push to Main| Actions
-    Actions -->|SSH Deploy| Backend
-    Actions -->|Deploy| Frontend
+    GHA_Runner -->|SSH: supabase start / migration up| Postgres
+    GHCR -->|"docker pull (Pi, auth via PI_GHCR_TOKEN)"| Backend
+    GHA_Runner -->|vercel deploy --prod| Frontend
 
     style Backend fill:#68A063
-    style SupabaseStack fill:#336791
+    style Kong fill:#336791
+    style Postgres fill:#336791
     style Frontend fill:#000000
     style DiscordAPI fill:#5865F2
     style GoogleAuth fill:#4285F4
     style GitHub fill:#181717
+    style GHCR fill:#2088FF
+    style GHA_Runner fill:#2088FF
 ```
 
 **Deployment Details:**
 
-**Raspberry Pi 4B (Backend + Self-Hosted Supabase):**
+**GitHub Actions (CI/CD — `.github/workflows/deploy.yml`):**
 
-- OS: Raspberry Pi OS 64-bit
-- Docker: Backend container (`docker compose up -d`) + Supabase stack (`supabase start`)
-- Network: Local network (192.168.x.x)
-- Supabase: self-hosted, API on `:54321`, DB on `:54322`
-- Volumes: Winston logs, Supabase-managed Postgres data
-- Health Checks: `GET /health` on backend, `supabase status` for Supabase
+- Trigger: `release: published` (or manual `workflow_dispatch`)
+- Jobs:
+  - `deploy-vercel` — deploys the frontend to Vercel (parallel).
+  - `deploy-supabase` — SSH to Pi, backs up DB (`pg_dump`), `git reset --hard origin/main`, `supabase start` + `supabase migration up`.
+  - `build-bot-image` — builds `linux/arm64` image on `ubuntu-latest` using QEMU + Buildx, pushes to GHCR as `:latest` and `:<git-sha>` with GHA layer cache.
+  - `deploy-bot` — `needs: [deploy-supabase, build-bot-image]`. SSH to Pi, `docker login ghcr.io` (uses `PI_GHCR_TOKEN`), `docker pull`, `docker compose up -d`, refreshes Discord slash commands.
+  - `rollback` — `needs: deploy-bot`, `if: failure()`. Re-tags the previously saved `:backup` image as `:latest` and restarts.
+
+**GHCR (GitHub Container Registry):**
+
+- Image: `ghcr.io/strawhatluka/bwaincell-backend`
+- Tags: `:latest` (most recent successful build) and `:<git-sha>` (immutable per-commit).
+- Auth on Pi: `docker login ghcr.io -u strawhatluka` with a PAT (`read:packages` scope) stored in the `PI_GHCR_TOKEN` repo secret.
+
+**Raspberry Pi 4B:**
+
+- OS: Raspberry Pi OS 64-bit.
+- Two independent Docker compose projects share the host:
+  - **Bot compose** (`docker-compose.yml`) — `bwaincell-backend` container on `bwaincell-network`. Pulls the GHCR image; no local build.
+  - **Supabase stack** (started with `supabase start`) — Kong on host loopback `127.0.0.1:54321`, Postgres container `supabase_db_bwaincell`.
+- Bot container reaches Kong via `extra_hosts: ["host.docker.internal:host-gateway"]` and `SUPABASE_URL=http://host.docker.internal:54321`.
+- IPv6 disabled at the kernel level (`sysctl net.ipv6.conf.{all,default,lo}.disable_ipv6=1`) because the Pi has an IPv6 ULA but no IPv6 route, which otherwise stalls AAAA DNS lookups.
+- Health Checks: `GET http://localhost:3000/health` on the bot, `docker exec supabase_db_bwaincell pg_isready -U postgres` for Supabase.
 
 **Vercel (Frontend):**
 
 - Platform: Vercel serverless
 - Framework: Next.js 14.2+ with App Router
-- Deployment: Auto-deploy on push to main
+- Deployment: via `deploy-vercel` job on release (not push-to-main anymore)
 - CDN: Global edge network
 - SSL: Automatic HTTPS certificates
-
-**GitHub Actions (CI/CD):**
-
-- Trigger: Push to main branch
-- Backend: SSH into Pi, pull code, rebuild Docker image, restart containers
-- Frontend: Automatic Vercel deployment
 
 **Related:** [docker-compose.yml](../../docker-compose.yml) | [Getting Started - Deployment](../guides/getting-started.md)
 

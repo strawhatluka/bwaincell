@@ -39,6 +39,7 @@ import {
   ingestRecipeFromFile,
   summarizeProvenance,
 } from '../../../utils/recipeIngestion';
+import { logger } from '../../../shared/utils/logger';
 
 const completeScrapeRecipe = {
   name: 'Scraped Soup',
@@ -76,6 +77,7 @@ describe('ingestRecipeFromUrl — scrape-first path', () => {
       recipe: completeScrapeRecipe,
       provenance: completeProvenance,
       extractor: 'jsonld',
+      imageUrls: [],
     });
     mockResearch.mockResolvedValueOnce({
       difficulty: 'easy',
@@ -105,6 +107,7 @@ describe('ingestRecipeFromUrl — scrape-first path', () => {
       recipe: completeScrapeRecipe,
       provenance: completeProvenance,
       extractor: 'jsonld',
+      imageUrls: [],
     });
     mockResearch.mockResolvedValueOnce({});
 
@@ -131,6 +134,7 @@ describe('ingestRecipeFromUrl — scrape-first path', () => {
         dietary_tags: 'source',
       },
       extractor: 'jsonld',
+      imageUrls: [],
     });
 
     const result = await ingestRecipeFromUrl('https://example.com/soup');
@@ -144,6 +148,7 @@ describe('ingestRecipeFromUrl — scrape-first path', () => {
       recipe: completeScrapeRecipe,
       provenance: completeProvenance,
       extractor: 'jsonld',
+      imageUrls: [],
     });
     // Adversarial: research tries to overwrite source-provided nutrition
     mockResearch.mockResolvedValueOnce({
@@ -177,6 +182,7 @@ describe('ingestRecipeFromUrl — Gemini fallback path', () => {
       },
       provenance: {},
       extractor: 'empty',
+      imageUrls: [],
     });
     mockParseUrl.mockResolvedValueOnce({
       name: 'Fallback Soup',
@@ -198,7 +204,8 @@ describe('ingestRecipeFromUrl — Gemini fallback path', () => {
     expect(result.recipe.name).toBe('Fallback Soup');
     // Gemini-parsed fields are tagged 'researched' (not source)
     expect(result.provenance.name).toBe('researched');
-    expect(mockParseUrl).toHaveBeenCalledWith('https://js-heavy.example.com/r');
+    // WO-001: imageUrls flow through to parseRecipeFromUrl as second argument.
+    expect(mockParseUrl).toHaveBeenCalledWith('https://js-heavy.example.com/r', []);
   });
 
   it('returns Pass 1 result when Pass 2 research throws', async () => {
@@ -206,6 +213,7 @@ describe('ingestRecipeFromUrl — Gemini fallback path', () => {
       recipe: completeScrapeRecipe,
       provenance: completeProvenance,
       extractor: 'jsonld',
+      imageUrls: [],
     });
     mockResearch.mockRejectedValueOnce(new Error('API quota'));
 
@@ -248,6 +256,98 @@ describe('ingestRecipeFromFile', () => {
     expect(result.recipe.prep_time_minutes).toBe(5);
     expect(result.recipe.cuisine).toBe('american'); // normalized to lowercase on ingestion
     expect(result.recipe.difficulty).toBe('easy');
+  });
+});
+
+describe('ingestRecipeFromUrl — imageUrls flow-through (WO-001)', () => {
+  const emptyScrapedRecipe = {
+    name: null,
+    ingredients: null,
+    instructions: null,
+    servings: null,
+    prep_time_minutes: null,
+    cook_time_minutes: null,
+    nutrition: null,
+    cuisine: null,
+    difficulty: null,
+    dietary_tags: null,
+    image_url: null,
+  };
+
+  const fallbackGeminiRecipe = {
+    name: 'From Image',
+    ingredients: [{ name: 'pasta', quantity: 1, unit: 'lb' }],
+    instructions: ['Boil water', 'Cook pasta'],
+    servings: 2,
+    prep_time_minutes: 5,
+    cook_time_minutes: 10,
+    nutrition: null,
+    cuisine: null,
+    difficulty: null,
+    image_url: null,
+  };
+
+  it('forwards scraped imageUrls as the second argument to parseRecipeFromUrl', async () => {
+    const imageUrls = ['https://cdn.instagram.com/hero.jpg', 'https://cdn.instagram.com/alt.jpg'];
+    mockScrape.mockResolvedValueOnce({
+      recipe: emptyScrapedRecipe,
+      provenance: {},
+      extractor: 'empty',
+      imageUrls,
+    });
+    mockParseUrl.mockResolvedValueOnce(fallbackGeminiRecipe);
+    mockResearch.mockResolvedValueOnce({});
+
+    await ingestRecipeFromUrl('https://www.instagram.com/p/ABC123');
+
+    expect(mockParseUrl).toHaveBeenCalledTimes(1);
+    expect(mockParseUrl).toHaveBeenCalledWith('https://www.instagram.com/p/ABC123', imageUrls);
+  });
+
+  it('logs imageCount on the fallback log line (AC-1.4)', async () => {
+    const imageUrls = [
+      'https://cdn.instagram.com/1.jpg',
+      'https://cdn.instagram.com/2.jpg',
+      'https://cdn.instagram.com/3.jpg',
+    ];
+    mockScrape.mockResolvedValueOnce({
+      recipe: emptyScrapedRecipe,
+      provenance: {},
+      extractor: 'empty',
+      imageUrls,
+    });
+    mockParseUrl.mockResolvedValueOnce(fallbackGeminiRecipe);
+    mockResearch.mockResolvedValueOnce({});
+
+    await ingestRecipeFromUrl('https://www.instagram.com/p/ABC');
+
+    expect(logger.info).toHaveBeenCalledWith(
+      '[recipeIngestion] Scrape incomplete; falling back to Gemini URL parse',
+      expect.objectContaining({
+        url: 'https://www.instagram.com/p/ABC',
+        scrapedExtractor: 'empty',
+        imageCount: 3,
+      })
+    );
+  });
+
+  it('forwards an empty imageUrls array when scraper surfaced no images', async () => {
+    mockScrape.mockResolvedValueOnce({
+      recipe: emptyScrapedRecipe,
+      provenance: {},
+      extractor: 'empty',
+      imageUrls: [],
+    });
+    mockParseUrl.mockResolvedValueOnce(fallbackGeminiRecipe);
+    mockResearch.mockResolvedValueOnce({});
+
+    await ingestRecipeFromUrl('https://some-blog.example.com/recipe');
+
+    expect(mockParseUrl).toHaveBeenCalledWith('https://some-blog.example.com/recipe', []);
+    expect(logger.info).toHaveBeenCalledWith(
+      '[recipeIngestion] Scrape incomplete; falling back to Gemini URL parse',
+      expect.objectContaining({ imageCount: 0 })
+    );
   });
 });
 

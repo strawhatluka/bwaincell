@@ -19,7 +19,13 @@ Locally redefined (same values as in `backend/commands/random.ts`):
 
 - `movieData` from `../../recipeData`.
 - `GeminiService` — AI generation for date ideas and questions.
-- `Recipe` model and `formatQuantity` for `/random recipe` rerolls.
+- `Recipe` model (imported from `@database/models/Recipe`) and `formatQuantity` for `/random recipe` rerolls.
+- `RecipeIngredient` type from `@database/types` for typed ingredient iteration.
+
+```ts
+import Recipe from '@database/models/Recipe';
+import type { RecipeIngredient } from '@database/types';
+```
 
 ## Guild Guard
 

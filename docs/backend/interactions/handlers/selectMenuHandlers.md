@@ -11,9 +11,17 @@ Cross-cutting dispatcher for all `StringSelectMenuInteraction`s. Routes `recipe_
 ## Dependencies
 
 - `getModels()` → `{ Task, List, Reminder }`.
-- `supabase` client (direct `TaskRow` / `ListRow` queries).
+- `supabase` client and `TaskRow` / `ListRow` types imported via the `@database/*` alias for direct reads.
 - `handleInteractionError`.
 - `handleRecipeSelect` from `./recipeHandlers`.
+
+```ts
+import { getModels } from '../helpers/databaseHelper';
+import { handleInteractionError } from '../responses/errorResponses';
+import supabase from '@database/supabase';
+import type { TaskRow, ListRow } from '@database/types';
+import { handleRecipeSelect } from './recipeHandlers';
+```
 
 ## Guild Guard
 

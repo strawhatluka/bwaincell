@@ -210,9 +210,10 @@ export async function ingestRecipeFromUrl(url: string): Promise<IngestionResult>
     logger.info('[recipeIngestion] Scrape incomplete; falling back to Gemini URL parse', {
       url,
       scrapedExtractor: scrapeResult.extractor,
+      imageCount: scrapeResult.imageUrls.length,
     });
     try {
-      base = await GeminiService.parseRecipeFromUrl(url);
+      base = await GeminiService.parseRecipeFromUrl(url, scrapeResult.imageUrls);
       pass1Source = 'gemini-url';
       provenance = {};
       for (const field of TRACKED_FIELDS) {

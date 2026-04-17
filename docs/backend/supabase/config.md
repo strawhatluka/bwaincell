@@ -59,3 +59,10 @@ PgBouncer pooler disabled locally (`enabled = false`, port `54329`, `pool_mode =
 ## Relationship to code
 
 `SUPABASE_URL` in `.env` should point to `http://127.0.0.1:54321` during local development; the app reads that variable via `supabase/supabase.ts` (see [client.md](./client.md)).
+
+**Pi runtime exception.** When the bot runs inside its Docker container on the Pi, it cannot reach Kong via `127.0.0.1:54321` because that loopback address resolves _inside the container itself_, not on the host. `docker-compose.yml` adds `extra_hosts: ["host.docker.internal:host-gateway"]` to the backend service, and `.env` on the Pi must set `SUPABASE_URL=http://host.docker.internal:54321` so the Supabase client traverses the Docker host gateway and reaches the self-hosted Supabase Kong that is listening on the Pi host.
+
+## Self-hosted footnotes
+
+- `project_id = "bwaincell"` on the Pi produces container names prefixed `supabase_*_bwaincell` (e.g., `supabase_db_bwaincell`, `supabase_kong_bwaincell`). The deployment workflow references these exact names when it verifies the Supabase stack is healthy.
+- **`storage` is disabled in the Pi self-hosted stack** (`[storage] enabled = false`). Bwaincell does not use Supabase Storage — recipe and image assets, when stored, live elsewhere. If a future feature requires object storage, this flag must be flipped _and_ the stack restarted.

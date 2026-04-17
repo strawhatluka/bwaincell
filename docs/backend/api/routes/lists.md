@@ -6,6 +6,17 @@
 
 List names are passed in the URL and `decodeURIComponent`-ed; lookups are case-insensitive at the model layer.
 
+## Imports
+
+```ts
+// backend/src/api/routes/lists.ts
+import { List } from '@database/index';
+// Equivalently:
+// import List from '@database/models/List';
+```
+
+The `@database/*` alias (defined in `backend/tsconfig.json`) is required for all Supabase imports from backend source.
+
 ## Endpoints
 
 ### `GET /api/lists`

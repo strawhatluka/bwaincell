@@ -245,14 +245,27 @@ export class GeminiService {
   }
 
   /**
-   * Parse a recipe from a URL. Detects YouTube links and passes them as fileData
-   * so Gemini can watch the video; other URLs are grounded via googleSearch.
+   * Parse a recipe from a URL. Three branches, selected in priority order:
+   *   1. YouTube URL → existing fileData video branch (imageUrls IGNORED).
+   *   2. Non-YouTube + non-empty imageUrls → multimodal branch with fileData
+   *      image parts (cap 3). googleSearch tool DISABLED (images already
+   *      provide the visual context).
+   *   3. Non-YouTube + empty/omitted imageUrls → existing text-only branch
+   *      with googleSearch tool.
+   *
+   * Multimodal failures (e.g. Gemini rejecting a remote image URL) are
+   * re-thrown — we do NOT silently fall back to the text-only branch. A
+   * silent fallback would mask the Instagram image-only failure mode this
+   * branch is designed to fix.
    *
    * @param url - Source URL (website or YouTube video)
+   * @param imageUrls - Optional candidate image URLs from scraper. Passed
+   *                    through as fileData parts (remote fetch, not base64).
+   *                    Capped at 3 internally. Ignored for YouTube URLs.
    * @returns Promise resolving to a ParsedRecipe
    * @throws Error if Gemini API is not configured, request fails, or output is invalid
    */
-  public static async parseRecipeFromUrl(url: string): Promise<ParsedRecipe> {
+  public static async parseRecipeFromUrl(url: string, imageUrls?: string[]): Promise<ParsedRecipe> {
     this.initialize();
 
     if (!this.genAI) {
@@ -260,12 +273,16 @@ export class GeminiService {
     }
 
     const isYouTube = /(?:youtube\.com|youtu\.be)/i.test(url);
+    const images = (imageUrls ?? []).slice(0, 3);
+    const useMultimodal = !isYouTube && images.length > 0;
 
     try {
       const prompt = this.buildRecipeParsePrompt(
         isYouTube
           ? `a YouTube cooking video at ${url} (watch the video to extract the recipe)`
-          : `the recipe at this URL: ${url}`
+          : useMultimodal
+            ? `the dish depicted in the attached image(s); the source URL was ${url} but may have little or no recipe text — rely primarily on visual analysis`
+            : `the recipe at this URL: ${url}`
       );
 
       let response;
@@ -287,6 +304,27 @@ export class GeminiService {
             },
           ],
         });
+      } else if (useMultimodal) {
+        response = await this.genAI.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: prompt },
+                ...images.map((uri) => ({
+                  fileData: {
+                    fileUri: uri,
+                    mimeType: 'image/*',
+                  },
+                })),
+              ],
+            },
+          ],
+          // NOTE: no config.tools — googleSearch is OFF in the multimodal
+          // branch (ADR-2). The images are the visual context; adding web
+          // grounding would cross-reference unrelated content.
+        });
       } else {
         response = await this.genAI.models.generateContent({
           model: 'gemini-2.5-flash',
@@ -302,6 +340,7 @@ export class GeminiService {
       logger.error('Failed to parse recipe from URL', {
         url,
         isYouTube,
+        imageCount: images.length,
         error: errorMessage,
       });
       throw error;
@@ -1220,9 +1259,13 @@ Return ONLY valid JSON (no markdown, no commentary) matching this exact schema:
 }
 
 Rules:
-- "name" (string, required): The recipe title.
+- "name" (string, required): The recipe title. If the source does not provide an explicit title, SYNTHESIZE a concise descriptive name from the dish's visible ingredients, method, and style (e.g., "Creamy Tuscan Chicken Pasta", "Garlic Butter Shrimp", "Spicy Peanut Noodles"). NEVER return null or an empty string — always produce a name.
 - "ingredients" (array, required, non-empty): Each item MUST include name, quantity, unit.
-  - "quantity" may be a number (e.g. 1.5) or a fraction string (e.g. "1/2", "3/4"). Prefer common culinary fractions over decimals ("1/2" not "0.5", "1 1/2" not "1.5", "1/3" not "0.333").
+  - "quantity" is REQUIRED on every ingredient. Acceptable values:
+    - a number (e.g. 1.5)
+    - a fraction string (e.g. "1/2", "3/4", "1 1/2") — prefer common culinary fractions over decimals ("1/2" not "0.5", "1 1/2" not "1.5", "1/3" not "0.333")
+    - a descriptive string when exact amounts are not specified (e.g. "to taste", "a pinch", "handful", "as needed", "for garnish")
+    Never omit the quantity field.
   - "unit" is the measurement unit ("cup", "tbsp", "g", "oz", ""); use "" when unit-less.
   - "category" MUST be one of: "meats", "produce", "dairy", "pantry", "spices", "frozen", "bakery", "other".
 - "instructions" (array of strings, required, non-empty): Ordered preparation steps.
@@ -1233,6 +1276,8 @@ Rules:
 - "cuisine" (string or null): E.g., "Italian", "Mexican", "Japanese", "American".
 - "difficulty" (string or null): One of "easy", "medium", "hard".
 - "image_url" (string or null): Direct URL to a recipe photo if found.
+
+If images are provided as context alongside this prompt, ANALYZE them for visual cues — plating, color, visible ingredients, cooking method, texture, portion size — and use those observations to infer the recipe, especially when a text recipe is not available at the source URL.
 
 If any required field is genuinely unknowable from the source, still return valid JSON — but NEVER fabricate ingredients or instructions.`;
   }
@@ -1268,18 +1313,26 @@ If any required field is genuinely unknowable from the source, still return vali
           if (typeof ing.name !== 'string' || ing.name.trim().length === 0) {
             throw new Error(`Ingredient at index ${index} is missing a valid "name"`);
           }
+          // Quantity coercion (WO-001): null/undefined/empty/whitespace/non-finite
+          // number/wrong type → "to taste" descriptive default. Finite numbers and
+          // non-empty strings are preserved as-is. The combined invariants
+          // (strict name + non-empty ingredients + non-empty instructions) keep
+          // recipes substantive; a "to taste" quantity is cosmetic, not fatal.
+          let quantity: number | string;
           if (
-            ing.quantity === undefined ||
-            ing.quantity === null ||
-            (typeof ing.quantity !== 'number' && typeof ing.quantity !== 'string')
+            typeof ing.quantity === 'number' &&
+            Number.isFinite(ing.quantity) &&
+            ing.quantity > 0
           ) {
-            throw new Error(
-              `Ingredient at index ${index} is missing a valid "quantity" (number or string)`
-            );
+            quantity = ing.quantity;
+          } else if (typeof ing.quantity === 'string' && ing.quantity.trim().length > 0) {
+            quantity = ing.quantity;
+          } else {
+            quantity = 'to taste';
           }
           const result: RecipeIngredient = {
             name: ing.name,
-            quantity: ing.quantity as number | string,
+            quantity,
             unit: typeof ing.unit === 'string' ? ing.unit : '',
           };
           if (typeof ing.category === 'string' && ing.category.length > 0) {

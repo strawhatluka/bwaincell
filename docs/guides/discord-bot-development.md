@@ -1,8 +1,10 @@
 # Discord Bot Development Guide
 
-**Last Updated:** 2026-04-15
+**Last Updated:** 2026-04-16
 
 > **Supabase update (2026-04-15):** Commands no longer use Sequelize. Use the typed model wrappers in `supabase/models/*.ts`. Any `Model.findAll` / `sequelize.sync()` patterns shown later in this file are historical.
+>
+> **Import-path update (2026-04-16):** Backend commands import Supabase models via the `@database/*` alias (defined in `backend/tsconfig.json`). Use `import Task from '@database/models/Task'` — not `import Task from '../../supabase/models/Task'`. Raw relative paths into the `supabase/` workspace compile but break at runtime inside the Docker image because `tsc` does not rewrite cross-workspace relative imports. See [Importing database models](getting-started.md#importing-database-models) for rationale.
 
 ## Command inventory (12)
 
@@ -15,7 +17,7 @@ Each command file lives in `backend/commands/` and exports `data` (a `SlashComma
 ```typescript
 // backend/commands/task.ts (illustrative)
 import { SlashCommandBuilder } from 'discord.js';
-import * as Task from '../../supabase/models/Task';
+import Task from '@database/models/Task';
 
 export const data = new SlashCommandBuilder().setName('task').setDescription('Manage tasks');
 

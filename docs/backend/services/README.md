@@ -2,6 +2,8 @@
 
 Utility / service modules under `backend/utils/`. APO-2 covers the recipe / shopping-list / AI / scheduling stack. Remaining utilities (validators, dateHelpers, fractionFormat, googleServices, githubService, imageService, releaseAnnouncer, interaction handlers) are owned by APO-3.
 
+> **Database imports:** All service modules that read or write Supabase do so via the `@database/*` path alias defined in `backend/tsconfig.json` (e.g., `import { Task } from '@database/index'`, `import Recipe from '@database/models/Recipe'`, `import type { RecipeRow } from '@database/types'`). Do **not** use relative `../../supabase/...` paths — `tsc` will not rewrite them and production runtime will fail with `MODULE_NOT_FOUND`.
+
 ## Index (APO-2 scope)
 
 | Service               | Doc                                                | Summary                                                                                           |

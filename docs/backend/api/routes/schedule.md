@@ -4,6 +4,17 @@
 **Mount point:** `/api/schedule`
 **Auth:** Bearer JWT.
 
+## Imports
+
+```ts
+// backend/src/api/routes/schedule.ts
+import { Schedule } from '@database/index';
+// Equivalently:
+// import Schedule from '@database/models/Schedule';
+```
+
+`@database/*` is the path alias defined in `backend/tsconfig.json`.
+
 ## Endpoints
 
 ### `GET /api/schedule`

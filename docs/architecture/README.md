@@ -22,7 +22,7 @@ System architecture, design decisions, and technical specifications.
 - **Backend:** Discord.js + Express + Supabase client with typed model wrappers in `supabase/models/`
 - **Frontend:** Next.js 14 (App Router) + NextAuth + TanStack React Query (calls Next.js API routes that in turn use the Supabase client)
 - **Shared:** TypeScript monorepo, types in `shared/`
-- **Deployment:** Fly.io or Raspberry Pi (self-hosted Supabase) + Vercel (frontend)
+- **Deployment:** Raspberry Pi (self-hosted Supabase) + Vercel (frontend). The bot image is built on GitHub Actions (arm64 via Buildx + QEMU) and pushed to GHCR (`ghcr.io/strawhatluka/bwaincell-backend`); the Pi only pulls. See [diagrams.md § 5](diagrams.md#5-deployment-architecture-diagram).
 
 ### Design Patterns
 
@@ -57,4 +57,4 @@ See [database-schema.md](database-schema.md) for column-level detail.
 
 ---
 
-**Last Updated:** 2026-04-15
+**Last Updated:** 2026-04-16

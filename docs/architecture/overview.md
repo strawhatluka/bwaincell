@@ -3,8 +3,8 @@
 **Project:** Bwaincell
 **Type:** Node.js Monorepo
 **Framework:** Discord.js + Express + Next.js
-**Version:** 2.1.2
-**Last Updated:** 2026-04-15
+**Version:** 2.2.0
+**Last Updated:** 2026-04-16
 
 ## System Overview
 
@@ -57,7 +57,9 @@ Note: Some earlier documentation referenced Prisma on the frontend. That integra
 - **backend/** — Express API + Discord bot (single process)
 - **frontend/** — Next.js 14 PWA
 - **shared/** — Shared TypeScript types and utilities
-- **supabase/** — Supabase configuration, migrations, seed, and typed model wrappers
+- **supabase/** — Supabase configuration, migrations, seed, typed model wrappers, and the internal npm workspace package **`@bwaincell/supabase`** (compiled to `dist/` so `main: dist/index.js` is used at runtime — see `supabase/package.json`).
+
+Backend code imports the Supabase layer via the `@database/*` TypeScript path alias defined in `backend/tsconfig.json` (`"@database/*": ["../supabase/*"]`). Example: `import Task from '@database/models/Task'`. This alias is the only idiomatic way the backend reaches into the supabase workspace — raw relative paths (`../../supabase/...`) will compile but fail at runtime inside the Docker image.
 
 ### Three-Interface Architecture
 

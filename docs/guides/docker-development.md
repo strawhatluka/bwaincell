@@ -2,14 +2,20 @@
 
 Comprehensive guide to Docker development for Bwaincell - containerized development and deployment on Raspberry Pi.
 
-> **Supabase update (2026-04-15):** The **database is no longer a `postgres` service in `docker-compose.yml`**. Postgres (plus PostgREST, GoTrue, Studio) is provisioned and orchestrated by the **Supabase CLI** as a separate container stack started via `npm run supabase:start` (local dev) or `supabase start` on the production Pi. `docker-compose.yml` now only concerns the **backend** (Discord bot + Express API) and, optionally, the **frontend** container for Pi deployments.
+> **Deployment update (2026-04-16):** The backend image is now built on **GitHub Actions** (arm64 via Buildx + QEMU on `ubuntu-latest`) and pushed to **GHCR** (`ghcr.io/strawhatluka/bwaincell-backend:{latest,<git-sha>}`). The Raspberry Pi **never builds** the image — `docker compose up -d` on the Pi only pulls and runs. This saves ~15 minutes per deploy compared to the old Pi-local build. The `build-bot-image` + `deploy-bot` jobs in `.github/workflows/deploy.yml` orchestrate this.
+>
+> The backend `Dockerfile` no longer hardcodes `--platform=linux/arm64` — Buildx supplies the platform from the workflow.
+>
+> `docker-compose.yml` on the Pi uses `image: ghcr.io/strawhatluka/bwaincell-backend:latest` (no `build:` block) and adds `extra_hosts: ["host.docker.internal:host-gateway"]` so the bot container can reach the self-hosted Supabase Kong on the Pi host loopback.
+
+> **Supabase update (2026-04-15):** The **database is no longer a `postgres` service in `docker-compose.yml`**. Postgres (plus PostgREST, GoTrue, Studio) is provisioned and orchestrated by the **Supabase CLI** as a separate container stack started via `npm run supabase:start` (local dev) or `supabase start` on the production Pi. `docker-compose.yml` now only concerns the **backend** (Discord bot + Express API).
 >
 > Practical consequences:
 >
 > - Any section below that references a `postgres` or `db` service inside `docker-compose.yml` is **stale** and should be read as "the Supabase CLI now handles that container stack separately".
 > - `DATABASE_URL` is no longer used; the backend reads `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`.
 > - Start order in local dev: `npm run supabase:start` first, then `npm run dev` (or `docker compose up -d` for containerized runs).
-> - On the Pi, both the Bwaincell backend container and the Supabase stack share `127.0.0.1` — the backend reaches Supabase at `http://127.0.0.1:54321`.
+> - On the Pi, the containerized bot reaches Supabase at `http://host.docker.internal:54321` (not `127.0.0.1` — see ["Why host.docker.internal Matters"](#why-hostdockerinternal-matters) below).
 
 ## Table of Contents
 
@@ -59,7 +65,7 @@ docker compose version
 
 ```
 bwaincell/
-├── docker-compose.yml          # Production orchestration
+├── docker-compose.yml          # Production orchestration (backend service only)
 ├── docker-compose.dev.yml      # Development orchestration
 ├── .dockerignore               # Ignore files in Docker build
 ├── backend/
@@ -68,8 +74,11 @@ bwaincell/
 ├── frontend/
 │   ├── Dockerfile              # Frontend build (not used - Vercel deployment)
 │   └── src/
-└── database/
-    └── init.sql                # Database initialization
+├── shared/                     # @bwaincell/shared npm workspace
+└── supabase/                   # @bwaincell/supabase npm workspace
+    ├── config.toml             # Self-hosted Supabase stack config
+    ├── migrations/             # SQL migrations (applied via `supabase migration up`)
+    └── models/                 # Backend model layer (imported via @database/*)
 ```
 
 ### Quick Start
@@ -77,7 +86,9 @@ bwaincell/
 **Start Development Environment:**
 
 ```bash
-# Start all services (backend + database)
+# Start the backend container (only service defined in docker-compose.yml)
+# The database runs as a separate Supabase stack — start it first with:
+#   npm run supabase:start
 docker compose up -d
 
 # View logs
@@ -90,11 +101,12 @@ docker compose down
 **Start with Specific Services:**
 
 ```bash
-# Start only database
-docker compose up -d postgres
-
-# Start backend (depends on database)
+# Start only the backend (the database is NOT in docker-compose.yml;
+# it is the self-hosted Supabase stack, started separately via the Supabase CLI)
 docker compose up -d backend
+
+# Start the Supabase stack (local dev)
+npm run supabase:start
 ```
 
 ---
@@ -111,80 +123,79 @@ docker compose up -d backend
 # Build Context: Repository root (.)
 # =============================================================================
 # This Dockerfile builds the Discord bot + Express API for deployment on Raspberry Pi 4B
-# PostgreSQL database in separate container (see docker-compose.yml)
+# Supabase is managed as a separate CLI-orchestrated Docker stack (not defined here)
 # Frontend (PWA) deployed separately on Vercel
+#
+# Platform: arm64 is supplied by Buildx from the GHA workflow
+# (platforms: linux/arm64) — no longer hardcoded with --platform=linux/arm64.
 # =============================================================================
 
 # -----------------------------------------------------------------------------
 # Stage 1: Dependencies
 # -----------------------------------------------------------------------------
-FROM --platform=linux/arm64 node:18-alpine AS deps
+FROM node:18-alpine AS deps
 
-# Install dependencies for native modules (pg for PostgreSQL)
+# Install dependencies for native modules
 RUN apk add --no-cache libc6-compat postgresql-client && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
-# Copy workspace package files (root + backend + shared)
+# Copy workspace package files (root + backend + shared + supabase)
+# NOTE: supabase/ is an npm workspace (@bwaincell/supabase) as of 2026-04-15.
 COPY package.json package-lock.json* ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
+COPY supabase/package.json ./supabase/
 
-# Install production dependencies only (disable husky during install)
-# This installs for all workspaces
-RUN HUSKY=0 npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# Install production dependencies only (disable husky during install).
+# --ignore-scripts required: postinstall runs tsc which isn't available with --omit=dev.
+# npm rebuild skia-canvas pulls the prebuilt ARM64 binary that --ignore-scripts skipped.
+RUN HUSKY=0 npm ci --omit=dev --ignore-scripts && \
+    npm rebuild skia-canvas && \
+    npm cache clean --force
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
 # -----------------------------------------------------------------------------
-FROM --platform=linux/arm64 node:18-alpine AS builder
+FROM node:18-alpine AS builder
 
-# Install build dependencies for native modules (pg, TypeScript compilation)
 RUN apk add --no-cache python3 make g++ postgresql-dev && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
-# Copy workspace package files
+# Copy workspace package files (all four workspaces)
 COPY package.json package-lock.json* ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
+COPY supabase/package.json ./supabase/
 
-# Install ALL dependencies (including devDependencies for TypeScript compilation)
-# Skip prepare script (husky) during Docker build
 RUN HUSKY=0 npm ci --ignore-scripts
 
-# Copy workspace TypeScript configuration
 COPY tsconfig.json ./
-
-# Copy shared source code (backend depends on this)
 COPY shared/ ./shared/
+COPY supabase/ ./supabase/       # supabase workspace source (models, client)
 
 # Copy backend source files for build
 COPY backend/src/ ./backend/src/
 COPY backend/commands/ ./backend/commands/
-COPY backend/database/ ./backend/database/
 COPY backend/utils/ ./backend/utils/
 COPY backend/config/ ./backend/config/
 COPY backend/types/ ./backend/types/
 COPY backend/tsconfig.json ./backend/
-
-# Note: backend also has local shared/, utils/, types/ directories
-# These are separate from the monorepo shared/ package
 COPY backend/shared/ ./backend/shared/
 
-# Set build environment
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-# Clean any pre-existing compiled code to force fresh compilation
-RUN rm -rf backend/dist/ shared/dist/ *.tsbuildinfo
+# Clean any pre-existing compiled code
+RUN rm -rf backend/dist/ shared/dist/ supabase/dist/ *.tsbuildinfo
 
-# Build shared package first (backend depends on this for types)
+# Build order: shared first, then supabase (backend imports it via @database/*),
+# then backend.
 RUN npm run build --workspace=shared
-
-# Compile backend TypeScript
+RUN npx tsc --build supabase
 RUN npm run build --workspace=backend
 
 # Validate compiled code exists
@@ -194,58 +205,62 @@ RUN test -f backend/dist/src/bot.js || \
 # -----------------------------------------------------------------------------
 # Stage 3: Runner
 # -----------------------------------------------------------------------------
-FROM --platform=linux/arm64 node:18-alpine AS runner
+FROM node:18-alpine AS runner
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init curl && \
+# dumb-init for PID 1 signal handling + fonts for skia-canvas text rendering
+RUN apk add --no-cache dumb-init curl fontconfig ttf-dejavu && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
-# Create non-root user for security
 RUN addgroup --system --gid 1001 botuser && \
     adduser --system --uid 1001 botuser
 
-# Copy production dependencies from deps stage (npm workspaces installs all deps at root)
+# Production dependencies (npm workspaces installs all workspace deps at root)
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy compiled backend from builder
+# Compiled backend
 COPY --from=builder --chown=botuser:botuser /app/backend/dist ./backend/dist
-
-# Copy backend package.json for runtime
 COPY --chown=botuser:botuser backend/package.json ./backend/
 
-# Copy compiled shared types (if backend imports them at runtime)
+# Compiled shared package
 COPY --from=builder --chown=botuser:botuser /app/shared/dist ./shared/dist
 COPY --chown=botuser:botuser shared/package.json ./shared/
 
-# Create data and logs directories with proper permissions
+# Compiled supabase workspace — backend imports these at runtime via @database/*
+COPY --from=builder --chown=botuser:botuser /app/supabase/dist ./supabase/dist
+COPY --chown=botuser:botuser supabase/package.json ./supabase/
+
+# CHANGELOG.md (release notes) for the releaseAnnouncer service
+COPY --chown=botuser:botuser CHANGELOG.md ./
+
 RUN mkdir -p /app/data /app/logs && \
     chown -R botuser:botuser /app
 
-# Set working directory to backend for execution
 WORKDIR /app/backend
-
-# Switch to non-root user
 USER botuser
 
-# Expose health check port (Express API)
 EXPOSE 3000
-
-# Set environment variables
 ENV NODE_ENV=production \
     PORT=3000
 
-# Health check (Express API health endpoint)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+# start-period must be generous: bot loads DB, commands, scheduler,
+# Discord login, THEN starts the Express API.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-
-# Start the bot
 CMD ["node", "dist/src/bot.js"]
 ```
+
+Key differences from the previous (pre-2026-04-15) Dockerfile:
+
+- `FROM node:18-alpine` on all three stages **no longer hardcodes** `--platform=linux/arm64`. The platform is supplied by Buildx in `.github/workflows/deploy.yml` (`platforms: linux/arm64`). This lets the same Dockerfile build natively on amd64 for local Linux/macOS dev if desired.
+- `supabase/` is an npm workspace (`@bwaincell/supabase`) — its `package.json` is copied in `deps` and `builder`, its source is copied into `builder`, and its compiled `dist/` is copied into `runner`.
+- The builder stage runs `npx tsc --build supabase` before the backend build so backend's `@database/*` imports resolve against compiled `supabase/dist/`.
+- The old `COPY backend/database/ ./backend/database/` step is gone — that directory no longer exists; models live in `supabase/models/`.
+- Health check uses `--start-period=60s --retries=5` (Pi needs more time on cold boot; the bot initializes DB, commands, scheduler, Discord login, then the Express API).
+- Runner installs `fontconfig ttf-dejavu` for `skia-canvas` text rendering.
 
 ### Multi-Stage Benefits
 
@@ -278,6 +293,10 @@ CMD ["node", "dist/src/bot.js"]
 - **Better Security:** No build tools in production image
 - **Layer Caching:** Faster rebuilds (only changed layers rebuild)
 
+**Where does the build run?**
+
+As of 2026-04-16, the multi-stage build executes **on GitHub Actions**, not on the Pi. The `build-bot-image` job on `ubuntu-latest` uses QEMU + Buildx to cross-build the arm64 image and pushes it to `ghcr.io/strawhatluka/bwaincell-backend:{latest,<git-sha>}`. The Pi then runs only `docker pull` + `docker compose up -d`, which cuts about 15 minutes off each deploy compared to running the full multi-stage build on the Pi. Buildx also leverages the GitHub Actions cache (`cache-from: type=gha`, `cache-to: type=gha,mode=max`), so unchanged layers are not rebuilt across runs.
+
 ---
 
 ## Container Orchestration
@@ -291,168 +310,77 @@ CMD ["node", "dist/src/bot.js"]
 # Bwaincell - Production Docker Compose (Monorepo)
 # =============================================================================
 # Architecture:
-#   - Backend (Discord Bot + Express API) + PostgreSQL → Raspberry Pi (sunny-pi)
+#   - Backend (Discord Bot + Express API) → Raspberry Pi (sunny-pi)
+#   - Database: Self-hosted Supabase on the Pi (managed by `supabase start`,
+#     NOT defined here; see supabase/config.toml)
 #   - Frontend (Next.js PWA) → Vercel (separate deployment)
 # =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
-  # PostgreSQL Database - Production
-  # ---------------------------------------------------------------------------
-  postgres:
-    image: postgres:15-alpine
-    container_name: bwaincell-db
-    restart: unless-stopped
-
-    # Load environment variables from .env
-    env_file:
-      - .env
-
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-bwaincell}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-bwaincell}
-      # Performance tuning for production (conservative for household bot)
-      POSTGRES_SHARED_BUFFERS: 128MB
-      POSTGRES_MAX_CONNECTIONS: 20
-
-    volumes:
-      # Persistent data storage on Pi
-      - postgres-data:/var/lib/postgresql/data
-      # Database initialization script
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
-
-    # Expose port 5433 externally to avoid conflict with sunny-stack-db (5432)
-    ports:
-      - '5433:5432'
-
-    networks:
-      - bwaincell-network
-
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-bwaincell}']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-    # Resource limits optimized for Raspberry Pi 4B
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5' # Max 0.5 cores
-          memory: 512M # Max 512MB RAM
-        reservations:
-          cpus: '0.25' # Min 0.25 cores reserved
-          memory: 256M # Min 256MB RAM reserved
-
-    # Logging configuration with rotation
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '10m' # Max 10MB per log file
-        max-file: '3' # Keep 3 rotated files
-        compress: 'true'
-
-    # Security options
-    security_opt:
-      - no-new-privileges:true
-
-    labels:
-      com.bwaincell.service: 'postgres'
-      com.bwaincell.environment: 'production'
-      com.bwaincell.platform: 'raspberry-pi'
-
-  # ---------------------------------------------------------------------------
-  # Backend Service - Discord.js 14 + Express API + PostgreSQL (Monorepo)
+  # Backend Service - Discord.js 14 + Express API + Supabase (Monorepo)
   # ---------------------------------------------------------------------------
   backend:
-    # Build from monorepo root context
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-
-    image: bwaincell-backend:latest
+    # Image is built on GitHub Actions (ubuntu-latest, arm64 via Buildx+QEMU)
+    # and pushed to GHCR. On the Pi, `docker compose up -d` only PULLS this image.
+    image: ghcr.io/strawhatluka/bwaincell-backend:latest
     container_name: bwaincell-backend
 
-    # Restart policy for high availability
     restart: unless-stopped
 
-    # Environment variables from production file
     env_file:
       - .env
 
-    # Additional environment overrides
     environment:
       - NODE_ENV=production
       - DEPLOYMENT_MODE=pi
-      - TZ=America/Chicago # Set your timezone (important for reminders)
+      - TZ=America/Los_Angeles
+      # Supabase connection (bot reads these at boot)
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
 
-    # Health check configuration (matches Dockerfile HEALTHCHECK)
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 60s
 
-    # Port mapping
     ports:
-      - '3000:3000' # Express API + health endpoint
+      - '3000:3000'
 
-    # Persistent storage for logs
+    # Map host.docker.internal to the Docker host so the bot can reach
+    # services running on the Pi itself (self-hosted Supabase Kong on :54321).
+    # Required for SUPABASE_URL=http://host.docker.internal:54321 to resolve.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
     volumes:
-      - ./data:/app/data # Data persistence (if needed)
-      - ./logs:/app/logs # Log files persistence
+      - ./data:/app/data
+      - ./logs:/app/logs
 
-    # Resource limits optimized for Raspberry Pi 4B (4GB RAM model)
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0' # Max 1 core (Pi has 4)
-          memory: 512M # Max 512MB RAM
-        reservations:
-          cpus: '0.25' # Min 0.25 cores reserved
-          memory: 128M # Min 128MB RAM reserved
+    # NOTE: deploy.resources is intentionally OMITTED — the Pi kernel lacks
+    # the cgroup support Compose's deploy.resources requires.
 
-    # Logging configuration with rotation
     logging:
       driver: 'json-file'
       options:
-        max-size: '25m' # Max 25MB per log file
-        max-file: '3' # Keep 3 rotated files (75MB total)
-        compress: 'true' # Compress rotated logs
+        max-size: '25m'
+        max-file: '3'
+        compress: 'true'
 
-    # Security options
     security_opt:
-      - no-new-privileges:true # Prevent privilege escalation
+      - no-new-privileges:true
 
-    # Run as non-root user (matches Dockerfile USER)
     user: '1001:1001'
 
-    # Network configuration
     networks:
       - bwaincell-network
 
-    # Wait for PostgreSQL to be healthy before starting
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-    # Labels for management
     labels:
       com.bwaincell.service: 'discord-bot'
       com.bwaincell.environment: 'production'
       com.bwaincell.platform: 'raspberry-pi'
-
-# -----------------------------------------------------------------------------
-# Volumes
-# -----------------------------------------------------------------------------
-volumes:
-  postgres-data:
-    driver: local
-    labels:
-      com.bwaincell.description: 'PostgreSQL production database storage'
 
 # -----------------------------------------------------------------------------
 # Networks
@@ -464,14 +392,62 @@ networks:
       com.bwaincell.description: 'Production network for Pi services'
 ```
 
+Key differences from the previous compose file:
+
+- **No `postgres` service.** Supabase Postgres (plus Kong, PostgREST, GoTrue, Studio) runs as a separate CLI-managed Docker stack started with `supabase start` on the Pi. Do **not** define a `postgres` service here.
+- **`image:` (no `build:`).** The Pi pulls the image from GHCR. To build locally for testing, run `docker build -t ghcr.io/strawhatluka/bwaincell-backend:latest -f backend/Dockerfile .` manually.
+- **`extra_hosts: host.docker.internal:host-gateway`** — required for the bot to reach Supabase Kong on the Pi host loopback (see next section).
+- **`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` in `environment:`** — explicit pass-through from `.env` so compose-time substitution fails loudly if they are missing.
+- **`TZ=America/Los_Angeles`** set explicitly on the backend service so
+  scheduled reminders and cron jobs fire in the intended local timezone.
+- **`deploy.resources` removed** — the Pi kernel lacks the cgroup support Compose's `deploy.resources` requires.
+- **No `depends_on: postgres`** — there is no postgres service in this compose file.
+- **Health check** uses `retries: 5`, `start_period: 60s` (matches the Dockerfile HEALTHCHECK).
+
+### Why `host.docker.internal` Matters
+
+On the Pi, two separate Docker stacks run side by side:
+
+1. **The Bwaincell backend** (this `docker-compose.yml`) — the bot container on `bwaincell-network`.
+2. **The Supabase stack** (started by `supabase start` from the CLI) — Kong bound to `127.0.0.1:54321` on the **Pi host**.
+
+Because they are separate compose projects, the bot container and the Supabase containers are on **different Docker networks**. From inside the bot container, `127.0.0.1:54321` is the bot itself — not the Supabase Kong. The bot cannot reach Kong directly by container name either, because it is not on the Supabase network.
+
+The fix is a special DNS alias:
+
+```yaml
+extra_hosts:
+  - 'host.docker.internal:host-gateway'
+```
+
+On Linux, Docker resolves `host-gateway` to the host's default bridge IP (commonly `172.17.0.1`). Kong is bound on the Pi host loopback at `:54321`, so from inside the bot container, `http://host.docker.internal:54321` reaches it through the host-gateway.
+
+Therefore `.env` on the Pi must set:
+
+```env
+SUPABASE_URL=http://host.docker.internal:54321
+```
+
+Using `http://127.0.0.1:54321` inside the container will fail with `ECONNREFUSED`. `127.0.0.1:54321` is still correct for the Pi host itself (e.g., the health-check curl inside the `deploy-supabase` workflow job, or running `npm run dev` natively without Docker).
+
+> **Pi prerequisite — disable IPv6 at the kernel level.** The Raspberry Pi OS gives the Pi an IPv6 Unique Local Address but often has no IPv6 route, so Node's DNS resolver stalls on AAAA lookups inside the container before failing over to IPv4. Run once on the Pi:
+>
+> ```bash
+> sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+> sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+> sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+> # Persist by adding the same lines to /etc/sysctl.d/99-disable-ipv6.conf
+> ```
+
 ### docker-compose Commands
 
 ```bash
 # Start all services
 docker compose up -d
 
-# Start specific service
-docker compose up -d postgres
+# Start specific service (only `backend` is defined in docker-compose.yml;
+# the database is the separately-managed Supabase stack — see `supabase start`)
+docker compose up -d backend
 
 # View logs (follow)
 docker compose logs -f
@@ -485,7 +461,7 @@ docker compose down
 # Stop and remove volumes (WARNING: deletes database data)
 docker compose down -v
 
-# Rebuild backend image
+# Rebuild backend image (local dev only — production uses GHCR pull; see deployment.md)
 docker compose build --no-cache backend
 
 # Restart specific service
@@ -497,8 +473,9 @@ docker compose ps
 # Execute command in running container
 docker compose exec backend sh
 
-# View resource usage
-docker stats bwaincell-backend bwaincell-db
+# View resource usage (only the backend container is in docker-compose.yml;
+# Supabase runs its own containers — list them with `docker ps` and pass by name)
+docker stats bwaincell-backend
 ```
 
 ---
@@ -513,31 +490,44 @@ docker stats bwaincell-backend bwaincell-db
 # =============================================================================
 # Bwaincell Environment Variables (Docker Production)
 # =============================================================================
+# This is an abridged subset of `.env.example` at the repo root — see that file
+# for the full list (Google OAuth, NextAuth, GitHub integration, Gemini, etc.).
+# =============================================================================
 
-# Discord Bot Configuration
+# Discord Bot Configuration (REQUIRED)
 BOT_TOKEN=your_bot_token_here
 CLIENT_ID=your_client_id_here
 GUILD_ID=your_guild_id_for_testing
 
-# PostgreSQL Configuration
-POSTGRES_USER=bwaincell
-POSTGRES_PASSWORD=your_secure_database_password
-POSTGRES_DB=bwaincell
+# User mapping — Email to Discord ID (REQUIRED for API authentication)
+USER1_EMAIL=your@email.com
+USER1_DISCORD_ID=your_discord_user_id_here
+USER2_EMAIL=partner@email.com
+USER2_DISCORD_ID=partner_discord_user_id_here
 
-# Database connection string (for Docker network)
-DATABASE_URL=postgresql://bwaincell:your_secure_database_password@postgres:5432/bwaincell
+# Supabase Configuration (REQUIRED)
+# On the Pi (containerized bot), `host.docker.internal` resolves to the Pi host
+# where the self-hosted Supabase Kong is bound on :54321. For `npm run dev`
+# natively (no Docker), use http://127.0.0.1:54321.
+SUPABASE_URL=http://host.docker.internal:54321
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_DB_PASSWORD=generate_with_openssl_rand_base64_32
 
-# JWT Configuration
+# JWT + NextAuth secrets (generate with: openssl rand -base64 32)
 JWT_SECRET=your_jwt_secret_here
+NEXTAUTH_SECRET=your_nextauth_secret_here
+NEXTAUTH_URL=https://bwaincell.sunny-stack.com
 
-# API Configuration
+# API / runtime
 API_PORT=3000
 PORT=3000
 NODE_ENV=production
 DEPLOYMENT_MODE=pi
 
-# Timezone
-TZ=America/Chicago
+# Timezone (must match docker-compose.yml `TZ:` on the backend service)
+TIMEZONE=America/Los_Angeles
+TZ=America/Los_Angeles
 ```
 
 ### Loading Environment Variables
@@ -582,85 +572,26 @@ NODE_ENV=development docker compose up
 
 ## Database in Docker
 
-### PostgreSQL Container
+As of 2026-04-15, Bwaincell no longer runs a standalone `postgres` service in
+`docker-compose.yml`. The database layer is **self-hosted Supabase**, which
+provisions its own container stack (Postgres, Kong, PostgREST, GoTrue, Studio,
+etc.) separately from this compose file.
 
-**Configuration:**
+**Managed by the Supabase CLI, not `docker-compose.yml`:**
 
-```yaml
-postgres:
-  image: postgres:15-alpine
-  container_name: bwaincell-db
+- Local dev: `npm run supabase:start` / `npm run supabase:stop` /
+  `npm run supabase:status` / `npm run supabase:reset`.
+- Production (Pi): `supabase start` from the repo root on the Pi.
+- Config: `supabase/config.toml` (api on `:54321`, db on `:5433`,
+  studio on `:54323`).
+- Migrations live in `supabase/migrations/` and are applied via
+  `supabase migration up` (or automatically on `supabase:reset`).
+- Persistence is handled by Supabase's own Docker volumes; do not add a
+  `postgres-data` volume to `docker-compose.yml`.
 
-  environment:
-    POSTGRES_USER: ${POSTGRES_USER:-bwaincell}
-    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    POSTGRES_DB: ${POSTGRES_DB:-bwaincell}
-
-  volumes:
-    - postgres-data:/var/lib/postgresql/data # Persistent storage
-    - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql # Initialization
-
-  ports:
-    - '5433:5432' # Expose externally (avoid conflict with port 5432)
-```
-
-### Database Initialization
-
-**File:** `database/init.sql`
-
-```sql
--- Database initialization script
--- Runs automatically when PostgreSQL container starts (if database doesn't exist)
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Create tables (if using raw SQL instead of Sequelize migrations)
--- CREATE TABLE tasks (...);
--- CREATE TABLE lists (...);
-```
-
-### Accessing Database from Host
-
-```bash
-# psql from host (if PostgreSQL installed)
-psql -h localhost -p 5433 -U bwaincell -d bwaincell
-
-# psql from Docker
-docker compose exec postgres psql -U bwaincell -d bwaincell
-
-# List databases
-docker compose exec postgres psql -U bwaincell -c "\l"
-
-# List tables
-docker compose exec postgres psql -U bwaincell -d bwaincell -c "\dt"
-
-# Dump database
-docker compose exec postgres pg_dump -U bwaincell bwaincell > backup.sql
-
-# Restore database
-cat backup.sql | docker compose exec -T postgres psql -U bwaincell bwaincell
-```
-
-### Database Persistence
-
-**Named Volume (Recommended):**
-
-```yaml
-volumes:
-  postgres-data:
-    driver: local
-```
-
-**Data persists even after `docker compose down`**
-
-**Bind Mount (Alternative):**
-
-```yaml
-volumes:
-  - ./data/postgres:/var/lib/postgresql/data
-```
-
-**Data stored in `./data/postgres` on host**
+For the full database setup, migrations, backup strategy, and troubleshooting,
+see [`docs/backend/supabase/README.md`](../backend/supabase/README.md) and the
+[Supabase update note](#) at the top of this page.
 
 ---
 
@@ -804,8 +735,9 @@ docker stats bwaincell-backend
 # Network configuration
 docker network inspect bwaincell-network
 
-# Volume details
-docker volume inspect bwaincell_postgres-data
+# Volume details (list all volumes first — the backend mounts ./data and ./logs
+# as bind mounts, not named volumes; Supabase manages its own Postgres volumes)
+docker volume ls
 ```
 
 ---
@@ -990,19 +922,21 @@ docker compose restart
 **2. Database Connection Failed:**
 
 ```bash
-# Error: ECONNREFUSED postgres:5432
+# Error: ECONNREFUSED 127.0.0.1:54321  (or host.docker.internal:54321)
 ```
 
 **Fix:**
 
 ```bash
-# Wait for database to be ready
-docker compose up -d postgres
-docker compose logs -f postgres
-# Wait for "database system is ready to accept connections"
+# Start the self-hosted Supabase stack first (separate from docker-compose.yml)
+npm run supabase:start
+npm run supabase:status  # confirm Kong is listening on :54321
 
-# Then start backend
+# Then start the backend container
 docker compose up -d backend
+
+# From inside the container, SUPABASE_URL must be http://host.docker.internal:54321
+# (127.0.0.1 inside the container is the container itself, not the Pi host)
 ```
 
 **3. Out of Disk Space:**
@@ -1055,7 +989,7 @@ exit
 # Clear npm cache
 npm cache clean --force
 
-# Rebuild without cache
+# Rebuild without cache (local dev only — production uses GHCR pull; see deployment.md)
 docker compose build --no-cache backend
 ```
 
@@ -1101,7 +1035,7 @@ docker compose up -d
 
 - **Docker Documentation:** [docs.docker.com](https://docs.docker.com/)
 - **Docker Compose Documentation:** [docs.docker.com/compose/](https://docs.docker.com/compose/)
-- **PostgreSQL Docker Image:** [hub.docker.com/\_/postgres](https://hub.docker.com/_/postgres)
+- **Supabase Self-Hosting:** [supabase.com/docs/guides/self-hosting](https://supabase.com/docs/guides/self-hosting)
 - **Node.js Docker Best Practices:** [github.com/nodejs/docker-node/blob/main/docs/BestPractices.md](https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md)
 
 ---
